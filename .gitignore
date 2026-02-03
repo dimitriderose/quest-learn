@@ -1,0 +1,31 @@
+# QuestLearn Monorepo .gitignore
+
+# Backend (Spring Boot + Kotlin)
+backend/.gradle/
+backend/build/
+backend/out/
+backend/bin/
+backend/.idea/
+backend/*.iml
+backend/target/
+backend/*.log
+
+# Frontend (Next.js + React)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.env*.local
+frontend/.vercel
+frontend/*.tsbuildinfo
+
+# Shared
+.env
+.env.local
+*.env
+.DS_Store
+.idea/
+.vscode/
+*.log
+tmp/
+temp/
