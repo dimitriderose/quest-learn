@@ -1,8 +1,21 @@
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  
   jpa:
     show-sql: true
+    hibernate:
+      ddl-auto: validate
   
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
 logging:
   level:
     com.questlearn: DEBUG
     org.springframework.security: DEBUG
+    org.flywaydb: DEBUG
+    org.hibernate.SQL: DEBUG
