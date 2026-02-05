@@ -14,13 +14,19 @@ data class Curriculum(
     
     // Curriculum info
     val title: String = "",
+    val topic: String = "",  // Added field
     val description: String = "",
     val subject: String = "",
     val gradeLevel: Int = 0,
     
+    // Duration
+    val duration: String = "",  // Added field - e.g., "2 weeks", "5 days"
+    val estimatedMinutes: Int = 0,
+    
     // Learning objectives
     val learningObjective: String = "",
-    val standardsAlignment: List<StandardAlignment> = emptyList(),
+    val standards: List<StandardAlignment> = emptyList(),  // Renamed from standardsAlignment
+    val standardsAlignment: List<StandardAlignment> = emptyList(),  // Keep both for compatibility
     
     // Theme and story
     val theme: CurriculumTheme = CurriculumTheme.ADVENTURE,
@@ -30,7 +36,6 @@ data class Curriculum(
     
     // Quest structure
     val questCount: Int = 0,
-    val estimatedMinutes: Int = 0,
     val difficulty: String = "medium",  // easy, medium, hard
     
     // Quests
