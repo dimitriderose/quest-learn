@@ -1,0 +1,32 @@
+# Docker Compose for LOCAL DEVELOPMENT ONLY
+# This spins up PostgreSQL locally for testing
+# NOT used for Railway deployment
+#
+# SETUP:
+# 1. Copy .env.local.example to .env.local
+# 2. Fill in POSTGRES_DB, POSTGRES_USER, POSTGRES_PASSWORD
+# 3. Run: docker-compose up -d
+
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: questlearn-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
