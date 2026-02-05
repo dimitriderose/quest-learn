@@ -15,8 +15,8 @@ COPY src ./src
 # Build
 RUN gradle bootJar --no-daemon
 
-# Runtime image - using Eclipse Temurin (official replacement for openjdk)
-FROM eclipse-temurin:17-jre-alpine
+# Runtime image - Eclipse Temurin (official OpenJDK replacement)
+FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
