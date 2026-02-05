@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # Firebase Emulator - No credentials needed!
+  firebase:
+    image: node:18-alpine
+    working_dir: /app
+    ports:
+      - "4000:4000"  # Emulator UI
+      - "8080:8080"  # Firestore
+      - "9099:9099"  # Auth
+    volumes:
+      - ./firebase:/app
+    command: |
+      sh -c "
+        npm install -g firebase-tools && \
+        firebase emulators:start --project demo-questlearn --only firestore,auth
+      "
+    networks:
+      - questlearn
+
+  # QuestLearn Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8081:8080"
+    environment:
+      - FIRESTORE_EMULATOR_HOST=firebase:8080
+      - FIREBASE_AUTH_EMULATOR_HOST=firebase:9099
+      - SPRING_PROFILES_ACTIVE=dev
+    depends_on:
+      - firebase
+    networks:
+      - questlearn
+    volumes:
+      - ./backend/src:/app/src
+
+networks:
+  questlearn:
+    driver: bridge

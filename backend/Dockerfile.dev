@@ -1,0 +1,27 @@
+FROM gradle:8.5-jdk17-alpine AS builder
+
+WORKDIR /app
+
+# Copy Gradle files
+COPY build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY gradle ./gradle
+
+# Download dependencies
+RUN gradle dependencies --no-daemon
+
+# Copy source
+COPY src ./src
+
+# Build
+RUN gradle bootJar --no-daemon
+
+# Runtime image
+FROM openjdk:17-jdk-slim
+
+WORKDIR /app
+
+COPY --from=builder /app/build/libs/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar"]
