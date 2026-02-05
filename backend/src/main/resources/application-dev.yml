@@ -1,0 +1,8 @@
+spring:
+  jpa:
+    show-sql: true
+  
+logging:
+  level:
+    com.questlearn: DEBUG
+    org.springframework.security: DEBUG
