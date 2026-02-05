@@ -5,9 +5,9 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_DB: questlearn_dev
-      POSTGRES_USER: questlearn
-      POSTGRES_PASSWORD: questlearn_dev_password
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -15,10 +15,10 @@ services:
     networks:
       - questlearn
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U questlearn"]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
   # Firebase Emulator
   firebase:
@@ -50,9 +50,9 @@ services:
       - FIRESTORE_EMULATOR_HOST=firebase:8080
       - FIREBASE_AUTH_EMULATOR_HOST=firebase:9099
       - SPRING_PROFILES_ACTIVE=dev
-      - DATABASE_URL=jdbc:postgresql://postgres:5432/questlearn_dev
-      - DATABASE_USERNAME=questlearn
-      - DATABASE_PASSWORD=questlearn_dev_password
+      - DATABASE_URL=jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      - DATABASE_USERNAME=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
