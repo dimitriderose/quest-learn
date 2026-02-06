@@ -1,5 +1,6 @@
 package com.questlearn.config
 
+import com.google.api.gax.core.NoCredentials
 import com.google.auth.oauth2.GoogleCredentials
 import com.google.cloud.firestore.Firestore
 import com.google.cloud.firestore.FirestoreOptions
@@ -62,7 +63,7 @@ class FirebaseConfig {
             val options = FirestoreOptions.newBuilder()
                 .setProjectId(projectId)
                 .setHost(emulatorHost)
-                .setCredentials(GoogleCredentials.none())
+                .setCredentials(NoCredentials.getInstance())
                 .build()
 
             val firestore = options.service
