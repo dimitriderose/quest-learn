@@ -1,67 +1,52 @@
 package com.questlearn.service
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.Query
 import com.questlearn.model.*
+import com.questlearn.repository.StudentProgressRepository
+import com.questlearn.repository.StudentActionRepository
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
+@Transactional
 class ProgressService(
-    private val firestore: Firestore
+    private val progressRepository: StudentProgressRepository,
+    private val actionRepository: StudentActionRepository
 ) {
     
     /**
      * Get student progress for a curriculum
      */
-    suspend fun getStudentProgress(studentId: String, curriculumId: String): StudentProgress? {
-        val id = "${studentId}_${curriculumId}"
-        val doc = firestore.collection("studentProgress").document(id).get().get()
-        return if (doc.exists()) doc.toObject(StudentProgress::class.java) else null
+    fun getStudentProgress(studentId: String, curriculumId: String): StudentProgress? {
+        return progressRepository.findByStudentIdAndCurriculumId(studentId, curriculumId)
     }
     
     /**
      * Get all progress for a student
      */
-    suspend fun getAllStudentProgress(studentId: String): List<StudentProgress> {
-        val snapshot = firestore.collection("studentProgress")
-            .whereEqualTo("studentId", studentId)
-            .orderBy("lastActivityAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(StudentProgress::class.java) }
+    fun getAllStudentProgress(studentId: String): List<StudentProgress> {
+        return progressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
     }
     
     /**
      * Get all progress for a curriculum (all students)
      */
-    suspend fun getCurriculumProgress(curriculumId: String): List<StudentProgress> {
-        val snapshot = firestore.collection("studentProgress")
-            .whereEqualTo("curriculumId", curriculumId)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(StudentProgress::class.java) }
+    fun getCurriculumProgress(curriculumId: String): List<StudentProgress> {
+        return progressRepository.findByCurriculumId(curriculumId)
     }
     
     /**
      * Get progress for all students in a class
      */
-    suspend fun getClassProgress(classId: String): List<StudentProgress> {
-        val snapshot = firestore.collection("studentProgress")
-            .whereEqualTo("classId", classId)
-            .orderBy("lastActivityAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(StudentProgress::class.java) }
+    fun getClassProgress(classId: String): List<StudentProgress> {
+        return progressRepository.findByClassIdOrderByLastActivityAtDesc(classId)
     }
     
     /**
      * Initialize progress for a student
      */
-    suspend fun initializeProgress(
+    fun initializeProgress(
         studentId: String,
         studentName: String,
         curriculumId: String,
@@ -71,6 +56,8 @@ class ProgressService(
         totalQuests: Int
     ): StudentProgress {
         val id = "${studentId}_${curriculumId}"
+        val now = Instant.now()
+        
         val progress = StudentProgress(
             id = id,
             studentId = studentId,
@@ -81,32 +68,40 @@ class ProgressService(
             teacherId = teacherId,
             status = ProgressStatus.NOT_STARTED,
             totalQuests = totalQuests,
-            startedAt = Timestamp.now(),
-            lastActivityAt = Timestamp.now(),
-            updatedAt = Timestamp.now()
+            startedAt = now,
+            lastActivityAt = now,
+            updatedAt = now
         )
         
-        firestore.collection("studentProgress").document(id).set(progress).get()
-        return progress
+        return progressRepository.save(progress)
     }
     
     /**
      * Update progress
      */
-    suspend fun updateProgress(studentId: String, curriculumId: String, updates: Map<String, Any>): StudentProgress? {
-        val id = "${studentId}_${curriculumId}"
-        val updatedMap = updates.toMutableMap()
-        updatedMap["updatedAt"] = Timestamp.now()
-        updatedMap["lastActivityAt"] = Timestamp.now()
+    fun updateProgress(studentId: String, curriculumId: String, updates: Map<String, Any>): StudentProgress? {
+        val existing = getStudentProgress(studentId, curriculumId) ?: return null
+        val now = Instant.now()
         
-        firestore.collection("studentProgress").document(id).update(updatedMap).get()
-        return getStudentProgress(studentId, curriculumId)
+        // Apply updates to create new instance (data class copy)
+        val updated = existing.copy(
+            progressPercentage = updates["progressPercentage"] as? Double ?: existing.progressPercentage,
+            completedQuests = updates["completedQuests"] as? Int ?: existing.completedQuests,
+            status = updates["status"] as? ProgressStatus ?: existing.status,
+            totalXP = updates["totalXP"] as? Int ?: existing.totalXP,
+            @Suppress("UNCHECKED_CAST")
+            questCompletions = updates["questCompletions"] as? List<QuestCompletion> ?: existing.questCompletions,
+            lastActivityAt = now,
+            updatedAt = now
+        )
+        
+        return progressRepository.save(updated)
     }
     
     /**
      * Record quest completion
      */
-    suspend fun recordQuestCompletion(
+    fun recordQuestCompletion(
         studentId: String,
         curriculumId: String,
         questCompletion: QuestCompletion
@@ -118,38 +113,38 @@ class ProgressService(
         val completedCount = updatedCompletions.size
         val progressPercentage = (completedCount.toDouble() / progress.totalQuests) * 100
         
-        val updates = mapOf(
-            "questCompletions" to updatedCompletions,
-            "completedQuests" to completedCount,
-            "progressPercentage" to progressPercentage,
-            "status" to if (completedCount == progress.totalQuests) ProgressStatus.COMPLETED else ProgressStatus.IN_PROGRESS,
-            "totalXP" to progress.totalXP + questCompletion.score
+        val newStatus = if (completedCount == progress.totalQuests) {
+            ProgressStatus.COMPLETED
+        } else {
+            ProgressStatus.IN_PROGRESS
+        }
+        
+        val updated = progress.copy(
+            questCompletions = updatedCompletions,
+            completedQuests = completedCount,
+            progressPercentage = progressPercentage,
+            status = newStatus,
+            totalXP = progress.totalXP + questCompletion.score,
+            lastActivityAt = Instant.now(),
+            updatedAt = Instant.now()
         )
         
-        return updateProgress(studentId, curriculumId, updates)
+        return progressRepository.save(updated)
     }
     
     /**
      * Log student action
      */
-    suspend fun logAction(action: StudentAction): String {
-        val docRef = firestore.collection("studentActions").document()
-        val actionWithId = action.copy(id = docRef.id)
-        docRef.set(actionWithId).get()
-        return docRef.id
+    fun logAction(action: StudentAction): String {
+        val saved = actionRepository.save(action)
+        return saved.id
     }
     
     /**
      * Get recent actions for a student
      */
-    suspend fun getStudentActions(studentId: String, limit: Int = 20): List<StudentAction> {
-        val snapshot = firestore.collection("studentActions")
-            .whereEqualTo("studentId", studentId)
-            .orderBy("timestamp", Query.Direction.DESCENDING)
-            .limit(limit)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(StudentAction::class.java) }
+    fun getStudentActions(studentId: String, limit: Int = 20): List<StudentAction> {
+        val pageable = PageRequest.of(0, limit)
+        return actionRepository.findByStudentIdOrderByTimestampDesc(studentId, pageable)
     }
 }
