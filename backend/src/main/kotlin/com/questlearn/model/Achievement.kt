@@ -1,52 +1,38 @@
 package com.questlearn.model
 
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import java.util.UUID
 
-/**
- * Badge/achievement definitions.
- */
+@Entity
+@Table(name = "achievements")
 data class Achievement(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
+    @Column(name = "name", nullable = false)
     val name: String = "",
+    
+    @Column(name = "description", columnDefinition = "TEXT")
     val description: String = "",
-    val category: AchievementCategory = AchievementCategory.QUEST,
     
+    @Column(name = "icon_url")
     val iconUrl: String = "",
-    val iconEmoji: String = "",
     
-    // Requirements
-    val requirements: AchievementRequirements = AchievementRequirements(),
+    @Column(name = "xp_reward", nullable = false)
+    val xpReward: Int = 0,
     
-    // Rewards
-    val xpBonus: Int? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tier", nullable = false)
+    val tier: AchievementTier = AchievementTier.BRONZE,
     
-    val rarity: Rarity = Rarity.COMMON
+    @Column(name = "unlock_criteria", columnDefinition = "TEXT")
+    val unlockCriteria: String = ""
 )
 
-enum class AchievementCategory {
-    QUEST,
-    STREAK,
-    MASTERY,
-    SOCIAL
-}
-
-data class AchievementRequirements(
-    val type: RequirementType = RequirementType.QUEST_COMPLETE,
-    val criteria: Map<String, Any> = emptyMap()
-)
-
-enum class RequirementType {
-    QUEST_COMPLETE,
-    SCORE_THRESHOLD,
-    STREAK,
-    PEER_HELP
-}
-
-enum class Rarity {
-    COMMON,
-    RARE,
-    EPIC,
-    LEGENDARY
+enum class AchievementTier {
+    BRONZE,
+    SILVER,
+    GOLD,
+    PLATINUM
 }

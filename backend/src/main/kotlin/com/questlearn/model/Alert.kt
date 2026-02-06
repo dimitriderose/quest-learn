@@ -1,81 +1,87 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+import java.time.Instant
+import java.util.UUID
 
+@Entity
+@Table(
+    name = "alerts",
+    indexes = [
+        Index(name = "idx_alert_student", columnList = "student_id"),
+        Index(name = "idx_alert_teacher", columnList = "teacher_id"),
+        Index(name = "idx_alert_status", columnList = "status")
+    ]
+)
 data class Alert(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    // Identifiers
+    @Column(name = "student_id", nullable = false)
     val studentId: String = "",
-    val studentName: String = "",
-    val teacherId: String = "",
-    val classId: String = "",
-    val curriculumId: String = "",
-    val questId: String? = null,
     
-    // Alert details
-    val type: AlertType = AlertType.STUCK,
+    @Column(name = "student_name", nullable = false)
+    val studentName: String = "",
+    
+    @Column(name = "teacher_id", nullable = false)
+    val teacherId: String = "",
+    
+    @Column(name = "class_id", nullable = false)
+    val classId: String = "",
+    
+    @Column(name = "curriculum_id", nullable = false)
+    val curriculumId: String = "",
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    val type: AlertType = AlertType.STRUGGLING,
+    
+    @Enumerated(EnumType.STRING)
+    @Column(name = "severity", nullable = false)
     val severity: AlertSeverity = AlertSeverity.MEDIUM,
-    val title: String = "",
+    
+    @Column(name = "message", columnDefinition = "TEXT", nullable = false)
     val message: String = "",
     
-    // Alert data
-    val data: AlertData = AlertData(),
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "details", columnDefinition = "jsonb")
+    val details: Map<String, Any> = emptyMap(),
     
-    // Status
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
     val status: AlertStatus = AlertStatus.ACTIVE,
-    val dismissedAt: Timestamp? = null,
-    val dismissedBy: String? = null,
-    val resolvedAt: Timestamp? = null,
-    val resolutionNote: String? = null,
     
-    // Timestamps
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now()
+    @Column(name = "resolved_at")
+    val resolvedAt: Instant? = null,
+    
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
 
 enum class AlertType {
-    STUCK,
-    WRONG_ANSWERS,
-    NOT_STARTED,
-    COMPLETED,
-    EXCELLING,
-    STRUGGLING_CONCEPT
+    STRUGGLING,
+    INACTIVE,
+    RAPID_PROGRESS,
+    NEEDS_HELP,
+    STUCK
 }
 
 enum class AlertSeverity {
     LOW,
     MEDIUM,
-    HIGH
-}
-
-data class AlertData(
-    val questNumber: Int? = null,
-    val questTitle: String? = null,
-    val challengeId: String? = null,
-    val timeStuck: Int? = null,
-    val wrongAnswerCount: Int? = null,
-    val concept: String? = null,
-    val score: Int? = null,
-    val suggestedActions: List<SuggestedAction> = emptyList()
-)
-
-data class SuggestedAction(
-    val action: ActionSuggestion = ActionSuggestion.SEND_MESSAGE,
-    val label: String = ""
-)
-
-enum class ActionSuggestion {
-    SEND_MESSAGE,
-    ASSIGN_SUPPORT,
-    PEER_TUTORING,
-    AI_ANALYSIS
+    HIGH,
+    CRITICAL
 }
 
 enum class AlertStatus {
     ACTIVE,
-    DISMISSED,
-    RESOLVED
+    ACKNOWLEDGED,
+    RESOLVED,
+    DISMISSED
 }

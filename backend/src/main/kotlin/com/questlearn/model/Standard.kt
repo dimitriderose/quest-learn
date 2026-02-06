@@ -1,33 +1,37 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import java.time.Instant
+import java.util.UUID
 
-/**
- * Educational standards database.
- * Document ID = standard code (e.g., "5-LS1-1")
- */
+@Entity
+@Table(name = "standards")
 data class Standard(
-    @DocumentId
-    val code: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    val framework: String = "",
-    val subject: String = "",
-    val grade: String = "",
-    val domain: String = "",
+    @Column(name = "identifier", nullable = false, unique = true)
+    val identifier: String = "",
     
+    @Column(name = "jurisdiction")
+    val jurisdiction: String = "",
+    
+    @Column(name = "title", nullable = false, columnDefinition = "TEXT")
     val title: String = "",
-    val description: String = "",
     
-    // Relationships
-    val prerequisites: List<String>? = null,
-    val relatedStandards: List<String>? = null,
+    @Column(name = "description", columnDefinition = "TEXT")
+    val description: String? = null,
     
-    // Keywords
-    val keywords: List<String> = emptyList(),
-    val concepts: List<String> = emptyList(),
+    @Column(name = "subject")
+    val subject: String = "",
     
-    // Metadata
-    val sourceUrl: String? = null,
-    val lastUpdated: Timestamp = Timestamp.now()
+    @Column(name = "grade_level")
+    val gradeLevel: String = "",
+    
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
