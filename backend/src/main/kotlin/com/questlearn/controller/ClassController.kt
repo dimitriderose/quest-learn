@@ -2,38 +2,28 @@ package com.questlearn.controller
 
 import com.questlearn.dto.*
 import com.questlearn.model.Class
-import com.questlearn.model.RosterEntry
-import com.questlearn.service.AuthService
 import com.questlearn.service.ClassService
-import com.google.cloud.Timestamp
-import kotlinx.coroutines.runBlocking
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
 
 @RestController
 @RequestMapping("/api/v1/classes")
 class ClassController(
-    private val classService: ClassService,
-    private val authService: AuthService
+    private val classService: ClassService
 ) {
     
     @PostMapping
     fun createClass(
-        @RequestHeader("Authorization") authHeader: String,
         @RequestBody request: CreateClassRequest
-    ): ApiResponse<Class> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val user = authService.getUser(token.uid) ?: return@runBlocking error("USER_NOT_FOUND", "User not found")
-            
+    ): ApiResponse<Class> {
+        return try {
             val clazz = Class(
-                teacherId = user.uid,
-                teacherName = user.displayName,
-                className = request.className,
+                teacherId = request.teacherId,
+                teacherName = request.teacherName,
+                name = request.className,
                 subject = request.subject,
                 gradeLevel = request.gradeLevel,
-                schoolYear = request.schoolYear,
-                roster = request.roster,
-                settings = request.settings
+                schoolYear = request.schoolYear
             )
             
             val created = classService.createClass(clazz)
@@ -43,13 +33,12 @@ class ClassController(
         }
     }
     
-    @GetMapping
+    @GetMapping("/teacher/{teacherId}")
     fun getTeacherClasses(
-        @RequestHeader("Authorization") authHeader: String
-    ): ApiResponse<List<Class>> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val classes = classService.getTeacherClasses(token.uid)
+        @PathVariable teacherId: String
+    ): ApiResponse<List<Class>> {
+        return try {
+            val classes = classService.getTeacherClasses(teacherId)
             success(classes)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch classes")
@@ -57,29 +46,22 @@ class ClassController(
     }
     
     @GetMapping("/{id}")
-    fun getClass(@PathVariable id: String): ApiResponse<Class> = runBlocking {
+    fun getClass(@PathVariable id: String): ApiResponse<Class> {
         val clazz = classService.getClass(id)
-        if (clazz != null) {
+        return if (clazz != null) {
             success(clazz)
         } else {
             error("NOT_FOUND", "Class not found")
         }
     }
     
-    @PostMapping("/{id}/roster")
-    fun addStudentToRoster(
+    @PostMapping("/{id}/students/{studentId}")
+    fun addStudent(
         @PathVariable id: String,
-        @RequestBody request: AddStudentRequest
-    ): ApiResponse<Class> = runBlocking {
-        try {
-            val entry = RosterEntry(
-                email = request.email,
-                name = request.name,
-                studentId = request.studentId,
-                enrolled = false
-            )
-            
-            val updated = classService.addStudentToRoster(id, entry)
+        @PathVariable studentId: String
+    ): ApiResponse<Class> {
+        return try {
+            val updated = classService.addStudent(id, studentId)
             if (updated != null) {
                 success(updated)
             } else {
@@ -90,37 +72,20 @@ class ClassController(
         }
     }
     
-    @PostMapping("/enroll")
-    fun enrollStudent(
-        @RequestBody request: EnrollStudentRequest
-    ): ApiResponse<Class> = runBlocking {
-        try {
-            val clazz = classService.getClassByCode(request.classCode)
-                ?: return@runBlocking error("CLASS_NOT_FOUND", "Invalid class code")
-            
-            // Mark student as enrolled
-            val updatedRoster = clazz.roster.map { entry ->
-                if (entry.email == request.studentId || entry.name == request.studentName) {
-                    entry.copy(
-                        enrolled = true,
-                        enrolledAt = Timestamp.now(),
-                        userId = request.studentId
-                    )
-                } else {
-                    entry
-                }
-            }
-            
-            val updates = mapOf("roster" to updatedRoster)
-            val updated = classService.updateClass(clazz.id, updates)
-            
+    @DeleteMapping("/{id}/students/{studentId}")
+    fun removeStudent(
+        @PathVariable id: String,
+        @PathVariable studentId: String
+    ): ApiResponse<Class> {
+        return try {
+            val updated = classService.removeStudent(id, studentId)
             if (updated != null) {
                 success(updated)
             } else {
-                error("ENROLL_FAILED", "Failed to enroll student")
+                error("UPDATE_FAILED", "Failed to remove student")
             }
         } catch (e: Exception) {
-            error("ENROLL_FAILED", e.message ?: "Failed to enroll student")
+            error("REMOVE_FAILED", e.message ?: "Failed to remove student")
         }
     }
 }
