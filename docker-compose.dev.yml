@@ -1,15 +1,13 @@
 # Docker Compose for LOCAL DEVELOPMENT
 # This configuration runs:
 # 1. PostgreSQL - Primary database
-# 2. Firebase Emulator - Real-time features & auth
-# 3. Spring Boot Backend - API server
+# 2. Spring Boot Backend - API server
 #
 # SETUP:
 # 1. Create .env file with required variables (see .env.example)
 # 2. Run: docker-compose -f docker-compose.dev.yml up
 # 3. Access:
 #    - Backend API: http://localhost:8081
-#    - Firebase Emulator UI: http://localhost:4000
 #    - PostgreSQL: localhost:5432
 
 version: '3.8'
@@ -35,43 +33,11 @@ services:
     networks:
       - questlearn
 
-  # Firebase Emulator - Auth + Firestore for real-time features
-  firebase:
-    image: node:18-slim
-    container_name: questlearn-firebase
-    working_dir: /app
-    command: >
-      sh -c "
-      echo '🔥 Setting up Firebase Emulator...' &&
-      apt-get update -qq &&
-      apt-get install -y -qq openjdk-17-jre-headless > /dev/null 2>&1 &&
-      npm install -g firebase-tools --silent &&
-      echo '✅ Firebase tools installed' &&
-      echo '🚀 Starting emulators...' &&
-      firebase emulators:start --project demo-questlearn
-      "
-    environment:
-      # Firebase Emulator doesn't need credentials
-      FIREBASE_PROJECT_ID: demo-questlearn
-    ports:
-      - "4000:4000"   # Emulator UI
-      - "9099:9099"   # Auth Emulator
-      - "8080:8080"   # Firestore Emulator
-      - "4400:4400"   # Emulator Hub
-    networks:
-      - questlearn
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:4000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
   # Spring Boot Backend API
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: questlearn-backend
     environment:
       # Spring Profile
@@ -82,16 +48,9 @@ services:
       DATABASE_USERNAME: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       
-      # Firebase Configuration
-      FIREBASE_PROJECT_ID: demo-questlearn
-      FIRESTORE_EMULATOR_HOST: firebase:8080  # Container name 'firebase' + Firestore port
-      
       # Gemini AI (from .env file)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GOOGLE_CLOUD_PROJECT_ID: ${GOOGLE_CLOUD_PROJECT_ID}
-      
-      # Firebase Credentials (empty for emulator, required for production)
-      FIREBASE_CREDENTIALS_PATH: ${FIREBASE_CREDENTIALS_PATH:-}
       
       # Standards API
       STANDARDS_API_URL: ${STANDARDS_API_URL:-https://api.commonstandardsproject.com}
@@ -102,12 +61,10 @@ services:
       # Server Port (internal)
       PORT: 8080
     ports:
-      - "8081:8080"  # Map to 8081 on host to avoid conflict with Firestore emulator
+      - "8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
-      firebase:
-        condition: service_started
     networks:
       - questlearn
     restart: on-failure
