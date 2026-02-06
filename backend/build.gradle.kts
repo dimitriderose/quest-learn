@@ -35,9 +35,6 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.flywaydb:flyway-core")
     
-    // Firebase Admin SDK (Authentication)
-    implementation("com.google.firebase:firebase-admin:9.2.0")
-    
     // Google AI (Gemini 3)
     implementation("com.google.cloud:google-cloud-aiplatform:3.37.0")
     
