@@ -1,110 +1,91 @@
 package com.questlearn.service
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.Query
-import com.questlearn.model.*
+import com.questlearn.model.Curriculum
+import com.questlearn.model.CurriculumStatus
+import com.questlearn.repository.CurriculumRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 @Service
+@Transactional
 class CurriculumService(
-    private val firestore: Firestore
+    private val curriculumRepository: CurriculumRepository
 ) {
     
     /**
      * Create a new curriculum
      */
-    suspend fun createCurriculum(curriculum: Curriculum): Curriculum {
-        val id = curriculum.id.ifBlank { "curriculum_${UUID.randomUUID()}" }
+    fun createCurriculum(curriculum: Curriculum): Curriculum {
         val newCurriculum = curriculum.copy(
-            id = id,
-            createdAt = Timestamp.now(),
-            updatedAt = Timestamp.now()
+            id = UUID.randomUUID().toString(),
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
         )
         
-        firestore.collection("curricula").document(id).set(newCurriculum).get()
-        return newCurriculum
-    }
-    
-    /**
-     * Get curriculum by ID
-     */
-    suspend fun getCurriculum(id: String): Curriculum? {
-        val doc = firestore.collection("curricula").document(id).get().get()
-        return if (doc.exists()) doc.toObject(Curriculum::class.java) else null
+        return curriculumRepository.save(newCurriculum)
     }
     
     /**
      * Get all curricula for a teacher
      */
-    suspend fun getTeacherCurricula(teacherId: String): List<Curriculum> {
-        val snapshot = firestore.collection("curricula")
-            .whereEqualTo("teacherId", teacherId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(Curriculum::class.java) }
+    fun getTeacherCurricula(teacherId: String): List<Curriculum> {
+        return curriculumRepository.findByTeacherId(teacherId)
     }
     
     /**
-     * Get curricula by class ID
+     * Get all published curricula
      */
-    suspend fun getClassCurricula(classId: String): List<Curriculum> {
-        val snapshot = firestore.collection("curricula")
-            .whereEqualTo("classId", classId)
-            .whereEqualTo("status", CurriculumPublishStatus.PUBLISHED)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
+    fun getPublishedCurricula(): List<Curriculum> {
+        return curriculumRepository.findByPublishedTrue()
+    }
+    
+    /**
+     * Get curriculum by ID
+     */
+    fun getCurriculum(id: String): Curriculum? {
+        return curriculumRepository.findById(id).orElse(null)
+    }
+    
+    /**
+     * Publish a curriculum
+     */
+    fun publishCurriculum(curriculumId: String): Curriculum? {
+        val curriculum = curriculumRepository.findById(curriculumId).orElse(null) ?: return null
         
-        return snapshot.documents.mapNotNull { it.toObject(Curriculum::class.java) }
+        val updated = curriculum.copy(
+            status = CurriculumStatus.PUBLISHED,
+            published = true,
+            publishedAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        
+        return curriculumRepository.save(updated)
     }
     
     /**
      * Update curriculum
      */
-    suspend fun updateCurriculum(id: String, updates: Map<String, Any>): Curriculum? {
-        val updatedMap = updates.toMutableMap()
-        updatedMap["updatedAt"] = Timestamp.now()
+    fun updateCurriculum(curriculumId: String, updates: Map<String, Any>): Curriculum? {
+        val curriculum = curriculumRepository.findById(curriculumId).orElse(null) ?: return null
         
-        firestore.collection("curricula").document(id).update(updatedMap).get()
-        return getCurriculum(id)
-    }
-    
-    /**
-     * Publish curriculum
-     */
-    suspend fun publishCurriculum(id: String): Curriculum? {
-        val updates = mapOf(
-            "status" to CurriculumPublishStatus.PUBLISHED,
-            "publishedAt" to Timestamp.now(),
-            "updatedAt" to Timestamp.now()
+        @Suppress("UNCHECKED_CAST")
+        val updated = curriculum.copy(
+            title = updates["title"] as? String ?: curriculum.title,
+            description = updates["description"] as? String ?: curriculum.description,
+            questIds = updates["questIds"] as? List<String> ?: curriculum.questIds,
+            totalQuests = updates["totalQuests"] as? Int ?: curriculum.totalQuests,
+            updatedAt = Instant.now()
         )
-        return updateCurriculum(id, updates)
+        
+        return curriculumRepository.save(updated)
     }
     
     /**
-     * Archive curriculum
+     * Delete curriculum
      */
-    suspend fun archiveCurriculum(id: String): Curriculum? {
-        val updates = mapOf(
-            "status" to CurriculumPublishStatus.ARCHIVED,
-            "updatedAt" to Timestamp.now()
-        )
-        return updateCurriculum(id, updates)
-    }
-    
-    /**
-     * Delete curriculum (soft delete by archiving)
-     */
-    suspend fun deleteCurriculum(id: String): Boolean {
-        return try {
-            archiveCurriculum(id)
-            true
-        } catch (e: Exception) {
-            false
-        }
+    fun deleteCurriculum(curriculumId: String) {
+        curriculumRepository.deleteById(curriculumId)
     }
 }

@@ -1,127 +1,109 @@
 package com.questlearn.service
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.Query
 import com.questlearn.model.Class
-import com.questlearn.model.ClassStats
-import com.questlearn.model.RosterEntry
+import com.questlearn.repository.ClassRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 import java.util.UUID
 
 @Service
+@Transactional
 class ClassService(
-    private val firestore: Firestore
+    private val classRepository: ClassRepository
 ) {
     
     /**
      * Create a new class
      */
-    suspend fun createClass(clazz: Class): Class {
-        val id = clazz.id.ifBlank { "class_${UUID.randomUUID()}" }
-        val classCode = generateClassCode(clazz.teacherName)
-        
-        val newClass = clazz.copy(
-            id = id,
-            classCode = classCode,
-            createdAt = Timestamp.now(),
-            updatedAt = Timestamp.now()
+    fun createClass(classData: Class): Class {
+        val newClass = classData.copy(
+            id = UUID.randomUUID().toString(),
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
         )
         
-        firestore.collection("classes").document(id).set(newClass).get()
-        return newClass
-    }
-    
-    /**
-     * Get class by ID
-     */
-    suspend fun getClass(id: String): Class? {
-        val doc = firestore.collection("classes").document(id).get().get()
-        return if (doc.exists()) doc.toObject(Class::class.java) else null
+        return classRepository.save(newClass)
     }
     
     /**
      * Get all classes for a teacher
      */
-    suspend fun getTeacherClasses(teacherId: String): List<Class> {
-        val snapshot = firestore.collection("classes")
-            .whereEqualTo("teacherId", teacherId)
-            .whereEqualTo("archived", false)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(Class::class.java) }
+    fun getTeacherClasses(teacherId: String): List<Class> {
+        return classRepository.findByTeacherIdAndArchivedFalse(teacherId)
     }
     
     /**
-     * Get class by code
+     * Get class by ID
      */
-    suspend fun getClassByCode(code: String): Class? {
-        val snapshot = firestore.collection("classes")
-            .whereEqualTo("classCode", code)
-            .limit(1)
-            .get()
-            .get()
-        
-        return snapshot.documents.firstOrNull()?.toObject(Class::class.java)
+    fun getClass(id: String): Class? {
+        return classRepository.findById(id).orElse(null)
     }
     
     /**
-     * Add student to roster
+     * Add student to class
      */
-    suspend fun addStudentToRoster(classId: String, entry: RosterEntry): Class? {
-        val clazz = getClass(classId) ?: return null
-        val updatedRoster = clazz.roster + entry
+    fun addStudent(classId: String, studentId: String): Class? {
+        val classData = classRepository.findById(classId).orElse(null) ?: return null
         
-        val updates = mapOf(
-            "roster" to updatedRoster,
-            "updatedAt" to Timestamp.now()
+        if (classData.studentIds.contains(studentId)) {
+            return classData // Already in class
+        }
+        
+        val updated = classData.copy(
+            studentIds = classData.studentIds + studentId,
+            studentCount = classData.studentCount + 1,
+            updatedAt = Instant.now()
         )
         
-        return updateClass(classId, updates)
+        return classRepository.save(updated)
     }
     
     /**
-     * Update class
+     * Remove student from class
      */
-    suspend fun updateClass(id: String, updates: Map<String, Any>): Class? {
-        val updatedMap = updates.toMutableMap()
-        updatedMap["updatedAt"] = Timestamp.now()
+    fun removeStudent(classId: String, studentId: String): Class? {
+        val classData = classRepository.findById(classId).orElse(null) ?: return null
         
-        firestore.collection("classes").document(id).update(updatedMap).get()
-        return getClass(id)
-    }
-    
-    /**
-     * Update class stats
-     */
-    suspend fun updateClassStats(id: String, stats: ClassStats): Class? {
-        val updates = mapOf(
-            "stats" to stats,
-            "updatedAt" to Timestamp.now()
+        val updated = classData.copy(
+            studentIds = classData.studentIds - studentId,
+            studentCount = (classData.studentCount - 1).coerceAtLeast(0),
+            updatedAt = Instant.now()
         )
-        return updateClass(id, updates)
+        
+        return classRepository.save(updated)
     }
     
     /**
-     * Archive class
+     * Assign curriculum to class
      */
-    suspend fun archiveClass(id: String): Class? {
-        val updates = mapOf(
-            "archived" to true,
-            "archivedAt" to Timestamp.now(),
-            "updatedAt" to Timestamp.now()
+    fun assignCurriculum(classId: String, curriculumId: String): Class? {
+        val classData = classRepository.findById(classId).orElse(null) ?: return null
+        
+        if (classData.assignedCurricula.contains(curriculumId)) {
+            return classData // Already assigned
+        }
+        
+        val updated = classData.copy(
+            assignedCurricula = classData.assignedCurricula + curriculumId,
+            updatedAt = Instant.now()
         )
-        return updateClass(id, updates)
+        
+        return classRepository.save(updated)
     }
     
     /**
-     * Generate unique class code
+     * Archive a class
      */
-    private fun generateClassCode(teacherName: String): String {
-        val prefix = teacherName.split(" ").firstOrNull()?.take(6)?.uppercase() ?: "CLASS"
-        val suffix = (1000..9999).random()
-        return "${prefix}${suffix}"
+    fun archiveClass(classId: String): Class? {
+        val classData = classRepository.findById(classId).orElse(null) ?: return null
+        
+        val updated = classData.copy(
+            archived = true,
+            archivedAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        
+        return classRepository.save(updated)
     }
 }
