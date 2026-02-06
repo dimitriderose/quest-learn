@@ -84,13 +84,15 @@ class ProgressService(
         val now = Instant.now()
         
         // Apply updates to create new instance (data class copy)
+        @Suppress("UNCHECKED_CAST")
+        val questCompletionsList = updates["questCompletions"] as? List<QuestCompletion> ?: existing.questCompletions
+        
         val updated = existing.copy(
             progressPercentage = updates["progressPercentage"] as? Double ?: existing.progressPercentage,
             completedQuests = updates["completedQuests"] as? Int ?: existing.completedQuests,
             status = updates["status"] as? ProgressStatus ?: existing.status,
             totalXP = updates["totalXP"] as? Int ?: existing.totalXP,
-            @Suppress("UNCHECKED_CAST")
-            questCompletions = updates["questCompletions"] as? List<QuestCompletion> ?: existing.questCompletions,
+            questCompletions = questCompletionsList,
             lastActivityAt = now,
             updatedAt = now
         )
