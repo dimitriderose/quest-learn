@@ -1,108 +1,87 @@
 package com.questlearn.service
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.Firestore
-import com.google.cloud.firestore.Query
 import com.questlearn.model.Alert
 import com.questlearn.model.AlertStatus
+import com.questlearn.repository.AlertRepository
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
+import java.util.UUID
 
 @Service
+@Transactional
 class AlertService(
-    private val firestore: Firestore
+    private val alertRepository: AlertRepository
 ) {
     
     /**
      * Create a new alert
      */
-    suspend fun createAlert(alert: Alert): Alert {
-        val docRef = firestore.collection("alerts").document()
+    fun createAlert(alert: Alert): Alert {
         val newAlert = alert.copy(
-            id = docRef.id,
-            createdAt = Timestamp.now(),
-            updatedAt = Timestamp.now()
+            id = UUID.randomUUID().toString(),
+            createdAt = Instant.now(),
+            updatedAt = Instant.now()
         )
         
-        docRef.set(newAlert).get()
-        return newAlert
+        return alertRepository.save(newAlert)
     }
     
     /**
      * Get active alerts for a teacher
      */
-    suspend fun getTeacherAlerts(teacherId: String): List<Alert> {
-        val snapshot = firestore.collection("alerts")
-            .whereEqualTo("teacherId", teacherId)
-            .whereEqualTo("status", AlertStatus.ACTIVE)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(Alert::class.java) }
+    fun getTeacherAlerts(teacherId: String): List<Alert> {
+        return alertRepository.findByTeacherIdAndStatus(teacherId, AlertStatus.ACTIVE)
     }
     
     /**
      * Get alerts for a specific student
      */
-    suspend fun getStudentAlerts(studentId: String): List<Alert> {
-        val snapshot = firestore.collection("alerts")
-            .whereEqualTo("studentId", studentId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(Alert::class.java) }
+    fun getStudentAlerts(studentId: String): List<Alert> {
+        return alertRepository.findByStudentId(studentId)
     }
     
     /**
-     * Get alerts for a class
+     * Get active alerts for a class
      */
-    suspend fun getClassAlerts(classId: String): List<Alert> {
-        val snapshot = firestore.collection("alerts")
-            .whereEqualTo("classId", classId)
-            .whereEqualTo("status", AlertStatus.ACTIVE)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .get()
-            .get()
-        
-        return snapshot.documents.mapNotNull { it.toObject(Alert::class.java) }
+    fun getClassAlerts(classId: String): List<Alert> {
+        return alertRepository.findAll()
+            .filter { it.classId == classId && it.status == AlertStatus.ACTIVE }
     }
     
     /**
      * Dismiss an alert
      */
-    suspend fun dismissAlert(alertId: String, teacherId: String): Alert? {
-        val updates = mapOf(
-            "status" to AlertStatus.DISMISSED,
-            "dismissedAt" to Timestamp.now(),
-            "dismissedBy" to teacherId,
-            "updatedAt" to Timestamp.now()
+    fun dismissAlert(alertId: String): Alert? {
+        val alert = alertRepository.findById(alertId).orElse(null) ?: return null
+        
+        val updated = alert.copy(
+            status = AlertStatus.DISMISSED,
+            updatedAt = Instant.now()
         )
         
-        firestore.collection("alerts").document(alertId).update(updates).get()
-        return getAlert(alertId)
+        return alertRepository.save(updated)
     }
     
     /**
      * Resolve an alert
      */
-    suspend fun resolveAlert(alertId: String, resolutionNote: String): Alert? {
-        val updates = mapOf(
-            "status" to AlertStatus.RESOLVED,
-            "resolvedAt" to Timestamp.now(),
-            "resolutionNote" to resolutionNote,
-            "updatedAt" to Timestamp.now()
+    fun resolveAlert(alertId: String): Alert? {
+        val alert = alertRepository.findById(alertId).orElse(null) ?: return null
+        
+        val updated = alert.copy(
+            status = AlertStatus.RESOLVED,
+            resolvedAt = Instant.now(),
+            updatedAt = Instant.now()
         )
         
-        firestore.collection("alerts").document(alertId).update(updates).get()
-        return getAlert(alertId)
+        return alertRepository.save(updated)
     }
     
     /**
      * Get alert by ID
      */
-    private suspend fun getAlert(id: String): Alert? {
-        val doc = firestore.collection("alerts").document(id).get().get()
-        return if (doc.exists()) doc.toObject(Alert::class.java) else null
+    fun getAlert(id: String): Alert? {
+        return alertRepository.findById(id).orElse(null)
     }
 }

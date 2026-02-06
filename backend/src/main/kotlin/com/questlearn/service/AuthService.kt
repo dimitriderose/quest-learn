@@ -1,80 +1,62 @@
 package com.questlearn.service
 
-import com.google.cloud.firestore.Firestore
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseToken
 import com.questlearn.model.User
-import com.questlearn.model.UserRole
+import com.questlearn.repository.UserRepository
 import org.springframework.stereotype.Service
-import com.google.cloud.Timestamp
+import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
+@Transactional
 class AuthService(
-    private val firestore: Firestore
+    private val userRepository: UserRepository
 ) {
     
     /**
-     * Verify Firebase ID token and return user info
+     * Get or create user from authentication token
+     * Note: Actual token verification should be done by Spring Security filters
      */
-    fun verifyToken(idToken: String): FirebaseToken {
-        return FirebaseAuth.getInstance().verifyIdToken(idToken)
+    fun getUserByEmail(email: String): User? {
+        return userRepository.findByEmail(email)
     }
     
     /**
-     * Get or create user from Firebase token
+     * Create or update user profile
      */
-    suspend fun getOrCreateUser(token: FirebaseToken): User {
-        val uid = token.uid
-        val email = token.email ?: throw IllegalArgumentException("Email not found in token")
-        val name = token.name ?: email.substringBefore("@")
+    fun createOrUpdateUser(user: User): User {
+        val existing = userRepository.findByEmail(user.email)
         
-        // Try to get existing user
-        val userDoc = firestore.collection("users").document(uid).get().get()
-        
-        return if (userDoc.exists()) {
-            userDoc.toObject(User::class.java) ?: throw IllegalStateException("Failed to parse user")
+        return if (existing != null) {
+            // Update existing user
+            val updated = existing.copy(
+                displayName = user.displayName,
+                photoURL = user.photoURL,
+                lastLoginAt = Instant.now(),
+                updatedAt = Instant.now()
+            )
+            userRepository.save(updated)
         } else {
             // Create new user
-            val newUser = User(
-                uid = uid,
-                email = email,
-                displayName = name,
-                role = determineRole(email),
-                createdAt = Timestamp.now(),
-                updatedAt = Timestamp.now(),
-                lastLoginAt = Timestamp.now()
+            val newUser = user.copy(
+                createdAt = Instant.now(),
+                updatedAt = Instant.now(),
+                lastLoginAt = Instant.now()
             )
-            firestore.collection("users").document(uid).set(newUser).get()
-            newUser
+            userRepository.save(newUser)
         }
     }
     
     /**
-     * Update last login timestamp
+     * Update user's last login timestamp
      */
-    suspend fun updateLastLogin(uid: String) {
-        firestore.collection("users").document(uid)
-            .update("lastLoginAt", Timestamp.now()).get()
-    }
-    
-    /**
-     * Get user by UID
-     */
-    suspend fun getUser(uid: String): User? {
-        val doc = firestore.collection("users").document(uid).get().get()
-        return if (doc.exists()) doc.toObject(User::class.java) else null
-    }
-    
-    /**
-     * Determine user role from email (teacher vs student)
-     */
-    private fun determineRole(email: String): UserRole {
-        // Students typically have "student" or "stu" in email
-        return if (email.contains("student", ignoreCase = true) || 
-                   email.contains("stu", ignoreCase = true)) {
-            UserRole.STUDENT
-        } else {
-            UserRole.TEACHER
-        }
+    fun updateLastLogin(uid: String): User? {
+        val user = userRepository.findById(uid).orElse(null) ?: return null
+        
+        val updated = user.copy(
+            lastLoginAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
+        
+        return userRepository.save(updated)
     }
 }
