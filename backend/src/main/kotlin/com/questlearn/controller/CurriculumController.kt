@@ -2,42 +2,28 @@ package com.questlearn.controller
 
 import com.questlearn.dto.*
 import com.questlearn.model.Curriculum
-import com.questlearn.model.Quest
-import com.questlearn.service.AuthService
 import com.questlearn.service.CurriculumService
-import com.questlearn.service.QuestService
-import kotlinx.coroutines.runBlocking
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/curricula")
 class CurriculumController(
-    private val curriculumService: CurriculumService,
-    private val questService: QuestService,
-    private val authService: AuthService
+    private val curriculumService: CurriculumService
 ) {
     
     @PostMapping
     fun createCurriculum(
-        @RequestHeader("Authorization") authHeader: String,
         @RequestBody request: CreateCurriculumRequest
-    ): ApiResponse<Curriculum> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val user = authService.getUser(token.uid) ?: return@runBlocking error("USER_NOT_FOUND", "User not found")
-            
+    ): ApiResponse<Curriculum> {
+        return try {
             val curriculum = Curriculum(
-                teacherId = user.uid,
-                teacherName = user.displayName,
+                teacherId = request.teacherId,
+                teacherName = request.teacherName,
                 title = request.title,
-                topic = request.topic,
+                description = request.description,
                 subject = request.subject,
                 gradeLevel = request.gradeLevel,
-                duration = request.duration,
-                estimatedMinutes = request.estimatedMinutes,
-                standards = request.standards,
-                theme = request.theme,
-                classId = request.classId
+                standards = request.standards
             )
             
             val created = curriculumService.createCurriculum(curriculum)
@@ -47,52 +33,39 @@ class CurriculumController(
         }
     }
     
-    @GetMapping("/{id}")
-    fun getCurriculum(@PathVariable id: String): ApiResponse<Curriculum> = runBlocking {
-        val curriculum = curriculumService.getCurriculum(id)
-        if (curriculum != null) {
-            success(curriculum)
-        } else {
-            error("NOT_FOUND", "Curriculum not found")
-        }
-    }
-    
-    @GetMapping
+    @GetMapping("/teacher/{teacherId}")
     fun getTeacherCurricula(
-        @RequestHeader("Authorization") authHeader: String
-    ): ApiResponse<List<Curriculum>> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val curricula = curriculumService.getTeacherCurricula(token.uid)
+        @PathVariable teacherId: String
+    ): ApiResponse<List<Curriculum>> {
+        return try {
+            val curricula = curriculumService.getTeacherCurricula(teacherId)
             success(curricula)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch curricula")
         }
     }
     
-    @GetMapping("/{id}/quests")
-    fun getCurriculumQuests(@PathVariable id: String): ApiResponse<List<Quest>> = runBlocking {
-        try {
-            val quests = questService.getCurriculumQuests(id)
-            success(quests)
-        } catch (e: Exception) {
-            error("FETCH_FAILED", e.message ?: "Failed to fetch quests")
+    @GetMapping("/{id}")
+    fun getCurriculum(@PathVariable id: String): ApiResponse<Curriculum> {
+        val curriculum = curriculumService.getCurriculum(id)
+        return if (curriculum != null) {
+            success(curriculum)
+        } else {
+            error("NOT_FOUND", "Curriculum not found")
         }
     }
     
     @PostMapping("/{id}/publish")
-    fun publishCurriculum(@PathVariable id: String): ApiResponse<Curriculum> = runBlocking {
-        val curriculum = curriculumService.publishCurriculum(id)
-        if (curriculum != null) {
-            success(curriculum)
-        } else {
-            error("PUBLISH_FAILED", "Failed to publish curriculum")
+    fun publishCurriculum(@PathVariable id: String): ApiResponse<Curriculum> {
+        return try {
+            val published = curriculumService.publishCurriculum(id)
+            if (published != null) {
+                success(published)
+            } else {
+                error("PUBLISH_FAILED", "Failed to publish curriculum")
+            }
+        } catch (e: Exception) {
+            error("PUBLISH_FAILED", e.message ?: "Failed to publish curriculum")
         }
-    }
-    
-    @DeleteMapping("/{id}")
-    fun deleteCurriculum(@PathVariable id: String): ApiResponse<Map<String, Boolean>> = runBlocking {
-        val deleted = curriculumService.deleteCurriculum(id)
-        success(mapOf("deleted" to deleted))
     }
 }

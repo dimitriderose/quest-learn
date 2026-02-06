@@ -3,24 +3,20 @@ package com.questlearn.controller
 import com.questlearn.dto.*
 import com.questlearn.model.Alert
 import com.questlearn.service.AlertService
-import com.questlearn.service.AuthService
-import kotlinx.coroutines.runBlocking
 import org.springframework.web.bind.annotation.*
 
 @RestController
 @RequestMapping("/api/v1/alerts")
 class AlertController(
-    private val alertService: AlertService,
-    private val authService: AuthService
+    private val alertService: AlertService
 ) {
     
-    @GetMapping("/teacher")
+    @GetMapping("/teacher/{teacherId}")
     fun getTeacherAlerts(
-        @RequestHeader("Authorization") authHeader: String
-    ): ApiResponse<List<Alert>> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val alerts = alertService.getTeacherAlerts(token.uid)
+        @PathVariable teacherId: String
+    ): ApiResponse<List<Alert>> {
+        return try {
+            val alerts = alertService.getTeacherAlerts(teacherId)
             success(alerts)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch alerts")
@@ -30,8 +26,8 @@ class AlertController(
     @GetMapping("/class/{classId}")
     fun getClassAlerts(
         @PathVariable classId: String
-    ): ApiResponse<List<Alert>> = runBlocking {
-        try {
+    ): ApiResponse<List<Alert>> {
+        return try {
             val alerts = alertService.getClassAlerts(classId)
             success(alerts)
         } catch (e: Exception) {
@@ -41,12 +37,10 @@ class AlertController(
     
     @PostMapping("/{alertId}/dismiss")
     fun dismissAlert(
-        @PathVariable alertId: String,
-        @RequestHeader("Authorization") authHeader: String
-    ): ApiResponse<Alert> = runBlocking {
-        try {
-            val token = authService.verifyToken(authHeader.removePrefix("Bearer "))
-            val alert = alertService.dismissAlert(alertId, token.uid)
+        @PathVariable alertId: String
+    ): ApiResponse<Alert> {
+        return try {
+            val alert = alertService.dismissAlert(alertId)
             if (alert != null) {
                 success(alert)
             } else {
@@ -59,12 +53,10 @@ class AlertController(
     
     @PostMapping("/{alertId}/resolve")
     fun resolveAlert(
-        @PathVariable alertId: String,
-        @RequestBody request: Map<String, String>
-    ): ApiResponse<Alert> = runBlocking {
-        try {
-            val resolutionNote = request["resolutionNote"] ?: ""
-            val alert = alertService.resolveAlert(alertId, resolutionNote)
+        @PathVariable alertId: String
+    ): ApiResponse<Alert> {
+        return try {
+            val alert = alertService.resolveAlert(alertId)
             if (alert != null) {
                 success(alert)
             } else {
