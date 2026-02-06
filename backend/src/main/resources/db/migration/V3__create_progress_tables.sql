@@ -1,3 +1,9 @@
+-- Drop V1's incompatible student_progress and student_actions tables
+-- V1 created these with UUID PKs and foreign keys
+-- This migration recreates them with VARCHAR PKs matching the Firebase migration schema
+DROP TABLE IF EXISTS student_actions CASCADE;
+DROP TABLE IF EXISTS student_progress CASCADE;
+
 -- Create student_progress table
 CREATE TABLE student_progress (
     id VARCHAR(100) PRIMARY KEY,
