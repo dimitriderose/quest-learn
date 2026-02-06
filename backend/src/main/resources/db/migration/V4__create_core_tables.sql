@@ -1,3 +1,16 @@
+-- Drop V1's incompatible tables that conflict with Firebase migration schema
+-- V1 created these with UUID PKs and foreign keys
+-- This migration recreates them with VARCHAR PKs matching the Firebase migration schema
+DROP TABLE IF EXISTS alerts CASCADE;
+DROP TABLE IF EXISTS quest_standards CASCADE;
+DROP TABLE IF EXISTS standards CASCADE;
+DROP TABLE IF EXISTS quests CASCADE;
+DROP TABLE IF EXISTS curricula CASCADE;
+DROP TABLE IF EXISTS class_enrollments CASCADE;
+DROP TABLE IF EXISTS classes CASCADE;
+DROP TABLE IF EXISTS students CASCADE;
+DROP TABLE IF EXISTS teachers CASCADE;
+
 -- Create users table
 CREATE TABLE users (
     uid VARCHAR(50) PRIMARY KEY,
