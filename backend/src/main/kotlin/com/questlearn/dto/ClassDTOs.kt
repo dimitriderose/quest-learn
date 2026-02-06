@@ -1,15 +1,12 @@
 package com.questlearn.dto
 
-import com.questlearn.model.ClassSettings
-import com.questlearn.model.RosterEntry
-
 data class CreateClassRequest(
+    val teacherId: String,
+    val teacherName: String,
     val className: String,
     val subject: String,
-    val gradeLevel: Int,
-    val schoolYear: String,
-    val roster: List<RosterEntry> = emptyList(),
-    val settings: ClassSettings = ClassSettings()
+    val gradeLevel: String,
+    val schoolYear: String
 )
 
 data class AddStudentRequest(

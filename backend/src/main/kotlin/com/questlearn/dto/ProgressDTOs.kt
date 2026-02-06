@@ -1,23 +1,22 @@
 package com.questlearn.dto
 
-import com.questlearn.model.ChallengeResult
-import com.questlearn.model.LearningStyle
-
-data class QuestCompletionRequest(
-    val questId: String,
-    val score: Int,
-    val attempts: Int,
-    val timeSpentMinutes: Int,
-    val hintsUsed: Int,
-    val wrongAnswers: Int,
-    val tutorialsViewed: List<String> = emptyList(),
-    val learningStyleChosen: LearningStyle? = null,
-    val challengeResults: List<ChallengeResult>
+data class InitializeProgressRequest(
+    val studentId: String,
+    val studentName: String,
+    val curriculumId: String,
+    val curriculumTitle: String,
+    val classId: String,
+    val teacherId: String,
+    val totalQuests: Int
 )
 
-data class LogActionRequest(
+data class QuestCompletionRequest(
+    val studentId: String,
+    val curriculumId: String,
     val questId: String,
-    val challengeId: String? = null,
-    val actionType: String,
-    val data: Map<String, Any>
+    val questTitle: String,
+    val questNumber: Int,
+    val score: Int,
+    val attempts: Int,
+    val timeSpentMinutes: Int
 )
