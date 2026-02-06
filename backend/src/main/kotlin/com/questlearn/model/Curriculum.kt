@@ -1,103 +1,75 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+import java.time.Instant
+import java.util.UUID
 
+@Entity
+@Table(
+    name = "curricula",
+    indexes = [
+        Index(name = "idx_curriculum_teacher", columnList = "teacher_id"),
+        Index(name = "idx_curriculum_grade_subject", columnList = "grade_level, subject")
+    ]
+)
 data class Curriculum(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    // Ownership
-    val teacherId: String = "",
-    val teacherName: String = "",
-    val classId: String? = null,
-    
-    // Curriculum info
+    @Column(name = "title", nullable = false)
     val title: String = "",
-    val topic: String = "",  // Added field
+    
+    @Column(name = "description", columnDefinition = "TEXT")
     val description: String = "",
+    
+    @Column(name = "teacher_id", nullable = false)
+    val teacherId: String = "",
+    
+    @Column(name = "teacher_name", nullable = false)
+    val teacherName: String = "",
+    
+    @Column(name = "subject", nullable = false)
     val subject: String = "",
-    val gradeLevel: Int = 0,
     
-    // Duration
-    val duration: String = "",  // Added field - e.g., "2 weeks", "5 days"
-    val estimatedMinutes: Int = 0,
+    @Column(name = "grade_level", nullable = false)
+    val gradeLevel: String = "",
     
-    // Learning objectives
-    val learningObjective: String = "",
-    val standards: List<StandardAlignment> = emptyList(),  // Renamed from standardsAlignment
-    val standardsAlignment: List<StandardAlignment> = emptyList(),  // Keep both for compatibility
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "standards", columnDefinition = "jsonb", nullable = false)
+    val standards: List<String> = emptyList(),
     
-    // Theme and story
-    val theme: CurriculumTheme = CurriculumTheme.ADVENTURE,
-    val narrativeHook: String? = null,
-    val characterName: String? = null,
-    val worldBuilding: String? = null,
-    
-    // Quest structure
-    val questCount: Int = 0,
-    val difficulty: String = "medium",  // easy, medium, hard
-    
-    // Quests
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "quest_ids", columnDefinition = "jsonb", nullable = false)
     val questIds: List<String> = emptyList(),
     
-    // Publishing
-    val publishStatus: CurriculumPublishStatus = CurriculumPublishStatus.DRAFT,
-    val visibility: Visibility = Visibility.PRIVATE,
-    val publishedAt: Timestamp? = null,
+    @Column(name = "total_quests", nullable = false)
+    val totalQuests: Int = 0,
     
-    // Generation metadata
-    val generatedBy: String = "AI",  // AI, TEACHER, TEMPLATE
-    val aiModel: String? = null,
-    val generationPrompt: String? = null,
+    @Column(name = "estimated_hours", nullable = false)
+    val estimatedHours: Int = 0,
     
-    // Usage stats
-    val timesAssigned: Int = 0,
-    val averageCompletionRate: Double = 0.0,
-    val averageRating: Double = 0.0,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    val status: CurriculumStatus = CurriculumStatus.DRAFT,
     
-    // Timestamps
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now(),
-    val lastModifiedBy: String = "",
+    @Column(name = "published", nullable = false)
+    val published: Boolean = false,
     
-    // Soft delete
-    val archived: Boolean = false,
-    val archivedAt: Timestamp? = null
+    @Column(name = "published_at")
+    val publishedAt: Instant? = null,
+    
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
 
-data class StandardAlignment(
-    val framework: String = "",  // e.g., "NGSS", "Common Core"
-    val code: String = "",       // e.g., "5-PS1-1"
-    val description: String = ""
-)
-
-enum class CurriculumTheme {
-    ADVENTURE,
-    MYSTERY,
-    SPACE,
-    MEDIEVAL,
-    UNDERWATER,
-    SUPERHERO,
-    DETECTIVE,
-    SPORTS,
-    COOKING,
-    MUSIC,
-    ART,
-    NATURE,
-    HISTORY,
-    FUTURE
-}
-
-enum class CurriculumPublishStatus {
+enum class CurriculumStatus {
     DRAFT,
     PUBLISHED,
     ARCHIVED
-}
-
-enum class Visibility {
-    PRIVATE,
-    SCHOOL,
-    DISTRICT,
-    PUBLIC
 }

@@ -1,102 +1,94 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+import java.time.Instant
+import java.util.UUID
 
+@Entity
+@Table(
+    name = "quests",
+    indexes = [
+        Index(name = "idx_quest_curriculum", columnList = "curriculum_id")
+    ]
+)
 data class Quest(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    // Parent curriculum
+    @Column(name = "curriculum_id", nullable = false)
     val curriculumId: String = "",
-    val curriculumTitle: String = "",
     
-    // Quest metadata
+    @Column(name = "quest_number", nullable = false)
     val questNumber: Int = 0,
+    
+    @Column(name = "title", nullable = false)
     val title: String = "",
-    val subtitle: String = "",
     
-    // Learning objectives
+    @Column(name = "description", columnDefinition = "TEXT")
+    val description: String = "",
+    
+    @Column(name = "learning_objective", columnDefinition = "TEXT", nullable = false)
     val learningObjective: String = "",
-    val standardsCovered: List<String> = emptyList(),
-    val prerequisites: List<String>? = null,
     
-    // Narrative
-    val narrative: QuestNarrative = QuestNarrative(),
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "standards", columnDefinition = "jsonb", nullable = false)
+    val standards: List<String> = emptyList(),
     
-    // Game content
-    val htmlContent: String? = null,
-    val htmlUrl: String? = null,
-    
-    // Challenges
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "challenges", columnDefinition = "jsonb", nullable = false)
     val challenges: List<Challenge> = emptyList(),
     
-    // Difficulty and time
-    val difficulty: Int = 1,
-    val estimatedMinutes: Int = 0,
+    @Column(name = "total_challenges", nullable = false)
+    val totalChallenges: Int = 0,
+    
+    @Column(name = "xp_reward", nullable = false)
     val xpReward: Int = 0,
-    val achievementsUnlocked: List<String>? = null,
     
-    // Statistics
-    val stats: QuestStats = QuestStats(),
+    @Enumerated(EnumType.STRING)
+    @Column(name = "difficulty", nullable = false)
+    val difficulty: QuestDifficulty = QuestDifficulty.MEDIUM,
     
-    // Timestamps
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now()
-)
-
-data class QuestNarrative(
-    val hook: String = "",
-    val characterDialogue: String = "",
-    val missionBrief: String = "",
-    val successMessage: String = ""
+    @Column(name = "estimated_minutes", nullable = false)
+    val estimatedMinutes: Int = 0,
+    
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
 
 data class Challenge(
-    val id: String = "",
+    val id: String = UUID.randomUUID().toString(),
     val type: ChallengeType = ChallengeType.MULTIPLE_CHOICE,
     val question: String = "",
-    val correctAnswer: Any = "",
-    val hints: List<Hint> = emptyList(),
-    val tutorials: List<Tutorial>? = null,
-    val prerequisiteReview: PrerequisiteReview? = null,
-    val xpReward: Int = 0
+    val options: List<String> = emptyList(),
+    val correctAnswer: String = "",
+    val explanation: String = "",
+    val hints: List<String> = emptyList(),
+    val difficulty: ChallengeDifficulty = ChallengeDifficulty.MEDIUM
 )
+
+enum class QuestDifficulty {
+    EASY,
+    MEDIUM,
+    HARD
+}
 
 enum class ChallengeType {
     MULTIPLE_CHOICE,
+    TRUE_FALSE,
     SHORT_ANSWER,
-    INTERACTIVE,
-    DRAG_DROP
+    FILL_IN_BLANK,
+    MATCHING,
+    ORDERING
 }
 
-data class Hint(
-    val level: Int = 1,
-    val text: String = "",
-    val triggerAfterAttempts: Int = 0
-)
-
-data class Tutorial(
-    val style: LearningStyle = LearningStyle.VIDEO,
-    val content: String = "",
-    val estimatedMinutes: Int = 0
-)
-
-data class PrerequisiteReview(
-    val concept: String = "",
-    val miniLessonUrl: String = ""
-)
-
-data class QuestStats(
-    val totalAttempts: Int = 0,
-    val totalCompletions: Int = 0,
-    val averageScore: Double = 0.0,
-    val averageTimeMinutes: Double = 0.0,
-    val commonMistakes: List<CommonMistake> = emptyList()
-)
-
-data class CommonMistake(
-    val challengeId: String = "",
-    val incorrectAnswer: String = "",
-    val count: Int = 0
-)
+enum class ChallengeDifficulty {
+    EASY,
+    MEDIUM,
+    HARD
+}

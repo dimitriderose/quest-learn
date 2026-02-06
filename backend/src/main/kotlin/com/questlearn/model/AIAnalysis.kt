@@ -1,104 +1,62 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+import java.time.Instant
+import java.util.UUID
 
-/**
- * Cache AI analysis results.
- * TTL: 7 days
- */
+@Entity
+@Table(
+    name = "ai_analyses",
+    indexes = [
+        Index(name = "idx_analysis_student", columnList = "student_id"),
+        Index(name = "idx_analysis_curriculum", columnList = "curriculum_id")
+    ]
+)
 data class AIAnalysis(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    // Request context
-    val requestType: AnalysisRequestType = AnalysisRequestType.STUDENT,
-    val requestedBy: String = "",
-    val requestedAt: Timestamp = Timestamp.now(),
+    @Column(name = "student_id", nullable = false)
+    val studentId: String = "",
     
-    // Target
-    val studentId: String? = null,
-    val studentName: String? = null,
-    val classId: String? = null,
-    val curriculumId: String? = null,
+    @Column(name = "curriculum_id", nullable = false)
+    val curriculumId: String = "",
+    
+    @Column(name = "quest_id")
     val questId: String? = null,
     
-    // AI Model
-    val aiModel: String = "",
-    val promptTemplate: String = "",
+    @Enumerated(EnumType.STRING)
+    @Column(name = "analysis_type", nullable = false)
+    val analysisType: AnalysisType = AnalysisType.PROGRESS_REVIEW,
     
-    // Input data
-    val inputData: AnalysisInput = AnalysisInput(),
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "insights", columnDefinition = "jsonb", nullable = false)
+    val insights: Map<String, Any> = emptyMap(),
     
-    // AI Response
-    val analysis: Analysis = Analysis(),
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "recommendations", columnDefinition = "jsonb", nullable = false)
+    val recommendations: List<String> = emptyList(),
     
-    // Usage tracking
-    val accepted: Boolean? = null,
-    val appliedRecommendation: Int? = null,
-    val feedback: String? = null,
+    @Column(name = "confidence_score", nullable = false)
+    val confidenceScore: Double = 0.0,
     
-    // Cost tracking
-    val tokensUsed: Int? = null,
-    val estimatedCost: Double? = null,
+    @Column(name = "model_version", nullable = false)
+    val modelVersion: String = "gemini-1.5-pro",
     
-    // Timestamps
-    val createdAt: Timestamp = Timestamp.now(),
-    val expiresAt: Timestamp = Timestamp.now()
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
 
-enum class AnalysisRequestType {
-    STUDENT,
-    CLASS,
-    CONCEPT
-}
-
-data class AnalysisInput(
-    val recentActions: List<Map<String, Any>> = emptyList(),
-    val studentProgress: Map<String, Any> = emptyMap(),
-    val questContext: Map<String, Any> = emptyMap(),
-    val classContext: Map<String, Any>? = null
-)
-
-data class Analysis(
-    // Student-level
-    val rootIssue: String? = null,
-    val confidence: Double? = null,
-    val evidence: List<String> = emptyList(),
-    val prediction: String? = null,
-    
-    // Class-level
-    val commonStruggles: List<CommonStruggle> = emptyList(),
-    
-    // Recommendations
-    val recommendations: List<Recommendation> = emptyList()
-)
-
-data class CommonStruggle(
-    val concept: String = "",
-    val studentCount: Int = 0,
-    val severity: AlertSeverity = AlertSeverity.MEDIUM
-)
-
-data class Recommendation(
-    val rank: Int = 1,
-    val type: RecommendationType = RecommendationType.MINI_LESSON,
-    val title: String = "",
-    val description: String = "",
-    val actionable: Boolean = true,
-    val estimatedImpact: ImpactLevel = ImpactLevel.MEDIUM,
-    val actionData: Map<String, String>? = null
-)
-
-enum class RecommendationType {
-    MINI_LESSON,
-    MESSAGE,
-    PEER_TUTORING,
-    TRACK_CHANGE
-}
-
-enum class ImpactLevel {
-    HIGH,
-    MEDIUM,
-    LOW
+enum class AnalysisType {
+    PROGRESS_REVIEW,
+    STRUGGLE_DETECTION,
+    STRENGTH_IDENTIFICATION,
+    LEARNING_STYLE_ANALYSIS,
+    INTERVENTION_SUGGESTION
 }

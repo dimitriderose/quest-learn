@@ -1,69 +1,71 @@
 package com.questlearn.model
 
-import com.google.cloud.Timestamp
-import com.google.cloud.firestore.annotation.DocumentId
+import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+import java.time.Instant
+import java.util.UUID
 
+@Entity
+@Table(
+    name = "classes",
+    indexes = [
+        Index(name = "idx_class_teacher", columnList = "teacher_id"),
+        Index(name = "idx_class_school", columnList = "school_name")
+    ]
+)
 data class Class(
-    @DocumentId
-    val id: String = "",
+    @Id
+    @Column(name = "id", nullable = false, length = 50)
+    val id: String = UUID.randomUUID().toString(),
     
-    // Ownership
+    @Column(name = "name", nullable = false)
+    val name: String = "",
+    
+    @Column(name = "teacher_id", nullable = false)
     val teacherId: String = "",
+    
+    @Column(name = "teacher_name", nullable = false)
     val teacherName: String = "",
     
-    // Class info
-    val className: String = "",
+    @Column(name = "school_name")
+    val schoolName: String? = null,
+    
+    @Column(name = "school_district")
+    val schoolDistrict: String? = null,
+    
+    @Column(name = "grade_level", nullable = false)
+    val gradeLevel: String = "",
+    
+    @Column(name = "subject", nullable = false)
     val subject: String = "",
-    val gradeLevel: Int = 0,
+    
+    @Column(name = "school_year", nullable = false)
     val schoolYear: String = "",
     
-    // Enrollment
-    val classCode: String = "",
-    val codeExpiresAt: Timestamp? = null,
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "student_ids", columnDefinition = "jsonb", nullable = false)
+    val studentIds: List<String> = emptyList(),
     
-    // Pre-rostered students
-    val roster: List<RosterEntry> = emptyList(),
+    @Column(name = "student_count", nullable = false)
+    val studentCount: Int = 0,
     
-    // Assigned curricula
-    val curricula: List<CurriculumAssignment> = emptyList(),
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "assigned_curricula", columnDefinition = "jsonb", nullable = false)
+    val assignedCurricula: List<String> = emptyList(),
     
-    // Statistics
-    val stats: ClassStats = ClassStats(),
+    @Column(name = "class_code", unique = true)
+    val classCode: String? = null,
     
-    // Settings
-    val settings: ClassSettings = ClassSettings(),
-    
-    val createdAt: Timestamp = Timestamp.now(),
-    val updatedAt: Timestamp = Timestamp.now(),
+    @Column(name = "archived", nullable = false)
     val archived: Boolean = false,
-    val archivedAt: Timestamp? = null
-)
-
-data class RosterEntry(
-    val email: String = "",
-    val name: String = "",
-    val studentId: String? = null,
-    val enrolled: Boolean = false,
-    val enrolledAt: Timestamp? = null,
-    val userId: String? = null
-)
-
-data class CurriculumAssignment(
-    val curriculumId: String = "",
-    val title: String = "",
-    val status: String = "active",  // active, completed, archived
-    val assignedAt: Timestamp = Timestamp.now()
-)
-
-data class ClassStats(
-    val totalStudents: Int = 0,
-    val activeStudents: Int = 0,
-    val averageProgress: Int = 0,
-    val lastActivityAt: Timestamp = Timestamp.now()
-)
-
-data class ClassSettings(
-    val allowPeerTutoring: Boolean = true,
-    val showLeaderboard: Boolean = true,
-    val autoAssignTracks: Boolean = true
+    
+    @Column(name = "archived_at")
+    val archivedAt: Instant? = null,
+    
+    @Column(name = "created_at", nullable = false)
+    val createdAt: Instant = Instant.now(),
+    
+    @Column(name = "updated_at", nullable = false)
+    val updatedAt: Instant = Instant.now()
 )
