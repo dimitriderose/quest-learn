@@ -22,6 +22,32 @@ spring:
   flyway:
     enabled: true
     baseline-on-migrate: true
+  
+  # OAuth2 Development Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - openid
+              - profile
+              - email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+# JWT Development Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000  # 24 hours
+  
+  oauth2:
+    # Development redirect URIs (frontend)
+    authorized-redirect-uris: ${OAUTH2_REDIRECT_URIS:http://localhost:3000/auth/callback}
+    # Empty = allow ALL Google accounts for development
+    allowed-domains: ${OAUTH2_ALLOWED_DOMAINS:}
 
 logging:
   level:
