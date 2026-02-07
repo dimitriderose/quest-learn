@@ -26,6 +26,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     
+    // WebFlux for reactive WebClient (needed for Gemini API)
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    
     // OAuth2 Client for Google Sign-In
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     
