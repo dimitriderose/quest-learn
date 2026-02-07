@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Merriweather, Fredoka, Nunito, JetBrains_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const inter = Inter({ 
@@ -51,9 +51,9 @@ export default function RootLayout({
         ${jetbrainsMono.variable}
         font-inter
       `}>
-        <ThemeProvider>
+        <Providers>
           {children}
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
