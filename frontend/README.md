@@ -1,38 +1,45 @@
-# Frontend Directory
+# QuestLearn Frontend
 
-This directory will contain the Next.js 14 + React + TypeScript frontend application.
-
-## Structure (Coming Soon)
-```
-frontend/
-├── app/                  # Next.js 14 App Router
-│   ├── (auth)/          # Auth layout group
-│   │   ├── login/
-│   │   └── onboarding/
-│   ├── (teacher)/       # Teacher layout group
-│   │   ├── dashboard/
-│   │   ├── create/
-│   │   └── class/
-│   └── (student)/       # Student layout group
-│       ├── dashboard/
-│       └── quest/
-├── components/          # React components
-│   ├── ui/             # Reusable UI components
-│   ├── teacher/        # Teacher-specific components
-│   └── student/        # Student-specific components
-├── lib/                # Utilities & helpers
-│   ├── api/            # Backend API client
-│   ├── firebase.ts     # Firebase config
-│   └── utils.ts        # Helper functions
-├── public/             # Static assets
-├── package.json
-└── next.config.js
-```
+Next.js 14 + React + TypeScript frontend for QuestLearn, an AI-powered gamified learning platform.
 
 ## Tech Stack
-- Next.js 14 (App Router)
-- React 18
-- TypeScript 5.3
-- Tailwind CSS 3.4
-- Firebase (Auth & Realtime)
-- Vercel deployment
+
+- Next.js 14.1.0 (App Router)
+- TypeScript 5.3.3
+- Tailwind CSS 3.4.1
+- Zustand (state management)
+- React Hook Form + Zod (forms/validation)
+- Lucide React (icons)
+
+## Getting Started
+
+```bash
+pnpm install
+pnpm dev
+```
+
+Open http://localhost:3000
+
+## Project Structure
+
+```
+app/          # Next.js App Router pages
+components/   # React components
+lib/          # API client, utilities
+hooks/        # Custom React hooks
+types/        # TypeScript definitions
+public/       # Static assets
+```
+
+## Backend API
+
+Base URL: `http://localhost:8080/api/v1`
+
+See `/backend` directory for Spring Boot API.
+
+## Build
+
+```bash
+pnpm build
+pnpm start
+```
