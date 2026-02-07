@@ -10,14 +10,15 @@ class StringListConverter : AttributeConverter<List<String>, String> {
     private val mapper = jacksonObjectMapper()
     
     override fun convertToDatabaseColumn(attribute: List<String>?): String {
-        return mapper.writeValueAsString(attribute ?: emptyList())
+        val list: List<String> = attribute ?: emptyList()
+        return mapper.writeValueAsString(list)
     }
     
     override fun convertToEntityAttribute(dbData: String?): List<String> {
-        return if (dbData.isNullOrBlank()) {
-            emptyList()
-        } else {
-            mapper.readValue(dbData, object : TypeReference<List<String>>() {})
+        if (dbData.isNullOrBlank()) {
+            return emptyList()
         }
+        val typeRef: TypeReference<List<String>> = object : TypeReference<List<String>>() {}
+        return mapper.readValue(dbData, typeRef)
     }
 }
