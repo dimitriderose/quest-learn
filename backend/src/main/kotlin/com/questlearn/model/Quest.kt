@@ -54,6 +54,19 @@ data class Quest(
     @Column(name = "estimated_minutes", nullable = false)
     val estimatedMinutes: Int = 0,
     
+    // ⭐ NEW FIELDS FOR GEMINI-GENERATED CONTENT
+    @Column(name = "html_content", columnDefinition = "TEXT")
+    val htmlContent: String? = null,
+    
+    @Column(name = "topic", length = 255)
+    val topic: String? = null,
+    
+    @Column(name = "grade_level", length = 50)
+    val gradeLevel: String? = null,
+    
+    @Column(name = "subject", length = 100)
+    val subject: String? = null,
+    
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     
