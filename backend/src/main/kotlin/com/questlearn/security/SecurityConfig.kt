@@ -13,15 +13,6 @@ import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
-/**
- * Security Configuration
- * 
- * Configures Spring Security with:
- * - OAuth2 login for Google authentication
- * - JWT-based stateless authentication
- * - Role-based access control
- * - CORS configuration
- */
 @Configuration
 @EnableWebSecurity
 class SecurityConfig(
@@ -40,22 +31,14 @@ class SecurityConfig(
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
             .authorizeHttpRequests { auth ->
                 auth
-                    // Public endpoints
                     .requestMatchers("/health", "/actuator/**").permitAll()
                     .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login/student").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                    
-                    // Teacher endpoints
+                    .requestMatchers("/api/v1/quests/**").permitAll()
                     .requestMatchers("/api/v1/teacher/**").hasRole("TEACHER")
-                    
-                    // Student endpoints  
                     .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
-                    
-                    // Admin endpoints
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
-                    
-                    // All other requests require authentication
                     .anyRequest().authenticated()
             }
             .oauth2Login { oauth2 ->
