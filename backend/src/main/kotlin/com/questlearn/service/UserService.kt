@@ -5,7 +5,7 @@ import com.questlearn.model.UserRole
 import com.questlearn.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDateTime
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -45,14 +45,16 @@ class UserService(
         photoURL: String? = null,
         role: UserRole
     ): User {
+        val now = Instant.now()
         val user = User(
             uid = UUID.randomUUID().toString(),
             email = email,
             displayName = displayName,
             photoURL = photoURL,
             role = role,
-            createdAt = LocalDateTime.now(),
-            lastLoginAt = LocalDateTime.now()
+            createdAt = now,
+            updatedAt = now,
+            lastLoginAt = now
         )
         return userRepository.save(user)
     }
@@ -62,7 +64,10 @@ class UserService(
      */
     fun updateLastLogin(uid: String) {
         val user = getUserById(uid)
-        val updatedUser = user.copy(lastLoginAt = LocalDateTime.now())
+        val updatedUser = user.copy(
+            lastLoginAt = Instant.now(),
+            updatedAt = Instant.now()
+        )
         userRepository.save(updatedUser)
     }
     
