@@ -25,7 +25,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   
-  # OAuth2 Configuration for Google Sign-In
   security:
     oauth2:
       client:
@@ -52,7 +51,6 @@ server:
     include-message: always
     include-stacktrace: on_param
 
-# Custom application properties
 questlearn:
   gemini:
     api-key: ${GEMINI_API_KEY}
@@ -69,16 +67,23 @@ questlearn:
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
 
-# JWT Configuration
+common-standards:
+  api:
+    base-url: ${COMMON_STANDARDS_API_URL:https://api.commonstandardsproject.com}
+    timeout-seconds: ${COMMON_STANDARDS_API_TIMEOUT_SECONDS:10}
+    max-retries: ${COMMON_STANDARDS_API_MAX_RETRIES:2}
+  cache:
+    ttl-hours: ${COMMON_STANDARDS_CACHE_TTL_HOURS:24}
+    max-size: ${COMMON_STANDARDS_CACHE_MAX_SIZE:1000}
+    db-ttl-days: ${COMMON_STANDARDS_DB_CACHE_DAYS:7}
+
 app:
   jwt:
     secret: ${JWT_SECRET}
-    expiration-ms: ${JWT_EXPIRATION_MS:86400000}  # 24 hours
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   
   oauth2:
-    # Comma-separated list of allowed redirect URIs
     authorized-redirect-uris: ${OAUTH2_REDIRECT_URIS:http://localhost:3000/auth/callback,https://questlearn.app/auth/callback}
-    # Comma-separated list of allowed email domains (empty = allow all Google accounts)
     allowed-domains: ${OAUTH2_ALLOWED_DOMAINS:}
 
 logging:
