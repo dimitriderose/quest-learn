@@ -9,4 +9,5 @@ interface ClassRepository : JpaRepository<Class, String> {
     fun findByTeacherId(teacherId: String): List<Class>
     fun findByArchivedFalse(): List<Class>
     fun findByTeacherIdAndArchivedFalse(teacherId: String): List<Class>
+    fun findByClassCode(classCode: String): Class?
 }
