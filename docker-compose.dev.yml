@@ -13,7 +13,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database - Primary data store
   postgres:
     image: postgres:15-alpine
     container_name: questlearn-postgres
@@ -33,44 +32,41 @@ services:
     networks:
       - questlearn
 
-  # Spring Boot Backend API
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: questlearn-backend
     environment:
-      # Spring Profile
       SPRING_PROFILES_ACTIVE: dev
       
-      # PostgreSQL Connection (container name 'postgres' resolves via Docker network)
       DATABASE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       DATABASE_USERNAME: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       
-      # Google OAuth2
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
       
-      # JWT Configuration
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
       
-      # OAuth2 Configuration
       OAUTH2_REDIRECT_URIS: ${OAUTH2_REDIRECT_URIS:-http://localhost:3000/auth/callback}
       OAUTH2_ALLOWED_DOMAINS: ${OAUTH2_ALLOWED_DOMAINS:-}
       
-      # Gemini AI (from .env file)
       GEMINI_API_KEY: ${GEMINI_API_KEY}
       GOOGLE_CLOUD_PROJECT_ID: ${GOOGLE_CLOUD_PROJECT_ID}
       
-      # Standards API
       STANDARDS_API_URL: ${STANDARDS_API_URL:-https://api.commonstandardsproject.com}
       
-      # CORS
+      COMMON_STANDARDS_API_URL: ${COMMON_STANDARDS_API_URL:-https://api.commonstandardsproject.com}
+      COMMON_STANDARDS_CACHE_TTL_HOURS: ${COMMON_STANDARDS_CACHE_TTL_HOURS:-24}
+      COMMON_STANDARDS_CACHE_MAX_SIZE: ${COMMON_STANDARDS_CACHE_MAX_SIZE:-1000}
+      COMMON_STANDARDS_DB_CACHE_DAYS: ${COMMON_STANDARDS_DB_CACHE_DAYS:-7}
+      COMMON_STANDARDS_API_TIMEOUT_SECONDS: ${COMMON_STANDARDS_API_TIMEOUT_SECONDS:-10}
+      COMMON_STANDARDS_API_MAX_RETRIES: ${COMMON_STANDARDS_API_MAX_RETRIES:-2}
+      
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
       
-      # Server Port (internal)
       PORT: 8080
     ports:
       - "8081:8080"
