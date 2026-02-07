@@ -37,12 +37,12 @@ class JwtTokenProvider(
         val expiryDate = Date(now.time + jwtExpirationMs)
         
         return Jwts.builder()
-            .setSubject(userId)
+            .subject(userId)
             .claim("email", email)
             .claim("role", role)
-            .setIssuedAt(now)
-            .setExpiration(expiryDate)
-            .signWith(key, SignatureAlgorithm.HS512)
+            .issuedAt(now)
+            .expiration(expiryDate)
+            .signWith(key, Jwts.SIG.HS512)
             .compact()
     }
     
@@ -50,11 +50,11 @@ class JwtTokenProvider(
      * Extract user ID from JWT token
      */
     fun getUserIdFromToken(token: String): String {
-        val claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        val claims = Jwts.parser()
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
             
         return claims.subject
     }
@@ -63,11 +63,11 @@ class JwtTokenProvider(
      * Extract email from JWT token
      */
     fun getEmailFromToken(token: String): String? {
-        val claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        val claims = Jwts.parser()
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
             
         return claims["email"] as? String
     }
@@ -76,11 +76,11 @@ class JwtTokenProvider(
      * Extract role from JWT token
      */
     fun getRoleFromToken(token: String): String? {
-        val claims = Jwts.parserBuilder()
-            .setSigningKey(key)
+        val claims = Jwts.parser()
+            .verifyWith(key)
             .build()
-            .parseClaimsJws(token)
-            .body
+            .parseSignedClaims(token)
+            .payload
             
         return claims["role"] as? String
     }
@@ -91,10 +91,10 @@ class JwtTokenProvider(
      */
     fun validateToken(token: String): Boolean {
         return try {
-            Jwts.parserBuilder()
-                .setSigningKey(key)
+            Jwts.parser()
+                .verifyWith(key)
                 .build()
-                .parseClaimsJws(token)
+                .parseSignedClaims(token)
             true
         } catch (ex: SecurityException) {
             logger.error("Invalid JWT signature")
