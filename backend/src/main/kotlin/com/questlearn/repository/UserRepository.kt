@@ -10,4 +10,5 @@ interface UserRepository : JpaRepository<User, String> {
     fun findByEmail(email: String): User?
     fun findByRole(role: UserRole): List<User>
     fun findByDeletedFalse(): List<User>
+    fun findByDisplayNameAndRole(displayName: String, role: UserRole): User?
 }
