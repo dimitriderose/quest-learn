@@ -1,0 +1,116 @@
+package com.questlearn.security
+
+import io.jsonwebtoken.*
+import io.jsonwebtoken.security.Keys
+import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Component
+import java.util.*
+import javax.crypto.SecretKey
+
+/**
+ * JWT Token Provider
+ * 
+ * Handles generation and validation of JWT tokens for stateless authentication.
+ * Tokens contain user ID, email, and role claims.
+ */
+@Component
+class JwtTokenProvider(
+    @Value("\${app.jwt.secret}")
+    private val jwtSecret: String,
+    
+    @Value("\${app.jwt.expiration-ms}")
+    private val jwtExpirationMs: Long
+) {
+    
+    private val logger = LoggerFactory.getLogger(JwtTokenProvider::class.java)
+    
+    private val key: SecretKey by lazy {
+        Keys.hmacShaKeyFor(jwtSecret.toByteArray())
+    }
+    
+    /**
+     * Generate JWT token for a user
+     */
+    fun generateToken(userId: String, email: String, role: String): String {
+        val now = Date()
+        val expiryDate = Date(now.time + jwtExpirationMs)
+        
+        return Jwts.builder()
+            .setSubject(userId)
+            .claim("email", email)
+            .claim("role", role)
+            .setIssuedAt(now)
+            .setExpiration(expiryDate)
+            .signWith(key, SignatureAlgorithm.HS512)
+            .compact()
+    }
+    
+    /**
+     * Extract user ID from JWT token
+     */
+    fun getUserIdFromToken(token: String): String {
+        val claims = Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+            
+        return claims.subject
+    }
+    
+    /**
+     * Extract email from JWT token
+     */
+    fun getEmailFromToken(token: String): String? {
+        val claims = Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+            
+        return claims["email"] as? String
+    }
+    
+    /**
+     * Extract role from JWT token
+     */
+    fun getRoleFromToken(token: String): String? {
+        val claims = Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token)
+            .body
+            
+        return claims["role"] as? String
+    }
+    
+    /**
+     * Validate JWT token
+     * Returns true if token is valid, false otherwise
+     */
+    fun validateToken(token: String): Boolean {
+        return try {
+            Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+            true
+        } catch (ex: SecurityException) {
+            logger.error("Invalid JWT signature")
+            false
+        } catch (ex: MalformedJwtException) {
+            logger.error("Invalid JWT token")
+            false
+        } catch (ex: ExpiredJwtException) {
+            logger.error("Expired JWT token")
+            false
+        } catch (ex: UnsupportedJwtException) {
+            logger.error("Unsupported JWT token")
+            false
+        } catch (ex: IllegalArgumentException) {
+            logger.error("JWT claims string is empty")
+            false
+        }
+    }
+}
