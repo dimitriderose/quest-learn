@@ -41,6 +41,13 @@ class ClassService(
     }
     
     /**
+     * Get class by class code (for student login)
+     */
+    fun getClassByCode(classCode: String): Class? {
+        return classRepository.findByClassCode(classCode)
+    }
+    
+    /**
      * Add student to class
      */
     fun addStudent(classId: String, studentId: String): Class? {
