@@ -7,6 +7,7 @@ import com.questlearn.model.User
 import com.questlearn.security.JwtTokenProvider
 import com.questlearn.service.ClassService
 import com.questlearn.service.UserService
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.*
@@ -33,10 +34,14 @@ class AuthController(
      * POST /api/v1/auth/login/student
      */
     @PostMapping("/login/student")
-    fun studentLogin(@RequestBody request: StudentLoginRequest): ResponseEntity<AuthResponse> {
+    fun studentLogin(@RequestBody request: StudentLoginRequest): ResponseEntity<Any> {
         // Verify class code exists
         val classEntity = classService.getClassByCode(request.classCode)
-            ?: return ResponseEntity.badRequest().build()
+        if (classEntity == null) {
+            return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(mapOf("error" to "Invalid class code: ${request.classCode}"))
+        }
         
         // Find or create student
         val student = userService.findOrCreateStudent(request.classCode, request.studentName)
