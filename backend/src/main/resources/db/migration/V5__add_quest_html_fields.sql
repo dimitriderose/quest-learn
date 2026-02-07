@@ -11,9 +11,9 @@ ADD COLUMN IF NOT EXISTS grade_level VARCHAR(50),
 ADD COLUMN IF NOT EXISTS subject VARCHAR(100);
 
 -- Create indexes for faster queries
+-- Only create indexes on columns that exist
 CREATE INDEX IF NOT EXISTS idx_quests_grade_level ON quests(grade_level);
 CREATE INDEX IF NOT EXISTS idx_quests_subject ON quests(subject);
-CREATE INDEX IF NOT EXISTS idx_quests_created_by ON quests(created_by);
 CREATE INDEX IF NOT EXISTS idx_quests_topic ON quests(topic);
 
 -- Add comments for documentation
