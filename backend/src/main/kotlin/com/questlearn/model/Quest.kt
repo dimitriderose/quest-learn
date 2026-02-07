@@ -67,6 +67,9 @@ data class Quest(
     @Column(name = "subject", length = 100)
     val subject: String? = null,
     
+    @Column(name = "created_by", length = 50)
+    val createdBy: String? = null,
+    
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     
