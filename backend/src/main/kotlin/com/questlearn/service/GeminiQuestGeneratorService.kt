@@ -19,19 +19,13 @@ class GeminiQuestGeneratorService(
     @Value("\${questlearn.gemini.api-key}")
     private lateinit var geminiApiKey: String
     
-    private val geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
+    private val geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
     
     fun generateQuest(request: GenerateQuestRequest): String {
-        // 1. Build the prompt
         val prompt = buildQuestPrompt(request)
-        
-        // 2. Call Gemini API
         val geminiResponse = callGeminiAPI(prompt)
-        
-        // 3. Extract HTML from response
         val questHtml = extractHtmlFromResponse(geminiResponse)
         
-        // 4. Validate basic structure
         if (!questHtml.contains("<html") || !questHtml.contains("</html>")) {
             throw IllegalStateException("Generated content is not valid HTML")
         }
@@ -114,10 +108,8 @@ OUTPUT ONLY THE COMPLETE HTML - START WITH <!DOCTYPE html> AND END WITH </html>
     }
     
     private fun extractHtmlFromResponse(geminiResponse: String): String {
-        // Gemini might wrap HTML in markdown code blocks
         var html = geminiResponse.trim()
         
-        // Remove markdown code blocks if present
         if (html.startsWith("```html")) {
             html = html.removePrefix("```html").trim()
         }
