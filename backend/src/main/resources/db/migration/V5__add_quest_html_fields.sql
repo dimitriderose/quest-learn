@@ -8,16 +8,18 @@ ALTER TABLE quests
 ADD COLUMN IF NOT EXISTS html_content TEXT,
 ADD COLUMN IF NOT EXISTS topic VARCHAR(255),
 ADD COLUMN IF NOT EXISTS grade_level VARCHAR(50),
-ADD COLUMN IF NOT EXISTS subject VARCHAR(100);
+ADD COLUMN IF NOT EXISTS subject VARCHAR(100),
+ADD COLUMN IF NOT EXISTS created_by VARCHAR(50);
 
 -- Create indexes for faster queries
--- Only create indexes on columns that exist
 CREATE INDEX IF NOT EXISTS idx_quests_grade_level ON quests(grade_level);
 CREATE INDEX IF NOT EXISTS idx_quests_subject ON quests(subject);
 CREATE INDEX IF NOT EXISTS idx_quests_topic ON quests(topic);
+CREATE INDEX IF NOT EXISTS idx_quests_created_by ON quests(created_by);
 
 -- Add comments for documentation
 COMMENT ON COLUMN quests.html_content IS 'Gemini-generated HTML quest content (self-contained single file)';
 COMMENT ON COLUMN quests.topic IS 'Learning topic (e.g., Photosynthesis, Fractions)';
 COMMENT ON COLUMN quests.grade_level IS 'Target grade level (e.g., 4th Grade, 5th Grade)';
 COMMENT ON COLUMN quests.subject IS 'Auto-detected subject area (e.g., Science, Math)';
+COMMENT ON COLUMN quests.created_by IS 'User ID of the teacher who created this quest';
