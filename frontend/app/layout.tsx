@@ -1,39 +1,31 @@
 import type { Metadata } from "next";
-import { Inter, Merriweather, Fredoka, Nunito, JetBrains_Mono } from "next/font/google";
-import { Providers } from "@/components/Providers";
+import { Fredoka, Nunito, Merriweather } from "next/font/google";
 import "./globals.css";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { AuthProvider } from "@/lib/contexts/AuthContext";
 
-const inter = Inter({ 
-  subsets: ["latin"],
-  variable: "--font-inter",
-});
-
-const merriweather = Merriweather({ 
-  weight: ["400", "700", "900"],
-  subsets: ["latin"],
-  variable: "--font-merriweather",
-});
-
-const fredoka = Fredoka({ 
-  weight: ["400", "600", "700"],
+const fredoka = Fredoka({
   subsets: ["latin"],
   variable: "--font-fredoka",
+  display: "swap",
 });
 
-const nunito = Nunito({ 
-  weight: ["400", "600", "700"],
+const nunito = Nunito({
   subsets: ["latin"],
   variable: "--font-nunito",
+  display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({ 
+const merriweather = Merriweather({
+  weight: ["300", "400", "700", "900"],
   subsets: ["latin"],
-  variable: "--font-jetbrains",
+  variable: "--font-merriweather",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "QuestLearn - AI-Powered Gamified Learning",
-  description: "Transform your curriculum into engaging quest-based learning adventures",
+  title: "QuestLearn - Learn Through Adventure",
+  description: "Gamified learning platform for K-12 education",
 };
 
 export default function RootLayout({
@@ -42,18 +34,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`
-        ${inter.variable} 
-        ${merriweather.variable} 
-        ${fredoka.variable} 
-        ${nunito.variable} 
-        ${jetbrainsMono.variable}
-        font-inter
-      `}>
-        <Providers>
-          {children}
-        </Providers>
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${fredoka.variable} ${nunito.variable} ${merriweather.variable} font-nunito antialiased`}
+      >
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
