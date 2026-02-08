@@ -4,13 +4,13 @@ import com.questlearn.dto.GenerateQuestRequest
 import com.questlearn.dto.GeneratedQuestResponse
 import com.questlearn.dto.QuestMetadata
 import com.questlearn.model.Quest
+import com.questlearn.model.User
 import com.questlearn.service.GeminiQuestGeneratorService
 import com.questlearn.service.QuestService
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.oauth2.core.user.OAuth2User
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 import java.util.UUID
@@ -26,14 +26,18 @@ class QuestController(
     @PostMapping("/generate")
     fun generateQuest(
         @RequestBody request: GenerateQuestRequest,
-        @AuthenticationPrincipal principal: OAuth2User
+        authentication: Authentication
     ): ResponseEntity<GeneratedQuestResponse> {
         try {
             val questHtml = geminiService.generateQuest(request)
             val questTitle = extractTitle(questHtml) ?: "Quest: ${request.topic}"
             val questDescription = "Learn about ${request.topic} through an interactive adventure!"
             
-            val teacherId = principal.getAttribute<String>("sub") ?: "unknown"
+            // Get user from JWT authentication
+            val user = authentication.principal as User
+            val teacherId = user.uid
+            
+            println("DEBUG generateQuest: teacherId = $teacherId")
             
             val quest = Quest(
                 id = UUID.randomUUID().toString(),
@@ -57,6 +61,8 @@ class QuestController(
             )
             
             val savedQuest = questService.createQuest(quest)
+            
+            println("DEBUG: Saved quest ${savedQuest.id} with createdBy = ${savedQuest.createdBy}")
             
             val response = GeneratedQuestResponse(
                 questId = savedQuest.id,
@@ -116,13 +122,28 @@ class QuestController(
         @RequestParam(required = false) teacherId: String?
     ): ResponseEntity<List<QuestMetadata>> {
         
+        println("DEBUG listQuests: teacherId param = $teacherId")
+        
         val allQuests = questService.getAllQuests()
         
-        val filteredQuests = allQuests.filter { quest ->
-            (gradeLevel == null || quest.gradeLevel == gradeLevel) &&
-            (subject == null || quest.subject == subject) &&
-            (teacherId == null || quest.createdBy == teacherId)
+        println("DEBUG: Total quests in DB = ${allQuests.size}")
+        allQuests.forEach { 
+            println("DEBUG: Quest '${it.title}' -> createdBy = '${it.createdBy}'")
         }
+        
+        val filteredQuests = allQuests.filter { quest ->
+            val gradeMatch = (gradeLevel == null || quest.gradeLevel == gradeLevel)
+            val subjectMatch = (subject == null || quest.subject == subject)
+            val teacherMatch = (teacherId == null || quest.createdBy == teacherId)
+            
+            if (teacherId != null) {
+                println("DEBUG: Quest '${quest.title}': createdBy='${quest.createdBy}' vs teacherId='$teacherId' -> match=$teacherMatch")
+            }
+            
+            gradeMatch && subjectMatch && teacherMatch
+        }
+        
+        println("DEBUG: Filtered quests = ${filteredQuests.size}")
         
         val metadata = filteredQuests.map { quest ->
             QuestMetadata(
