@@ -29,9 +29,9 @@ class SecurityConfig(
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-            // Allow quest HTML to be loaded in iframes (for quest player)
+            // Disable X-Frame-Options to allow quest HTML to load in iframes
             .headers { headers ->
-                headers.frameOptions { it.sameOrigin() }
+                headers.frameOptions { it.disable() }
             }
             .authorizeHttpRequests { auth ->
                 auth
@@ -39,10 +39,13 @@ class SecurityConfig(
                     .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login/student").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
-                    .requestMatchers("/api/v1/quests/**").permitAll()
+                    // Allow quest HTML endpoint to be accessed without authentication (for iframe)
+                    .requestMatchers(HttpMethod.GET, "/api/v1/quests/*/html").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/v1/quests/**").permitAll()
                     .requestMatchers("/api/quests/generate").permitAll()  // Allow unauthenticated quest generation for testing
                     .requestMatchers("/api/v1/teacher/**").hasRole("TEACHER")
                     .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
+                    .requestMatchers("/api/v1/students/**").authenticated()
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
