@@ -1,6 +1,8 @@
 "use client";
 
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useAuth } from "@/lib/contexts/AuthContext";
+import { LogOut } from "lucide-react";
 
 interface Student {
   name: string;
@@ -13,6 +15,8 @@ interface StudentHeaderProps {
 }
 
 export function StudentHeader({ student }: StudentHeaderProps) {
+  const { logout } = useAuth();
+
   return (
     <header className="bg-white/10 backdrop-blur-md border-b border-white/20">
       <div className="max-w-6xl mx-auto px-6 py-4">
@@ -42,8 +46,13 @@ export function StudentHeader({ student }: StudentHeaderProps) {
             
             <ThemeToggle />
             
-            <button className="bg-white/20 hover:bg-white/30 rounded-full p-3 transition-colors">
-              <span className="text-2xl">⚙️</span>
+            <button 
+              onClick={logout}
+              className="flex items-center gap-2 bg-white/20 hover:bg-white/30 rounded-full px-4 py-2 transition-colors text-white font-nunito"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
