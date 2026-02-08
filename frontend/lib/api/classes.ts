@@ -14,6 +14,7 @@ export interface ClassDto {
   classCode: string;
   gradeLevel: number;
   studentCount: number;
+  studentIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -85,3 +86,13 @@ export const classApi = {
     return response.data.data;
   },
 };
+
+// Convenience exports
+export const getMyClasses = classApi.getAll;
+export const createClass = classApi.create;
+export const getClassDetails = classApi.getDetails;
+export const updateClass = classApi.update;
+export const deleteClass = classApi.delete;
+export const regenerateClassCode = classApi.regenerateCode;
+export const addStudentToClass = classApi.addStudent;
+export const removeStudentFromClass = classApi.removeStudent;
