@@ -170,12 +170,12 @@ function AddStudentModal({ classId, onClose, onStudentAdded }: { classId: string
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={onClose}>
-      <Card className="p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-md w-full mx-4" onClick={(e) => e.stopPropagation()}>
         <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-4">Add Student</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Student Email or User ID</label>
-            <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="student@school.edu" className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required />
+            <input type="text" value={studentId} onChange={(e) => setStudentId(e.target.value)} placeholder="student@school.edu" className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required autoFocus />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Enter the student's email address or user ID</p>
           </div>
           {error && (<div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"><p className="text-sm text-red-800 dark:text-red-200">{error}</p></div>)}
@@ -184,7 +184,7 @@ function AddStudentModal({ classId, onClose, onStudentAdded }: { classId: string
             <Button type="submit" variant="primary" disabled={loading}>{loading ? "Adding..." : "Add Student"}</Button>
           </div>
         </form>
-      </Card>
+      </div>
     </div>
   );
 }
