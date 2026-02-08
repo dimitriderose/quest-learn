@@ -36,6 +36,7 @@ class SecurityConfig(
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login/student").permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                     .requestMatchers("/api/v1/quests/**").permitAll()
+                    .requestMatchers("/api/quests/generate").permitAll()  // Allow unauthenticated quest generation for testing
                     .requestMatchers("/api/v1/teacher/**").hasRole("TEACHER")
                     .requestMatchers("/api/v1/student/**").hasRole("STUDENT")
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
