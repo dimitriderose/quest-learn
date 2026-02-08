@@ -26,6 +26,7 @@ export default function QuestPage() {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [quest, setQuest] = useState<QuestDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Get student info from auth context
   const studentId = user?.uid || "";
@@ -33,8 +34,11 @@ export default function QuestPage() {
 
   useEffect(() => {
     async function loadQuest() {
+      console.log("Loading quest:", questId);
       try {
         const questData = await getQuest(questId);
+        console.log("Quest data received:", questData);
+        
         setQuest({
           id: questData.id,
           title: questData.title,
@@ -51,6 +55,7 @@ export default function QuestPage() {
         document.title = `${questData.title} - QuestLearn`;
       } catch (error) {
         console.error("Error loading quest:", error);
+        setError("Failed to load quest. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -65,6 +70,23 @@ export default function QuestPage() {
       router.push("/student/dashboard");
     }, 2000);
   };
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-gray-900">
+        <div className="text-center">
+          <h1 className="text-white font-fredoka text-2xl mb-4">😞 Oops!</h1>
+          <p className="text-white/80 mb-4">{error}</p>
+          <button
+            onClick={() => router.push("/student/dashboard")}
+            className="px-6 py-3 bg-student-purple text-white rounded-lg font-semibold hover:bg-student-purple/90"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col bg-gray-900">
@@ -108,12 +130,21 @@ export default function QuestPage() {
 
       {/* Quest Player */}
       <div className="flex-1">
-        <QuestPlayer 
-          questId={questId}
-          studentId={studentId}
-          curriculumId={quest?.curriculum?.id || ""}
-          onComplete={handleQuestComplete}
-        />
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-student-purple mx-auto mb-4" />
+              <p className="text-white font-fredoka text-xl">Loading Quest...</p>
+            </div>
+          </div>
+        ) : (
+          <QuestPlayer 
+            questId={questId}
+            studentId={studentId}
+            curriculumId={quest?.curriculum?.id || ""}
+            onComplete={handleQuestComplete}
+          />
+        )}
       </div>
 
       {/* Exit Confirmation Modal */}
