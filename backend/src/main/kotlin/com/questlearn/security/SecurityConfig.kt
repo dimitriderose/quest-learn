@@ -29,6 +29,10 @@ class SecurityConfig(
             .cors { it.configurationSource(corsConfigurationSource()) }
             .csrf { it.disable() }
             .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
+            // Allow quest HTML to be loaded in iframes (for quest player)
+            .headers { headers ->
+                headers.frameOptions { it.sameOrigin() }
+            }
             .authorizeHttpRequests { auth ->
                 auth
                     .requestMatchers("/health", "/actuator/**").permitAll()
