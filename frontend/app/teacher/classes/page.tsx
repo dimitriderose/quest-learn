@@ -5,7 +5,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Plus, Copy, RefreshCw, Users, Calendar } from "lucide-react";
+import { Plus, Copy, Users, Calendar } from "lucide-react";
 import { classApi, ClassDto } from "@/lib/api/classes";
 import Link from "next/link";
 
@@ -41,7 +41,6 @@ export default function TeacherClassesPage() {
 
   const copyClassCode = (code: string) => {
     navigator.clipboard.writeText(code);
-    // TODO: Show toast notification
     alert(`Class code ${code} copied to clipboard!`);
   };
 
@@ -65,41 +64,23 @@ export default function TeacherClassesPage() {
     <ProtectedRoute requiredRole="TEACHER">
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <DashboardHeader />
-
         <main className="max-w-7xl mx-auto px-8 py-8">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white">
-                My Classes
-              </h1>
-              <p className="text-gray-600 dark:text-gray-400 mt-1">
-                Manage your classes and student rosters
-              </p>
+              <h1 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white">My Classes</h1>
+              <p className="text-gray-600 dark:text-gray-400 mt-1">Manage your classes and student rosters</p>
             </div>
             <Button variant="primary" onClick={() => setShowCreateForm(true)}>
               <Plus className="w-5 h-5 mr-2" />
               Create Class
             </Button>
           </div>
-
-          {showCreateForm && (
-            <CreateClassForm
-              onSubmit={handleCreateClass}
-              onCancel={() => setShowCreateForm(false)}
-            />
-          )}
-
+          {showCreateForm && <CreateClassForm onSubmit={handleCreateClass} onCancel={() => setShowCreateForm(false)} />}
           {classes.length === 0 && !showCreateForm ? (
             <EmptyState onCreateClick={() => setShowCreateForm(true)} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classes.map((cls) => (
-                <ClassCard
-                  key={cls.classId}
-                  classData={cls}
-                  onCopyCode={copyClassCode}
-                />
-              ))}
+              {classes.map((cls) => (<ClassCard key={cls.id} classData={cls} onCopyCode={copyClassCode} />))}
             </div>
           )}
         </main>
@@ -119,12 +100,10 @@ function CreateClassForm({ onSubmit, onCancel }: {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Auto-populate current school year
   useEffect(() => {
     const now = new Date();
     const year = now.getFullYear();
-    const month = now.getMonth() + 1; // 0-indexed
-    // School year starts in August (month 8)
+    const month = now.getMonth() + 1;
     const currentSchoolYear = month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
     setSchoolYear(currentSchoolYear);
   }, []);
@@ -133,7 +112,6 @@ function CreateClassForm({ onSubmit, onCancel }: {
     e.preventDefault();
     setError("");
     setLoading(true);
-
     try {
       await onSubmit(className, parseInt(gradeLevel), subject, schoolYear);
     } catch (err: any) {
@@ -144,34 +122,15 @@ function CreateClassForm({ onSubmit, onCancel }: {
 
   return (
     <Card className="p-6 mb-8">
-      <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-4">
-        Create New Class
-      </h2>
+      <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-4">Create New Class</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Class Name
-          </label>
-          <input
-            type="text"
-            value={className}
-            onChange={(e) => setClassName(e.target.value)}
-            placeholder="e.g., Period 3 Science"
-            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            required
-          />
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Class Name</label>
+          <input type="text" value={className} onChange={(e) => setClassName(e.target.value)} placeholder="e.g., Period 3 Science" className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required />
         </div>
-
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Subject
-          </label>
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            required
-          >
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Subject</label>
+          <select value={subject} onChange={(e) => setSubject(e.target.value)} className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required>
             <option value="">Select subject</option>
             <option value="Math">Math</option>
             <option value="Science">Science</option>
@@ -184,121 +143,51 @@ function CreateClassForm({ onSubmit, onCancel }: {
             <option value="Other">Other</option>
           </select>
         </div>
-
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            Grade Level
-          </label>
-          <select
-            value={gradeLevel}
-            onChange={(e) => setGradeLevel(e.target.value)}
-            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            required
-          >
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Grade Level</label>
+          <select value={gradeLevel} onChange={(e) => setGradeLevel(e.target.value)} className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required>
             <option value="">Select grade level</option>
             <option value="0">Kindergarten</option>
-            {[...Array(12)].map((_, i) => (
-              <option key={i + 1} value={i + 1}>
-                Grade {i + 1}
-              </option>
-            ))}
+            {[...Array(12)].map((_, i) => (<option key={i + 1} value={i + 1}>Grade {i + 1}</option>))}
           </select>
         </div>
-
         <div>
-          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-            School Year
-          </label>
-          <input
-            type="text"
-            value={schoolYear}
-            onChange={(e) => setSchoolYear(e.target.value)}
-            placeholder="e.g., 2025-2026"
-            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-            required
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Auto-populated with current school year
-          </p>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">School Year</label>
+          <input type="text" value={schoolYear} onChange={(e) => setSchoolYear(e.target.value)} placeholder="e.g., 2025-2026" className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white" required />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Auto-populated with current school year</p>
         </div>
-
-        {error && (
-          <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-            <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
-          </div>
-        )}
-
+        {error && (<div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"><p className="text-sm text-red-800 dark:text-red-200">{error}</p></div>)}
         <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={onCancel}
-            disabled={loading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={loading}
-          >
-            {loading ? "Creating..." : "Create Class"}
-          </Button>
+          <Button type="button" variant="secondary" onClick={onCancel} disabled={loading}>Cancel</Button>
+          <Button type="submit" variant="primary" disabled={loading}>{loading ? "Creating..." : "Create Class"}</Button>
         </div>
       </form>
     </Card>
   );
 }
 
-function ClassCard({ classData, onCopyCode }: {
-  classData: ClassDto;
-  onCopyCode: (code: string) => void;
-}) {
+function ClassCard({ classData, onCopyCode }: { classData: ClassDto; onCopyCode: (code: string) => void; }) {
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white">
-            {classData.className}
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {classData.gradeLevel === 0 ? 'Kindergarten' : `Grade ${classData.gradeLevel}`}
-          </p>
+          <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white">{classData.name}</h3>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{classData.gradeLevel === 0 ? 'Kindergarten' : `Grade ${classData.gradeLevel}`}</p>
         </div>
-        <Link href={`/teacher/classes/${classData.classId}`}>
-          <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
-            <Users className="w-5 h-5" />
-          </button>
+        <Link href={`/teacher/classes/${classData.id}`}>
+          <button className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors" title="View class roster"><Users className="w-5 h-5" /></button>
         </Link>
       </div>
-
       <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <div className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">
-          CLASS CODE
-        </div>
+        <div className="text-xs font-semibold text-blue-900 dark:text-blue-100 mb-1">CLASS CODE</div>
         <div className="flex items-center justify-between">
-          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 tracking-wider">
-            {classData.classCode}
-          </div>
-          <button
-            onClick={() => onCopyCode(classData.classCode)}
-            className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors"
-            title="Copy class code"
-          >
-            <Copy className="w-5 h-5" />
-          </button>
+          <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 tracking-wider">{classData.classCode}</div>
+          <button onClick={() => onCopyCode(classData.classCode)} className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors" title="Copy class code"><Copy className="w-5 h-5" /></button>
         </div>
       </div>
-
       <div className="flex items-center justify-between text-sm">
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <Users className="w-4 h-4" />
-          <span>{classData.studentCount} students</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <Calendar className="w-4 h-4" />
-          <span>{new Date(classData.createdAt).toLocaleDateString()}</span>
-        </div>
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Users className="w-4 h-4" /><span>{classData.studentCount} students</span></div>
+        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Calendar className="w-4 h-4" /><span>{new Date(classData.createdAt).toLocaleDateString()}</span></div>
       </div>
     </Card>
   );
@@ -308,16 +197,9 @@ function EmptyState({ onCreateClick }: { onCreateClick: () => void }) {
   return (
     <Card className="p-12 text-center">
       <div className="text-6xl mb-4">📚</div>
-      <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-2">
-        No Classes Yet
-      </h3>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">
-        Create your first class to get started with QuestLearn
-      </p>
-      <Button variant="primary" onClick={onCreateClick}>
-        <Plus className="w-5 h-5 mr-2" />
-        Create Your First Class
-      </Button>
+      <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-2">No Classes Yet</h3>
+      <p className="text-gray-600 dark:text-gray-400 mb-6">Create your first class to get started with QuestLearn</p>
+      <Button variant="primary" onClick={onCreateClick}><Plus className="w-5 h-5 mr-2" />Create Your First Class</Button>
     </Card>
   );
 }
