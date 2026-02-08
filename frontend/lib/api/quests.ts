@@ -35,6 +35,13 @@ export interface AssignQuestRequest {
   dueDate?: string;
 }
 
+export interface GenerateQuestRequest {
+  subject: string;
+  gradeLevel: number;
+  topic: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
 export const questApi = {
   /**
    * Get all quests for the authenticated teacher
@@ -66,6 +73,14 @@ export const questApi = {
     const response = await apiClient.get<StudentProgressDto[]>(
       `/api/v1/classes/${classId}/quests/${questId}/progress`
     );
+    return response.data;
+  },
+
+  /**
+   * Generate a new quest using AI
+   */
+  generate: async (data: GenerateQuestRequest): Promise<QuestDto> => {
+    const response = await apiClient.post<QuestDto>('/api/v1/quests/generate', data);
     return response.data;
   },
 };
