@@ -8,9 +8,9 @@ export interface CreateClassRequest {
 }
 
 export interface ClassDto {
-  id: string;  // Backend uses 'id' not 'classId'
+  id: string;
   teacherId: string;
-  name: string;  // Backend uses 'name' not 'className'
+  name: string;
   classCode: string;
   gradeLevel: number;
   studentCount: number;
@@ -37,7 +37,6 @@ export interface StudentDto {
   lastActive: string | null;
 }
 
-// Backend ApiResponse wrapper
 interface ApiResponse<T> {
   data: T;
   error?: {
@@ -47,50 +46,42 @@ interface ApiResponse<T> {
 }
 
 export const classApi = {
-  /**
-   * Get all classes for the authenticated teacher
-   */
   getAll: async (): Promise<ClassDto[]> => {
     const response = await apiClient.get<ApiResponse<ClassDto[]>>('/api/v1/classes');
-    return response.data.data; // Unwrap ApiResponse
+    return response.data.data;
   },
 
-  /**
-   * Create a new class
-   */
   create: async (data: CreateClassRequest): Promise<ClassDto> => {
     const response = await apiClient.post<ApiResponse<ClassDto>>('/api/v1/classes', data);
-    return response.data.data; // Unwrap ApiResponse
+    return response.data.data;
   },
 
-  /**
-   * Get class details including student roster
-   */
   getDetails: async (classId: string): Promise<ClassDetailsDto> => {
     const response = await apiClient.get<ApiResponse<ClassDetailsDto>>(`/api/v1/classes/${classId}`);
-    return response.data.data; // Unwrap ApiResponse
+    return response.data.data;
   },
 
-  /**
-   * Update class
-   */
   update: async (classId: string, data: Partial<CreateClassRequest>): Promise<ClassDto> => {
     const response = await apiClient.put<ApiResponse<ClassDto>>(`/api/v1/classes/${classId}`, data);
-    return response.data.data; // Unwrap ApiResponse
+    return response.data.data;
   },
 
-  /**
-   * Delete class
-   */
   delete: async (classId: string): Promise<void> => {
     await apiClient.delete(`/api/v1/classes/${classId}`);
   },
 
-  /**
-   * Regenerate class code
-   */
   regenerateCode: async (classId: string): Promise<{ classCode: string; regeneratedAt: string }> => {
     const response = await apiClient.post<ApiResponse<{ classCode: string; regeneratedAt: string }>>(`/api/v1/classes/${classId}/regenerate-code`);
-    return response.data.data; // Unwrap ApiResponse
+    return response.data.data;
+  },
+
+  addStudent: async (classId: string, studentId: string): Promise<ClassDto> => {
+    const response = await apiClient.post<ApiResponse<ClassDto>>(`/api/v1/classes/${classId}/students/${studentId}`);
+    return response.data.data;
+  },
+
+  removeStudent: async (classId: string, studentId: string): Promise<ClassDto> => {
+    const response = await apiClient.delete<ApiResponse<ClassDto>>(`/api/v1/classes/${classId}/students/${studentId}`);
+    return response.data.data;
   },
 };
