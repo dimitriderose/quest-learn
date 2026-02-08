@@ -209,6 +209,9 @@ Analyze the topic and select the most appropriate:
     private fun extractHtmlFromResponse(geminiResponse: String): String {
         var html = geminiResponse.trim()
         
+        // Replace <EOL> markers with actual newlines (Gemini sometimes returns these)
+        html = html.replace("<EOL>", "\n")
+        
         if (html.startsWith("```html")) {
             html = html.removePrefix("```html").trim()
         }
