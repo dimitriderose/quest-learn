@@ -7,7 +7,6 @@ import { QuickStatsCard } from "@/components/teacher/dashboard/QuickStatsCard";
 import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
 import { getMyClasses } from "@/lib/api/classes";
-import { listCurricula } from "@/lib/api/curricula";
 import apiClient from "@/lib/api/client";
 
 interface Student {
@@ -45,18 +44,15 @@ export default function TeacherDashboard() {
       try {
         setError(null);
         console.log('Loading dashboard data for user:', user.uid);
+        console.log('Auth token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
 
-        // Fetch teacher's classes and curricula in parallel
-        const [classesData, curriculaData] = await Promise.all([
-          getMyClasses(),
-          listCurricula({ teacherId: user.uid })
-        ]);
+        // Fetch teacher's classes only (skip curricula for now due to auth issues)
+        const classesData = await getMyClasses();
         
         console.log('Classes:', classesData);
-        console.log('Curricula:', curriculaData);
 
         setClasses(classesData || []);
-        setCurricula(curriculaData || []);
+        setCurricula([]); // TODO: Fix curricula endpoint authentication
 
         // Fetch student details for all students across all classes
         const studentIdSet = new Set<string>();
