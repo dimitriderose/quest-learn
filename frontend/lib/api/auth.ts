@@ -1,0 +1,58 @@
+import apiClient from './client';
+
+interface StudentLoginRequest {
+  classCode: string;
+  studentName: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: {
+    uid: string;
+    email: string;
+    displayName: string;
+    photoURL: string | null;
+    role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+  };
+}
+
+interface User {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL: string | null;
+  role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+}
+
+export const authApi = {
+  /**
+   * Login student with class code
+   */
+  loginStudent: async (data: StudentLoginRequest): Promise<AuthResponse> => {
+    const response = await apiClient.post<AuthResponse>('/api/v1/auth/login/student', data);
+    return response.data;
+  },
+
+  /**
+   * Get current user info
+   */
+  getCurrentUser: async (): Promise<User> => {
+    const response = await apiClient.get<User>('/api/v1/auth/me');
+    return response.data;
+  },
+
+  /**
+   * Logout current user
+   */
+  logout: async (): Promise<void> => {
+    await apiClient.post('/api/v1/auth/logout');
+  },
+
+  /**
+   * Get Google OAuth URL for teachers
+   */
+  getGoogleAuthUrl: (): string => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
+    return `${baseUrl}/oauth2/authorization/google`;
+  },
+};
