@@ -86,7 +86,7 @@ const mockQuests = [
 
 export default function StudentDashboard() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow">
+    <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
       <StudentHeader student={mockStudent} />
       
       <main className="max-w-6xl mx-auto px-6 py-8">
