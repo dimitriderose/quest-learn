@@ -27,7 +27,7 @@ class ClassController(
                 teacherName = user.displayName,
                 name = request.className,
                 subject = request.subject,
-                gradeLevel = request.gradeLevel,
+                gradeLevel = request.gradeLevel.toString(),  // Convert Int to String
                 schoolYear = request.schoolYear
             )
             
