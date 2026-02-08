@@ -38,7 +38,8 @@ END WITH: </html>
       content="default-src 'self' 'unsafe-inline'; 
                script-src 'self' 'unsafe-inline'; 
                style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
-               font-src https://fonts.gstatic.com;">
+               font-src https://fonts.gstatic.com;
+               frame-src https://www.youtube.com https://www.youtube-nocookie.com;">
 <meta name="quest-id" content="{{questId}}">
 <meta name="quest-number" content="1">
 <meta name="quest-title" content="[Your Quest Title]">
@@ -52,6 +53,7 @@ WHY CSP IS REQUIRED:
 - Blocks unauthorized external scripts
 - Prevents data exfiltration
 - Security requirement for school platforms
+- Allows YouTube embeds for educational videos (youtube-nocookie.com)
 
 2. THREE SCREENS (use exact IDs and classes):
 
@@ -540,32 +542,29 @@ function showTutorial(type) {
     let tutorialContent = '';
     
     if (type === 'video') {
-        // YOU MUST create 4-6 visual steps explaining {{topic}} for grade {{gradeLevel}}
-        // Use emoji, arrows (→ ⬇ ➡), and simple graphics
-        // Pattern: Step box → arrow → Step box → arrow → Step box
+        // CRITICAL: This MUST be an embedded YouTube video, NOT text
+        // Find a high-quality educational video about {{topic}} appropriate for grade {{gradeLevel}}
+        // Video should be ~60-120 seconds long
+        // Use YouTube privacy-enhanced mode: www.youtube-nocookie.com
+        // 
+        // REQUIRED FORMAT:
         tutorialContent = `
             <div class="modal-icon" style="font-size: 48px;">📺</div>
-            <h3 style="margin-bottom: 20px;">Visual Explanation</h3>
-            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; margin: 20px 0; color: white; text-align: left;">
-                <p style="font-size: 18px; margin-bottom: 15px;"><strong>Let me show you step-by-step:</strong></p>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 1:</strong> [First step with emoji]</p>
-                </div>
-                <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 2:</strong> [Second step with emoji]</p>
-                </div>
-                <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 3:</strong> [Third step with emoji]</p>
-                </div>
-                <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
-                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 4:</strong> [Final step with emoji]</p>
-                </div>
+            <h3 style="margin-bottom: 20px;">Watch This Quick Video</h3>
+            <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; max-width: 100%; border-radius: 15px; margin: 20px 0;">
+                <iframe 
+                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; border-radius: 15px;"
+                    src="https://www.youtube-nocookie.com/embed/[VIDEO_ID]" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>
             </div>
-            <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 15px;">Now try the challenge again with this knowledge!</p>
+            <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 15px;">Watch this video to understand {{topic}}, then try the challenge again!</p>
         `;
+        // Example video IDs for common topics:
+        // Photosynthesis (elementary): "UPBMG5EYydo" or "aoA525LtVH8" 
+        // Find appropriate videos by searching YouTube for "{{topic}} explained for grade {{gradeLevel}}"
+        // Always verify the video is educational, age-appropriate, and concise (~90 seconds)
     } else if (type === 'breakdown') {
         // YOU MUST write 3-5 detailed numbered steps explaining {{topic}} for grade {{gradeLevel}}
         // Use clear, numbered explanations with appropriate vocabulary
