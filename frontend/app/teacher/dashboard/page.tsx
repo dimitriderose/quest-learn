@@ -1,71 +1,79 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { QuickStatsCard } from "@/components/teacher/dashboard/QuickStatsCard";
 import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
+import { getMyClasses } from "@/lib/api/classes";
 
-// Mock data for demo - will connect to backend later
-const mockStudents = [
-  {
-    id: "1",
-    name: "Marcus Johnson",
-    avatar: "MJ",
-    currentQuest: "Quest 3: The Green Machine",
-    progress: 67,
-    status: "on-track" as const,
-    lastActive: "2 minutes ago",
-  },
-  {
-    id: "2",
-    name: "Emma Rodriguez",
-    avatar: "ER",
-    currentQuest: "Quest 5: Energy Detective",
-    progress: 92,
-    status: "excelling" as const,
-    lastActive: "5 minutes ago",
-  },
-  {
-    id: "3",
-    name: "Jamal Williams",
-    avatar: "JW",
-    currentQuest: "Quest 2: Three Ingredients",
-    progress: 34,
-    status: "struggling" as const,
-    lastActive: "15 minutes ago",
-  },
-  {
-    id: "4",
-    name: "Sofia Chen",
-    avatar: "SC",
-    currentQuest: "Quest 4: What Plants Make",
-    progress: 78,
-    status: "on-track" as const,
-    lastActive: "1 hour ago",
-  },
-  {
-    id: "5",
-    name: "David Kim",
-    avatar: "DK",
-    currentQuest: "Quest 1: Mystery Begins",
-    progress: 23,
-    status: "struggling" as const,
-    lastActive: "30 minutes ago",
-  },
-  {
-    id: "6",
-    name: "Aaliyah Thompson",
-    avatar: "AT",
-    currentQuest: "Quest 6: Real-World Doctor",
-    progress: 88,
-    status: "on-track" as const,
-    lastActive: "10 minutes ago",
-  },
-];
+interface Student {
+  id: string;
+  name: string;
+  avatar: string;
+  currentQuest: string;
+  progress: number;
+  status: "on-track" | "excelling" | "struggling";
+  lastActive: string;
+}
 
 export default function TeacherDashboard() {
+  const { user } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
+
+  useEffect(() => {
+    async function loadDashboardData() {
+      if (!user) return;
+
+      try {
+        // Fetch teacher's classes
+        const classesData = await getMyClasses();
+        setClasses(classesData);
+
+        // Convert class roster to student format for display
+        const allStudents: Student[] = [];
+        
+        classesData.forEach((classItem) => {
+          // For now, create placeholder students from studentIds
+          // In production, we'd fetch actual student details
+          classItem.studentIds?.forEach((studentId: string, index: number) => {
+            allStudents.push({
+              id: studentId,
+              name: `Student ${studentId.slice(0, 8)}`, // Placeholder - would fetch real name
+              avatar: `S${index + 1}`,
+              currentQuest: "No quest assigned",
+              progress: 0,
+              status: "on-track",
+              lastActive: "Not tracked yet",
+            });
+          });
+        });
+
+        setStudents(allStudents);
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboardData();
+  }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teacher-teal mx-auto mb-4" />
+          <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -77,17 +85,28 @@ export default function TeacherDashboard() {
             Dashboard
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2">
-            Monitor your students' progress in real-time
+            {classes.length} {classes.length === 1 ? 'class' : 'classes'} • {students.length} {students.length === 1 ? 'student' : 'students'}
           </p>
         </div>
 
-        <QuickStatsCard students={mockStudents} />
+        <QuickStatsCard students={students} />
 
         <div className="mt-8">
-          <StudentGrid
-            students={mockStudents}
-            onStudentClick={setSelectedStudent}
-          />
+          {students.length > 0 ? (
+            <StudentGrid
+              students={students}
+              onStudentClick={setSelectedStudent}
+            />
+          ) : (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg">
+              <p className="text-gray-500 dark:text-gray-400 mb-4">
+                No students enrolled yet
+              </p>
+              <p className="text-sm text-gray-400">
+                Students will appear here when they join your classes
+              </p>
+            </div>
+          )}
         </div>
       </main>
 
