@@ -23,23 +23,18 @@ class QuestController(
     private val geminiService: GeminiQuestGeneratorService
 ) {
     
-    /**
-     * Generate a new quest using Gemini AI
-     * POST /api/v1/quests/generate
-     */
     @PostMapping("/generate")
     fun generateQuest(
-        @RequestBody request: GenerateQuestRequest
+        @RequestBody request: GenerateQuestRequest,
+        @AuthenticationPrincipal principal: OAuth2User
     ): ResponseEntity<GeneratedQuestResponse> {
         try {
-            // 1. Generate quest HTML using Gemini
             val questHtml = geminiService.generateQuest(request)
-            
-            // 2. Extract metadata from HTML (simplified for now)
             val questTitle = extractTitle(questHtml) ?: "Quest: ${request.topic}"
             val questDescription = "Learn about ${request.topic} through an interactive adventure!"
             
-            // 3. Create Quest entity
+            val teacherId = principal.getAttribute<String>("sub") ?: "unknown"
+            
             val quest = Quest(
                 id = UUID.randomUUID().toString(),
                 curriculumId = request.curriculumId ?: "standalone",
@@ -54,16 +49,15 @@ class QuestController(
                 estimatedMinutes = request.durationMinutes,
                 htmlContent = questHtml,
                 topic = request.topic,
-                gradeLevel = request.gradeLevel.toString(), // Convert Int to String
+                gradeLevel = request.gradeLevel.toString(),
                 subject = request.subject,
+                createdBy = teacherId,
                 createdAt = Instant.now(),
                 updatedAt = Instant.now()
             )
             
-            // 4. Save to database
             val savedQuest = questService.createQuest(quest)
             
-            // 5. Return response
             val response = GeneratedQuestResponse(
                 questId = savedQuest.id,
                 title = savedQuest.title,
@@ -80,10 +74,6 @@ class QuestController(
         }
     }
     
-    /**
-     * Get quest HTML for rendering
-     * GET /api/v1/quests/{id}/html
-     */
     @GetMapping("/{id}/html", produces = [MediaType.TEXT_HTML_VALUE])
     fun getQuestHtml(@PathVariable id: String): ResponseEntity<String> {
         val quest = questService.getQuest(id)
@@ -98,10 +88,6 @@ class QuestController(
             .body(html)
     }
     
-    /**
-     * Get quest metadata (without HTML)
-     * GET /api/v1/quests/{id}
-     */
     @GetMapping("/{id}")
     fun getQuestMetadata(@PathVariable id: String): ResponseEntity<QuestMetadata> {
         val quest = questService.getQuest(id)
@@ -123,10 +109,6 @@ class QuestController(
         return ResponseEntity.ok(metadata)
     }
     
-    /**
-     * List quests with optional filters
-     * GET /api/v1/quests?gradeLevel=5&subject=Math
-     */
     @GetMapping
     fun listQuests(
         @RequestParam(required = false) gradeLevel: String?,
@@ -134,13 +116,15 @@ class QuestController(
         @RequestParam(required = false) teacherId: String?
     ): ResponseEntity<List<QuestMetadata>> {
         
-        // TODO: Implement proper filtering with repository methods
-        val quests = when {
-            teacherId != null -> questService.getCurriculumQuests(teacherId)
-            else -> emptyList()
+        val allQuests = questService.getAllQuests()
+        
+        val filteredQuests = allQuests.filter { quest ->
+            (gradeLevel == null || quest.gradeLevel == gradeLevel) &&
+            (subject == null || quest.subject == subject) &&
+            (teacherId == null || quest.createdBy == teacherId)
         }
         
-        val metadata = quests.map { quest ->
+        val metadata = filteredQuests.map { quest ->
             QuestMetadata(
                 id = quest.id,
                 title = quest.title,
@@ -157,8 +141,6 @@ class QuestController(
         
         return ResponseEntity.ok(metadata)
     }
-    
-    // Helper functions
     
     private fun extractTitle(html: String): String? {
         val titleRegex = """<title>(.*?)</title>""".toRegex()
