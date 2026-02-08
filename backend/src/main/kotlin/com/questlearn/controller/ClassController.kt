@@ -3,6 +3,8 @@ package com.questlearn.controller
 import com.questlearn.dto.*
 import com.questlearn.model.Class
 import com.questlearn.service.ClassService
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 
@@ -14,12 +16,17 @@ class ClassController(
     
     @PostMapping
     fun createClass(
-        @RequestBody request: CreateClassRequest
+        @RequestBody request: CreateClassRequest,
+        @AuthenticationPrincipal jwt: Jwt
     ): ApiResponse<Class> {
         return try {
+            // Extract teacherId and teacherName from JWT
+            val teacherId = request.teacherId ?: jwt.subject
+            val teacherName = request.teacherName ?: jwt.getClaimAsString("name")
+            
             val clazz = Class(
-                teacherId = request.teacherId,
-                teacherName = request.teacherName,
+                teacherId = teacherId,
+                teacherName = teacherName,
                 name = request.className,
                 subject = request.subject,
                 gradeLevel = request.gradeLevel,
