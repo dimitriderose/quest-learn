@@ -5,45 +5,60 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Search, Filter, BookOpen, Clock, Award, Target } from "lucide-react";
+import { Search, Filter, BookOpen, Clock, Award, Users } from "lucide-react";
 import { questApi, QuestDto } from "@/lib/api/quests";
-import Link from "next/link";
+import { classApi, ClassDto } from "@/lib/api/classes";
 
 export default function TeacherCurriculaPage() {
   const [quests, setQuests] = useState<QuestDto[]>([]);
+  const [classes, setClasses] = useState<ClassDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState<string>("");
-  const [selectedGrade, setSelectedGrade] = useState<string>("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedGrade, setSelectedGrade] = useState<string>("all");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("all");
 
   useEffect(() => {
-    loadQuests();
+    loadData();
   }, []);
 
-  const loadQuests = async () => {
+  const loadData = async () => {
     try {
-      const data = await questApi.getAll();
-      setQuests(data);
+      const [questsData, classesData] = await Promise.all([
+        questApi.getAll(),
+        classApi.getAll(),
+      ]);
+      setQuests(questsData);
+      setClasses(classesData);
     } catch (error) {
-      console.error('Failed to load quests:', error);
+      console.error('Failed to load data:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const filteredQuests = quests.filter((quest) => {
-    const matchesSearch = quest.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         quest.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = !selectedSubject || quest.subject === selectedSubject;
-    const matchesGrade = !selectedGrade || quest.gradeLevel.toString() === selectedGrade;
-    const matchesDifficulty = !selectedDifficulty || quest.difficulty === selectedDifficulty;
-    
+    const matchesSearch = quest.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          quest.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSubject = selectedSubject === "all" || quest.subject === selectedSubject;
+    const matchesGrade = selectedGrade === "all" || quest.gradeLevel.toString() === selectedGrade;
+    const matchesDifficulty = selectedDifficulty === "all" || quest.difficulty === selectedDifficulty;
+
     return matchesSearch && matchesSubject && matchesGrade && matchesDifficulty;
   });
 
   const subjects = Array.from(new Set(quests.map(q => q.subject)));
   const grades = Array.from(new Set(quests.map(q => q.gradeLevel))).sort((a, b) => a - b);
+
+  const handleAssignQuest = async (questId: string, classId: string) => {
+    try {
+      await questApi.assign({ questId, classId });
+      alert('Quest assigned successfully!');
+    } catch (error: any) {
+      console.error('Failed to assign quest:', error);
+      alert(error.response?.data?.message || 'Failed to assign quest');
+    }
+  };
 
   if (loading) {
     return (
@@ -67,59 +82,51 @@ export default function TeacherCurriculaPage() {
         <DashboardHeader />
 
         <main className="max-w-7xl mx-auto px-8 py-8">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white">
               Quest Library
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              Browse and assign quests to your classes
+              Browse and assign engaging quests to your classes
             </p>
           </div>
 
-          {/* Search and Filters */}
-          <div className="mb-8 space-y-4">
-            {/* Search Bar */}
+          <div className="mb-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search quests by title or description..."
                 className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               />
             </div>
 
-            {/* Filters */}
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center gap-2">
                 <Filter className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                  Filters:
-                </span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Filters:</span>
               </div>
 
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
-                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                <option value="">All Subjects</option>
-                {subjects.map((subject) => (
-                  <option key={subject} value={subject}>
-                    {subject}
-                  </option>
+                <option value="all">All Subjects</option>
+                {subjects.map(subject => (
+                  <option key={subject} value={subject}>{subject}</option>
                 ))}
               </select>
 
               <select
                 value={selectedGrade}
                 onChange={(e) => setSelectedGrade(e.target.value)}
-                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                <option value="">All Grades</option>
-                {grades.map((grade) => (
+                <option value="all">All Grades</option>
+                {grades.map(grade => (
                   <option key={grade} value={grade}>
                     {grade === 0 ? 'Kindergarten' : `Grade ${grade}`}
                   </option>
@@ -129,52 +136,55 @@ export default function TeacherCurriculaPage() {
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
               >
-                <option value="">All Difficulties</option>
+                <option value="all">All Difficulties</option>
                 <option value="easy">Easy</option>
                 <option value="medium">Medium</option>
                 <option value="hard">Hard</option>
               </select>
 
-              {(searchTerm || selectedSubject || selectedGrade || selectedDifficulty) && (
+              {(searchQuery || selectedSubject !== "all" || selectedGrade !== "all" || selectedDifficulty !== "all") && (
                 <button
                   onClick={() => {
-                    setSearchTerm("");
-                    setSelectedSubject("");
-                    setSelectedGrade("");
-                    setSelectedDifficulty("");
+                    setSearchQuery("");
+                    setSelectedSubject("all");
+                    setSelectedGrade("all");
+                    setSelectedDifficulty("all");
                   }}
-                  className="px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Clear Filters
+                  Clear filters
                 </button>
               )}
             </div>
           </div>
 
-          {/* Results Count */}
-          <div className="mb-4">
+          <div className="mb-6">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Showing {filteredQuests.length} of {quests.length} quests
             </p>
           </div>
 
-          {/* Quest Grid */}
           {filteredQuests.length === 0 ? (
             <Card className="p-12 text-center">
               <div className="text-6xl mb-4">🔍</div>
               <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-2">
                 No Quests Found
               </h3>
-              <p className="text-gray-600 dark:text-gray-400">
-                Try adjusting your search or filters
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Try adjusting your filters or search terms
               </p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredQuests.map((quest) => (
-                <QuestCard key={quest.questId} quest={quest} />
+                <QuestCard
+                  key={quest.questId}
+                  quest={quest}
+                  classes={classes}
+                  onAssign={handleAssignQuest}
+                />
               ))}
             </div>
           )}
@@ -184,70 +194,95 @@ export default function TeacherCurriculaPage() {
   );
 }
 
-function QuestCard({ quest }: { quest: QuestDto }) {
-  const [showAssignModal, setShowAssignModal] = useState(false);
+function QuestCard({ quest, classes, onAssign }: {
+  quest: QuestDto;
+  classes: ClassDto[];
+  onAssign: (questId: string, classId: string) => void;
+}) {
+  const [showAssignMenu, setShowAssignMenu] = useState(false);
 
   const difficultyColors = {
-    easy: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300',
-    medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300',
-    hard: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300',
+    easy: 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400',
+    medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400',
+    hard: 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400',
   };
 
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow flex flex-col">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="font-merriweather text-lg font-bold text-gray-900 dark:text-white mb-1">
-            {quest.title}
-          </h3>
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-blue-600 dark:text-blue-400 font-semibold">
-              {quest.subject}
-            </span>
-            <span className="text-gray-400">•</span>
-            <span className="text-gray-600 dark:text-gray-400">
-              {quest.gradeLevel === 0 ? 'K' : `Grade ${quest.gradeLevel}`}
-            </span>
-          </div>
-        </div>
-        <span className={`px-2 py-1 rounded-full text-xs font-semibold capitalize ${difficultyColors[quest.difficulty]}`}>
-          {quest.difficulty}
+    <Card className="p-6 hover:shadow-lg transition-shadow relative">
+      <div className="absolute top-4 right-4">
+        <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full text-xs font-semibold">
+          {quest.subject}
         </span>
       </div>
 
-      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-3">
-        {quest.description}
-      </p>
-
-      <div className="grid grid-cols-3 gap-4 mb-4 text-sm">
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <Clock className="w-4 h-4" />
-          <span>{quest.estimatedMinutes}m</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <Target className="w-4 h-4" />
-          <span>{quest.totalChallenges} tasks</span>
-        </div>
-        <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
-          <Award className="w-4 h-4" />
-          <span>{quest.xpReward} XP</span>
+      <div className="mb-4">
+        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+          <BookOpen className="w-6 h-6 text-white" />
         </div>
       </div>
 
-      <div className="mt-auto flex gap-2">
-        <Link href={`/teacher/curricula/${quest.questId}`} className="flex-1">
-          <Button variant="secondary" className="w-full">
-            <BookOpen className="w-4 h-4 mr-2" />
-            Preview
-          </Button>
-        </Link>
-        <Button 
-          variant="primary" 
-          className="flex-1"
-          onClick={() => setShowAssignModal(true)}
+      <h3 className="font-merriweather text-lg font-bold text-gray-900 dark:text-white mb-2 pr-16">
+        {quest.title}
+      </h3>
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+        {quest.description}
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <span className={`px-2 py-1 rounded text-xs font-semibold ${difficultyColors[quest.difficulty]}`}>
+          {quest.difficulty.charAt(0).toUpperCase() + quest.difficulty.slice(1)}
+        </span>
+        <span className="px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded text-xs font-semibold">
+          {quest.gradeLevel === 0 ? 'K' : `Grade ${quest.gradeLevel}`}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <div className="flex items-center gap-1">
+          <Clock className="w-4 h-4" />
+          <span>{quest.estimatedMinutes} min</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Award className="w-4 h-4" />
+          <span>{quest.xpReward} XP</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Users className="w-4 h-4" />
+          <span>{quest.totalChallenges} tasks</span>
+        </div>
+      </div>
+
+      <div className="relative">
+        <Button
+          variant="primary"
+          className="w-full"
+          onClick={() => setShowAssignMenu(!showAssignMenu)}
         >
-          Assign
+          Assign to Class
         </Button>
+
+        {showAssignMenu && (
+          <div className="absolute bottom-full left-0 right-0 mb-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+            {classes.length === 0 ? (
+              <div className="p-4 text-center text-sm text-gray-600 dark:text-gray-400">
+                No classes yet. Create a class first!
+              </div>
+            ) : (
+              classes.map((cls) => (
+                <button
+                  key={cls.classId}
+                  onClick={() => {
+                    onAssign(quest.questId, cls.classId);
+                    setShowAssignMenu(false);
+                  }}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 last:border-0"
+                >
+                  {cls.className}
+                </button>
+              ))}
+            )}
+          </div>
+        )}
       </div>
     </Card>
   );
