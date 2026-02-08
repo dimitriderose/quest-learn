@@ -30,12 +30,33 @@ class UserService(
     }
     
     /**
-     * Get user by ID
+     * Get user by ID (UID)
      * Throws exception if not found
      */
     fun getUserById(uid: String): User {
         return userRepository.findById(uid)
             .orElseThrow { IllegalArgumentException("User not found with id: $uid") }
+    }
+    
+    /**
+     * Get user by UID or email
+     * Tries UID first, then falls back to email lookup
+     * Returns null if not found
+     */
+    fun getUserByIdOrEmail(identifier: String): User? {
+        // Check if it's a valid UUID format
+        return try {
+            UUID.fromString(identifier)
+            // It's a UUID, try to find by UID
+            userRepository.findById(identifier).orElse(null)
+        } catch (e: IllegalArgumentException) {
+            // Not a UUID, try email lookup
+            if (identifier.contains("@")) {
+                userRepository.findByEmail(identifier)
+            } else {
+                null
+            }
+        }
     }
     
     /**
