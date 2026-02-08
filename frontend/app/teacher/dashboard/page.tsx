@@ -22,41 +22,57 @@ interface Student {
 }
 
 export default function TeacherDashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [curricula, setCurricula] = useState<any[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
 
   useEffect(() => {
     async function loadDashboardData() {
-      if (!user) return;
+      // Wait for auth to complete
+      if (authLoading) {
+        return;
+      }
+
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
       try {
+        setError(null);
+        console.log('Loading dashboard data for user:', user.uid);
+
         // Fetch teacher's classes and curricula in parallel
         const [classesData, curriculaData] = await Promise.all([
           getMyClasses(),
           listCurricula({ teacherId: user.uid })
         ]);
         
-        setClasses(classesData);
-        setCurricula(curriculaData);
+        console.log('Classes:', classesData);
+        console.log('Curricula:', curriculaData);
+
+        setClasses(classesData || []);
+        setCurricula(curriculaData || []);
 
         // Fetch student details for all students across all classes
         const studentIdSet = new Set<string>();
-        classesData.forEach((classItem) => {
-          classItem.studentIds?.forEach((id: string) => studentIdSet.add(id));
+        (classesData || []).forEach((classItem: any) => {
+          (classItem.studentIds || []).forEach((id: string) => studentIdSet.add(id));
         });
 
         const studentIds = Array.from(studentIdSet);
+        console.log('Student IDs:', studentIds);
         
         if (studentIds.length > 0) {
           // Fetch user details for all students
           const studentPromises = studentIds.map(async (studentId) => {
             try {
               const response = await apiClient.get(`/api/v1/users/${studentId}`);
-              return response.data;
+              return response.data.data || response.data; // Handle both wrapped and unwrapped responses
             } catch (error) {
               console.error(`Error fetching student ${studentId}:`, error);
               return null;
@@ -64,11 +80,12 @@ export default function TeacherDashboard() {
           });
 
           const studentData = await Promise.all(studentPromises);
+          console.log('Student data:', studentData);
           
           // Convert to Student format
           const formattedStudents: Student[] = studentData
             .filter((s) => s !== null)
-            .map((student) => ({
+            .map((student: any) => ({
               id: student.uid,
               name: student.displayName || student.email.split('@')[0],
               email: student.email,
@@ -86,22 +103,40 @@ export default function TeacherDashboard() {
 
           setStudents(formattedStudents);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading dashboard data:", error);
+        setError(error.message || "Failed to load dashboard data");
       } finally {
         setLoading(false);
       }
     }
 
     loadDashboardData();
-  }, [user]);
+  }, [user, authLoading]);
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-teacher-teal mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 mb-4">Error loading dashboard</div>
+          <p className="text-gray-600 dark:text-gray-400">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-teacher-teal text-white rounded-lg"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
