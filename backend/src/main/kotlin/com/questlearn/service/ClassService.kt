@@ -1,7 +1,9 @@
 package com.questlearn.service
 
 import com.questlearn.model.Class
+import com.questlearn.model.UserRole
 import com.questlearn.repository.ClassRepository
+import com.questlearn.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
@@ -10,7 +12,8 @@ import java.util.UUID
 @Service
 @Transactional
 class ClassService(
-    private val classRepository: ClassRepository
+    private val classRepository: ClassRepository,
+    private val userRepository: UserRepository
 ) {
     
     /**
@@ -94,10 +97,22 @@ class ClassService(
     }
     
     /**
-     * Add student to class
+     * Add student to class (supports email or UID)
      */
-    fun addStudent(classId: String, studentId: String): Class? {
+    fun addStudent(classId: String, studentIdOrEmail: String): Class? {
         val classData = classRepository.findById(classId).orElse(null) ?: return null
+        
+        // Try to find user by email first, then by UID
+        val student = userRepository.findByEmail(studentIdOrEmail)
+            ?: userRepository.findById(studentIdOrEmail).orElse(null)
+            ?: throw IllegalArgumentException("Student not found with email or ID: $studentIdOrEmail")
+        
+        // Verify it's actually a student
+        if (student.role != UserRole.STUDENT) {
+            throw IllegalArgumentException("User is not a student")
+        }
+        
+        val studentId = student.uid
         
         if (classData.studentIds.contains(studentId)) {
             return classData // Already in class
