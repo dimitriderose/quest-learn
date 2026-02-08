@@ -5,18 +5,17 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Search, Filter, BookOpen, Clock, Award, Users, Sparkles, X } from "lucide-react";
-import { questApi, QuestDto } from "@/lib/api/quests";
+import { Search, Filter, BookOpen, Clock, Sparkles, X } from "lucide-react";
+import { questApi, QuestMetadata } from "@/lib/api/quests";
 import { classApi, ClassDto } from "@/lib/api/classes";
 
 export default function TeacherCurriculaPage() {
-  const [quests, setQuests] = useState<QuestDto[]>([]);
+  const [quests, setQuests] = useState<QuestMetadata[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("all");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("all");
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   useEffect(() => {
@@ -26,7 +25,7 @@ export default function TeacherCurriculaPage() {
   const loadData = async () => {
     try {
       const [questsData, classesData] = await Promise.all([
-        questApi.getAll(),
+        questApi.list(),
         classApi.getAll(),
       ]);
       setQuests(questsData);
@@ -44,12 +43,11 @@ export default function TeacherCurriculaPage() {
       quest.description.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSubject = selectedSubject === "all" || quest.subject === selectedSubject;
     const matchesGrade = selectedGrade === "all" || quest.gradeLevel.toString() === selectedGrade;
-    const matchesDifficulty = selectedDifficulty === "all" || quest.difficulty === selectedDifficulty;
-    return matchesSearch && matchesSubject && matchesGrade && matchesDifficulty;
+    return matchesSearch && matchesSubject && matchesGrade;
   });
 
   const subjects = Array.from(new Set(quests.map((q) => q.subject)));
-  const grades = Array.from(new Set(quests.map((q) => q.gradeLevel))).sort((a, b) => a - b);
+  const grades = Array.from(new Set(quests.map((q) => parseInt(q.gradeLevel)))).sort((a, b) => a - b);
 
   const handleAssignQuest = async (questId: string, classId: string) => {
     try {
@@ -65,7 +63,6 @@ export default function TeacherCurriculaPage() {
     setSearchQuery("");
     setSelectedSubject("all");
     setSelectedGrade("all");
-    setSelectedDifficulty("all");
   };
 
   if (loading) {
@@ -89,7 +86,6 @@ export default function TeacherCurriculaPage() {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <DashboardHeader />
         <main className="max-w-7xl mx-auto px-8 py-8">
-          {/* Header with Generate Button */}
           <div className="mb-8 flex items-center justify-between">
             <div>
               <h1 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white">
@@ -109,7 +105,6 @@ export default function TeacherCurriculaPage() {
             </Button>
           </div>
 
-          {/* Search and Filters */}
           <div className="mb-6 space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -154,18 +149,7 @@ export default function TeacherCurriculaPage() {
                 ))}
               </select>
 
-              <select
-                value={selectedDifficulty}
-                onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-              >
-                <option value="all">All Difficulties</option>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-              </select>
-
-              {(searchQuery || selectedSubject !== "all" || selectedGrade !== "all" || selectedDifficulty !== "all") && (
+              {(searchQuery || selectedSubject !== "all" || selectedGrade !== "all") && (
                 <button
                   onClick={clearFilters}
                   className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
@@ -176,14 +160,12 @@ export default function TeacherCurriculaPage() {
             </div>
           </div>
 
-          {/* Results Count */}
           <div className="mb-6">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Showing {filteredQuests.length} of {quests.length} quests
             </p>
           </div>
 
-          {/* Quest Grid */}
           {filteredQuests.length === 0 ? (
             <Card className="p-12 text-center">
               <div className="text-6xl mb-4">🔍</div>
@@ -191,14 +173,14 @@ export default function TeacherCurriculaPage() {
                 No Quests Found
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Try adjusting your filters or search terms
+                Try adjusting your filters or generate a new quest!
               </p>
             </Card>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredQuests.map((quest) => (
                 <QuestCard
-                  key={quest.questId}
+                  key={quest.id}
                   quest={quest}
                   classes={classes}
                   onAssign={handleAssignQuest}
@@ -208,7 +190,6 @@ export default function TeacherCurriculaPage() {
           )}
         </main>
 
-        {/* Generate Quest Modal */}
         {showGenerateModal && (
           <GenerateQuestModal
             onClose={() => setShowGenerateModal(false)}
@@ -233,7 +214,7 @@ function GenerateQuestModal({
   const [subject, setSubject] = useState("Science");
   const [gradeLevel, setGradeLevel] = useState(5);
   const [topic, setTopic] = useState("");
-  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [difficulty, setDifficulty] = useState<"enrichment" | "standard" | "scaffolded">("standard");
   const [generating, setGenerating] = useState(false);
 
   const handleGenerate = async () => {
@@ -249,6 +230,7 @@ function GenerateQuestModal({
         gradeLevel,
         topic: topic.trim(),
         difficulty,
+        durationMinutes: 30,
       });
       alert("Quest generated successfully!");
       onSuccess();
@@ -263,7 +245,6 @@ function GenerateQuestModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl p-8 relative">
-        {/* Close Button */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -271,7 +252,6 @@ function GenerateQuestModal({
           <X className="w-6 h-6" />
         </button>
 
-        {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
@@ -286,7 +266,6 @@ function GenerateQuestModal({
           </p>
         </div>
 
-        {/* Form */}
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -301,10 +280,6 @@ function GenerateQuestModal({
               <option value="Math">Math</option>
               <option value="English">English</option>
               <option value="History">History</option>
-              <option value="Geography">Geography</option>
-              <option value="Art">Art</option>
-              <option value="Music">Music</option>
-              <option value="PE">Physical Education</option>
             </select>
           </div>
 
@@ -317,7 +292,6 @@ function GenerateQuestModal({
               onChange={(e) => setGradeLevel(Number(e.target.value))}
               className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value={0}>Kindergarten</option>
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((grade) => (
                 <option key={grade} value={grade}>
                   Grade {grade}
@@ -334,7 +308,7 @@ function GenerateQuestModal({
               type="text"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
-              placeholder="e.g., Photosynthesis, Fractions, The Solar System"
+              placeholder="e.g., Photosynthesis, Fractions"
               className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             />
           </div>
@@ -344,7 +318,7 @@ function GenerateQuestModal({
               Difficulty
             </label>
             <div className="flex gap-3">
-              {["easy", "medium", "hard"].map((level) => (
+              {["enrichment", "standard", "scaffolded"].map((level) => (
                 <button
                   key={level}
                   onClick={() => setDifficulty(level as any)}
@@ -361,7 +335,6 @@ function GenerateQuestModal({
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-4 mt-8">
           <Button variant="secondary" onClick={onClose} className="flex-1">
             Cancel
@@ -395,17 +368,11 @@ function QuestCard({
   classes,
   onAssign,
 }: {
-  quest: QuestDto;
+  quest: QuestMetadata;
   classes: ClassDto[];
   onAssign: (questId: string, classId: string) => void;
 }) {
   const [showAssignMenu, setShowAssignMenu] = useState(false);
-
-  const getDifficultyColor = (difficulty: string) => {
-    if (difficulty === "easy") return "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400";
-    if (difficulty === "medium") return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400";
-    return "bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400";
-  };
 
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow relative">
@@ -429,27 +396,14 @@ function QuestCard({
       </p>
 
       <div className="flex flex-wrap gap-2 mb-4">
-        <span className={`px-2 py-1 rounded text-xs font-semibold ${getDifficultyColor(quest.difficulty)}`}>
-          {quest.difficulty.charAt(0).toUpperCase() + quest.difficulty.slice(1)}
-        </span>
         <span className="px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded text-xs font-semibold">
-          {quest.gradeLevel === 0 ? "K" : `Grade ${quest.gradeLevel}`}
+          {quest.gradeLevel === "0" ? "K" : `Grade ${quest.gradeLevel}`}
         </span>
       </div>
 
-      <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
-        <div className="flex items-center gap-1">
-          <Clock className="w-4 h-4" />
-          <span>{quest.estimatedMinutes} min</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Award className="w-4 h-4" />
-          <span>{quest.xpReward} XP</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Users className="w-4 h-4" />
-          <span>{quest.totalChallenges} tasks</span>
-        </div>
+      <div className="flex items-center text-sm text-gray-600 dark:text-gray-400 mb-4">
+        <Clock className="w-4 h-4 mr-1" />
+        <span>{quest.durationMinutes} min</span>
       </div>
 
       <div className="relative">
@@ -472,7 +426,7 @@ function QuestCard({
                 <button
                   key={cls.classId}
                   onClick={() => {
-                    onAssign(quest.questId, cls.classId);
+                    onAssign(quest.id, cls.classId);
                     setShowAssignMenu(false);
                   }}
                   className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 last:border-0"
