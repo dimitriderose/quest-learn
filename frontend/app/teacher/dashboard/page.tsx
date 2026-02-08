@@ -7,10 +7,13 @@ import { QuickStatsCard } from "@/components/teacher/dashboard/QuickStatsCard";
 import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
 import { getMyClasses } from "@/lib/api/classes";
+import { listCurricula } from "@/lib/api/curricula";
+import apiClient from "@/lib/api/client";
 
 interface Student {
   id: string;
   name: string;
+  email: string;
   avatar: string;
   currentQuest: string;
   progress: number;
@@ -23,6 +26,7 @@ export default function TeacherDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [classes, setClasses] = useState<any[]>([]);
+  const [curricula, setCurricula] = useState<any[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
 
   useEffect(() => {
@@ -30,30 +34,58 @@ export default function TeacherDashboard() {
       if (!user) return;
 
       try {
-        // Fetch teacher's classes
-        const classesData = await getMyClasses();
-        setClasses(classesData);
-
-        // Convert class roster to student format for display
-        const allStudents: Student[] = [];
+        // Fetch teacher's classes and curricula in parallel
+        const [classesData, curriculaData] = await Promise.all([
+          getMyClasses(),
+          listCurricula({ teacherId: user.uid })
+        ]);
         
+        setClasses(classesData);
+        setCurricula(curriculaData);
+
+        // Fetch student details for all students across all classes
+        const studentIdSet = new Set<string>();
         classesData.forEach((classItem) => {
-          // For now, create placeholder students from studentIds
-          // In production, we'd fetch actual student details
-          classItem.studentIds?.forEach((studentId: string, index: number) => {
-            allStudents.push({
-              id: studentId,
-              name: `Student ${studentId.slice(0, 8)}`, // Placeholder - would fetch real name
-              avatar: `S${index + 1}`,
-              currentQuest: "No quest assigned",
-              progress: 0,
-              status: "on-track",
-              lastActive: "Not tracked yet",
-            });
-          });
+          classItem.studentIds?.forEach((id: string) => studentIdSet.add(id));
         });
 
-        setStudents(allStudents);
+        const studentIds = Array.from(studentIdSet);
+        
+        if (studentIds.length > 0) {
+          // Fetch user details for all students
+          const studentPromises = studentIds.map(async (studentId) => {
+            try {
+              const response = await apiClient.get(`/api/v1/users/${studentId}`);
+              return response.data;
+            } catch (error) {
+              console.error(`Error fetching student ${studentId}:`, error);
+              return null;
+            }
+          });
+
+          const studentData = await Promise.all(studentPromises);
+          
+          // Convert to Student format
+          const formattedStudents: Student[] = studentData
+            .filter((s) => s !== null)
+            .map((student) => ({
+              id: student.uid,
+              name: student.displayName || student.email.split('@')[0],
+              email: student.email,
+              avatar: (student.displayName || student.email)
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2),
+              currentQuest: "No quest assigned",
+              progress: 0,
+              status: "on-track" as const,
+              lastActive: "Not tracked yet",
+            }));
+
+          setStudents(formattedStudents);
+        }
       } catch (error) {
         console.error("Error loading dashboard data:", error);
       } finally {
@@ -89,7 +121,10 @@ export default function TeacherDashboard() {
           </p>
         </div>
 
-        <QuickStatsCard students={students} />
+        <QuickStatsCard 
+          students={students}
+          curricula={curricula}
+        />
 
         <div className="mt-8">
           {students.length > 0 ? (
