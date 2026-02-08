@@ -27,6 +27,13 @@ class QuestService(
     }
     
     /**
+     * Get all quests
+     */
+    fun getAllQuests(): List<Quest> {
+        return questRepository.findAll().toList()
+    }
+    
+    /**
      * Get all quests for a curriculum
      */
     fun getCurriculumQuests(curriculumId: String): List<Quest> {
