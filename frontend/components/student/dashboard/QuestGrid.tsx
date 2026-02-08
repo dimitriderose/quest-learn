@@ -8,7 +8,13 @@ interface Quest {
   title: string;
   description: string;
   icon: string;
-  status: "completed" | "in-progress" | "locked";
+  status: "available" | "completed" | "in-progress" | "locked";
+  className?: string;
+  subject?: string;
+  gradeLevel?: string;
+  dueDate?: string;
+  xpReward?: number;
+  playUrl?: string;
   score?: number;
   stars?: number;
   xpEarned?: number;
