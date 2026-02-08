@@ -534,125 +534,71 @@ function showTutorial(type) {
     let tutorialContent = '';
     
     if (type === 'video') {
-        // CRITICAL: Generate REAL animated visual explanation, not placeholder!
-        // Create 4-6 step-by-step animated sequence explaining the topic
+        // YOU MUST create 4-6 visual steps explaining {{topic}} for grade {{gradeLevel}}
+        // Use emoji, arrows (→ ⬇ ➡), and simple graphics
+        // Pattern: Step box → arrow → Step box → arrow → Step box
         tutorialContent = `
             <div class="modal-icon" style="font-size: 48px;">📺</div>
             <h3 style="margin-bottom: 20px;">Visual Explanation</h3>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; margin: 20px 0; color: white; text-align: left;">
                 <p style="font-size: 18px; margin-bottom: 15px;"><strong>Let me show you step-by-step:</strong></p>
-                
-                <!-- GENERATE ACTUAL VISUAL STEPS FOR {{topic}} -->
-                <!-- Use emoji, arrows (→, ⬇, ➡), boxes, and simple graphics -->
-                <!-- Example for Photosynthesis Grade 5:
                 <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 1:</strong> 💧 Water enters through roots + ☀️ Sunlight hits leaves</p>
+                    <p style="font-size: 16px;"><strong>Step 1:</strong> [First step with emoji]</p>
                 </div>
                 <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
                 <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 2:</strong> 🍃 Chloroplasts capture light energy</p>
+                    <p style="font-size: 16px;"><strong>Step 2:</strong> [Second step with emoji]</p>
                 </div>
                 <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
                 <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
-                    <p style="font-size: 16px;"><strong>Step 3:</strong> ⚡ Energy combines H₂O + CO₂ → Glucose + O₂</p>
+                    <p style="font-size: 16px;"><strong>Step 3:</strong> [Third step with emoji]</p>
                 </div>
-                -->
-                
-                <!-- WRITE ACTUAL STEPS - DO NOT LEAVE THIS AS EXAMPLE TEXT -->
-                <!-- ADAPT TO THE SPECIFIC TOPIC AND GRADE LEVEL -->
+                <div style="text-align: center; font-size: 24px; margin: 10px 0;">⬇️</div>
+                <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 10px 0;">
+                    <p style="font-size: 16px;"><strong>Step 4:</strong> [Final step with emoji]</p>
+                </div>
             </div>
             <p style="color: var(--color-text-secondary); font-size: 14px; margin-top: 15px;">Now try the challenge again with this knowledge!</p>
         `;
     } else if (type === 'breakdown') {
-        // CRITICAL: Generate REAL step-by-step breakdown, not placeholder!
-        // Create 3-5 detailed numbered steps explaining the concept
+        // YOU MUST write 3-5 detailed numbered steps explaining {{topic}} for grade {{gradeLevel}}
+        // Use clear, numbered explanations with appropriate vocabulary
         tutorialContent = `
             <div class="modal-icon" style="font-size: 48px;">💬</div>
             <h3 style="margin-bottom: 20px;">Step-by-Step Guide</h3>
             <div style="text-align: left; background: #f8f9fa; padding: 25px; border-radius: 12px;">
-                <!-- GENERATE ACTUAL EXPLANATION STEPS FOR {{topic}} -->
-                <!-- Write clear, numbered, detailed explanations -->
-                <!-- Example for Photosynthesis Grade 5:
-                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 1:</strong> Plants absorb water from the soil through their roots. The water travels up through tiny tubes in the stem to reach the leaves.</p>
-                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 2:</strong> Leaves contain special green parts called chloroplasts. These chloroplasts absorb sunlight and carbon dioxide (CO₂) from the air.</p>
-                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 3:</strong> The chloroplasts use the sun's energy to combine water and CO₂ in a chemical reaction.</p>
-                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 4:</strong> This reaction creates glucose (a type of sugar) that feeds the plant, and releases oxygen as a byproduct that we breathe!</p>
-                -->
-                
-                <!-- WRITE ACTUAL EXPLANATION STEPS - DO NOT LEAVE PLACEHOLDERS [Explanation] -->
-                <!-- USE VOCABULARY APPROPRIATE FOR GRADE {{gradeLevel}} -->
+                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 1:</strong> [Explain first step in detail]</p>
+                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 2:</strong> [Explain second step in detail]</p>
+                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 3:</strong> [Explain third step in detail]</p>
+                <p style="margin: 15px 0;"><strong style="color: var(--color-primary);">Step 4:</strong> [Explain fourth step in detail]</p>
             </div>
         `;
     } else if (type === 'simple') {
-        // CRITICAL: Generate REAL simple explanation, not placeholder!
-        // Write the concept in VERY simple language using analogies
+        // YOU MUST write {{topic}} in VERY simple language for grade {{gradeLevel}}
+        // Use analogies, simple words, 2-4 sentences maximum
         tutorialContent = `
             <div class="modal-icon" style="font-size: 48px;">📖</div>
             <h3 style="margin-bottom: 20px;">Simple Explanation</h3>
             <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                <!-- GENERATE ACTUAL SIMPLE EXPLANATION FOR {{topic}} -->
-                <!-- Use analogies, simple words, short sentences -->
-                <!-- Aim for 2-4 sentences maximum -->
-                <!-- Use vocabulary appropriate for grade {{gradeLevel}} -->
-                <!-- Example for Photosynthesis Grade 5:
-                <p style="font-size: 16px; line-height: 1.6;">Think of a plant like a tiny factory that makes its own food! It uses three ingredients: water from the ground, air from around it, and sunlight for energy. The plant mixes these together to create sugar that helps it grow, and as a bonus, it makes oxygen that we need to breathe. It's like the plant is cooking its own meal using sunshine as the stove!</p>
-                -->
-                
-                <!-- WRITE THE ACTUAL SIMPLE EXPLANATION HERE -->
-                <!-- DO NOT LEAVE PLACEHOLDER TEXT [Write concept in simplest possible terms] -->
+                <p style="font-size: 16px; line-height: 1.6;">[Write 2-4 sentence explanation using simple words and analogies appropriate for grade level]</p>
             </div>
         `;
     } else if (type === 'diagram') {
-        // CRITICAL: Generate REAL ASCII/Unicode diagram, not placeholder!
-        // Create a simple visual diagram using box-drawing characters
+        // YOU MUST create ASCII/Unicode diagram for {{topic}} for grade {{gradeLevel}}
+        // Use box drawing: ┌ ─ ┐ │ └ ┘ and arrows: → ← ↑ ↓ ⬆ ⬇
+        // Label all parts clearly
         tutorialContent = `
             <div class="modal-icon" style="font-size: 48px;">🎨</div>
             <h3 style="margin-bottom: 20px;">Visual Diagram</h3>
             <div style="background: #e3f2fd; padding: 25px; border-radius: 12px; margin: 20px 0; font-family: monospace;">
-                <!-- GENERATE ACTUAL ASCII/Unicode DIAGRAM FOR {{topic}} -->
-                <!-- Use box drawing: ┌ ─ ┐ │ └ ┘ ├ ┤ ┬ ┴ ┼ -->
-                <!-- Use arrows: → ← ↑ ↓ ⟶ ⟵ ➡ ⬆ ⬇ -->
-                <!-- Label all parts clearly with text -->
-                <!-- Example for Photosynthesis Grade 5:
-                <pre style="font-size: 14px; line-height: 1.4; color: #1976d2;">
-    ☀️ SUNLIGHT (Energy)
-         ↓
-    ┌────────────┐
-    │   LEAF 🍃  │
-    │            │
-    │ Chloroplast│  ← Contains chlorophyll (green)
-    │  (factory) │
-    └─────┬──────┘
-          │
-    ┌─────┴─────┐
-    ↑           ↓
-💧 Water    🌬️ CO₂         🍬 Glucose      💨 Oxygen O₂
-(from soil) (from air)      (plant food)   (we breathe)
-                </pre>
-                <p style="margin-top: 15px; color: #1565c0; font-family: var(--font-secondary);"><strong>The Formula:</strong> Water + CO₂ + Sunlight Energy → Glucose + Oxygen</p>
-                -->
-                
-                <!-- CREATE THE ACTUAL DIAGRAM HERE -->
-                <!-- DO NOT LEAVE PLACEHOLDER TEXT [Create simple labeled diagram] -->
-                <!-- ADAPT TO THE SPECIFIC TOPIC AND GRADE LEVEL -->
+                <pre style="font-size: 14px; line-height: 1.4; color: #1976d2;">[Create ASCII diagram with boxes, arrows, and labels explaining the process]</pre>
+                <p style="margin-top: 15px; color: #1565c0; font-family: var(--font-secondary);"><strong>The Formula:</strong> [Write the key formula or equation]</p>
             </div>
         `;
     }
     
-    tutorialContent += `<button onclick="closeTutorialModal()" style="margin-top: 20px; padding: 12px 24px; background: var(--color-primary); color: white; border: none; border-radius: 12px; cursor: pointer;">Got It! Try Again</button>`;
-    
+    // Don't add button here - displayModal adds it
     displayModal('Tutorial', tutorialContent);
-}
-
-function closeTutorialModal() {
-    const modal = document.getElementById('tutorialModal');
-    if (modal) modal.remove();
-    
-    // Reset tier2Offered so tutorial can trigger again after next 3 wrong attempts
-    tier2Offered = false;
-    
-    // Reset wrongAttemptCount to start fresh tracking
-    wrongAttemptCount = 0;
 }
 
 // ========================================
@@ -796,7 +742,17 @@ function displayModal(title, content) {
 function closeModal() {
     const modal = document.getElementById('feedbackModal');
     if (modal) {
+        // Check if this modal has tutorial content by looking at its title
+        const titleEl = modal.querySelector('#modalTitle');
+        const isTutorialModal = titleEl && titleEl.textContent === 'Tutorial';
+        
         modal.remove();
+        
+        // If we just closed a tutorial, reset flags so it can appear again after 3 more wrong attempts
+        if (isTutorialModal) {
+            tier2Offered = false;
+            wrongAttemptCount = 0;
+        }
     }
 }
 
