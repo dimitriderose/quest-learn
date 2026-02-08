@@ -41,7 +41,7 @@ class ClassService(
      * Create a new class with auto-generated class code
      */
     fun createClass(classData: Class): Class {
-        val classCode = if (classData.classCode.isBlank()) {
+        val classCode = if (classData.classCode.isNullOrBlank()) {
             generateClassCode()
         } else {
             classData.classCode

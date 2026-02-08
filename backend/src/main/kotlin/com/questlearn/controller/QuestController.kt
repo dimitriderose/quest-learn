@@ -39,10 +39,7 @@ class QuestController(
             val questTitle = extractTitle(questHtml) ?: "Quest: ${request.topic}"
             val questDescription = "Learn about ${request.topic} through an interactive adventure!"
             
-            // 3. Auto-detect subject from topic
-            val subject = detectSubject(request.topic)
-            
-            // 4. Create Quest entity
+            // 3. Create Quest entity
             val quest = Quest(
                 id = UUID.randomUUID().toString(),
                 curriculumId = request.curriculumId ?: "standalone",
@@ -57,16 +54,16 @@ class QuestController(
                 estimatedMinutes = request.durationMinutes,
                 htmlContent = questHtml,
                 topic = request.topic,
-                gradeLevel = request.gradeLevel,
-                subject = subject,
+                gradeLevel = request.gradeLevel.toString(), // Convert Int to String
+                subject = request.subject,
                 createdAt = Instant.now(),
                 updatedAt = Instant.now()
             )
             
-            // 5. Save to database
+            // 4. Save to database
             val savedQuest = questService.createQuest(quest)
             
-            // 6. Return response
+            // 5. Return response
             val response = GeneratedQuestResponse(
                 questId = savedQuest.id,
                 title = savedQuest.title,
@@ -114,13 +111,13 @@ class QuestController(
             id = quest.id,
             title = quest.title,
             description = quest.description,
-            topic = quest.topic,
-            gradeLevel = quest.gradeLevel,
-            subject = quest.subject,
+            topic = quest.topic ?: "",
+            gradeLevel = quest.gradeLevel ?: "",
+            subject = quest.subject ?: "",
             durationMinutes = quest.estimatedMinutes,
             standards = quest.standards,
             createdAt = quest.createdAt.toString(),
-            createdBy = "teacher-placeholder" // TODO: get from auth
+            createdBy = quest.createdBy ?: "teacher-placeholder"
         )
         
         return ResponseEntity.ok(metadata)
@@ -128,7 +125,7 @@ class QuestController(
     
     /**
      * List quests with optional filters
-     * GET /api/v1/quests?gradeLevel=5th&subject=Math
+     * GET /api/v1/quests?gradeLevel=5&subject=Math
      */
     @GetMapping
     fun listQuests(
@@ -148,13 +145,13 @@ class QuestController(
                 id = quest.id,
                 title = quest.title,
                 description = quest.description,
-                topic = quest.topic,
-                gradeLevel = quest.gradeLevel,
-                subject = quest.subject,
+                topic = quest.topic ?: "",
+                gradeLevel = quest.gradeLevel ?: "",
+                subject = quest.subject ?: "",
                 durationMinutes = quest.estimatedMinutes,
                 standards = quest.standards,
                 createdAt = quest.createdAt.toString(),
-                createdBy = "teacher-placeholder"
+                createdBy = quest.createdBy ?: "teacher-placeholder"
             )
         }
         
@@ -166,32 +163,5 @@ class QuestController(
     private fun extractTitle(html: String): String? {
         val titleRegex = """<title>(.*?)</title>""".toRegex()
         return titleRegex.find(html)?.groupValues?.get(1)?.trim()
-    }
-    
-    private fun detectSubject(topic: String): String {
-        val topicLower = topic.lowercase()
-        return when {
-            topicLower.contains("math") || 
-            topicLower.contains("fraction") || 
-            topicLower.contains("algebra") || 
-            topicLower.contains("geometry") -> "Math"
-            
-            topicLower.contains("science") || 
-            topicLower.contains("biology") || 
-            topicLower.contains("chemistry") || 
-            topicLower.contains("physics") || 
-            topicLower.contains("photosynthesis") -> "Science"
-            
-            topicLower.contains("english") || 
-            topicLower.contains("writing") || 
-            topicLower.contains("reading") || 
-            topicLower.contains("literature") -> "English Language Arts"
-            
-            topicLower.contains("history") || 
-            topicLower.contains("social studies") || 
-            topicLower.contains("geography") -> "Social Studies"
-            
-            else -> "General"
-        }
     }
 }
