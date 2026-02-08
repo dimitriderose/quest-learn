@@ -8,7 +8,7 @@ const apiClient: AxiosInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 seconds
+  timeout: 90000, // 90 seconds (increased for AI quest generation which takes ~40s)
 });
 
 // Request interceptor - add JWT token to requests
