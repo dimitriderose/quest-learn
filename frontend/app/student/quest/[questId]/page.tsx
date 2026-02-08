@@ -2,6 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { QuestPlayer } from "@/components/student/quest/QuestPlayer";
 import { getQuest } from "@/lib/api/quests";
 
@@ -11,19 +12,24 @@ interface QuestDetails {
   description: string;
   subject: string;
   gradeLevel: string;
+  curriculum?: {
+    id: string;
+    name: string;
+  };
 }
 
 export default function QuestPage() {
   const params = useParams();
   const router = useRouter();
+  const { user } = useAuth();
   const questId = params.questId as string;
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [quest, setQuest] = useState<QuestDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // TODO: Get studentId and curriculumId from auth context
-  const studentId = "student-123"; // Placeholder
-  const curriculumId = "curriculum-456"; // Placeholder
+  // Get student info from auth context
+  const studentId = user?.uid || "";
+  const studentName = user?.displayName || user?.email?.split('@')[0] || "Student";
 
   useEffect(() => {
     async function loadQuest() {
@@ -35,6 +41,10 @@ export default function QuestPage() {
           description: questData.description,
           subject: questData.subject,
           gradeLevel: questData.gradeLevel,
+          curriculum: questData.curriculum ? {
+            id: questData.curriculum.id,
+            name: questData.curriculum.name,
+          } : undefined,
         });
         
         // Update browser tab title
@@ -70,13 +80,23 @@ export default function QuestPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-white font-fredoka text-xl">
-            {loading ? "Loading..." : quest?.title || "Quest"}
-          </h1>
+          <div>
+            <h1 className="text-white font-fredoka text-xl">
+              {loading ? "Loading..." : quest?.title || "Quest"}
+            </h1>
+            {quest?.curriculum && (
+              <p className="text-white/60 text-sm">
+                {quest.curriculum.name}
+              </p>
+            )}
+          </div>
         </div>
         
         {/* Progress Indicator */}
         <div className="flex items-center gap-4">
+          <div className="text-white/80 text-sm">
+            👤 {studentName}
+          </div>
           {quest && (
             <div className="text-white/80 text-sm">
               {quest.subject} • Grade {quest.gradeLevel}
@@ -91,7 +111,7 @@ export default function QuestPage() {
         <QuestPlayer 
           questId={questId}
           studentId={studentId}
-          curriculumId={curriculumId}
+          curriculumId={quest?.curriculum?.id || ""}
           onComplete={handleQuestComplete}
         />
       </div>
@@ -104,7 +124,7 @@ export default function QuestPage() {
               Exit Quest?
             </h2>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Your progress is saved. Continue later from where you left off.
+              Your progress is saved, {studentName}. Continue later from where you left off.
             </p>
             <div className="flex gap-3">
               <button
