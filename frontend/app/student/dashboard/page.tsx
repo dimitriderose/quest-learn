@@ -1,22 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { StudentHeader } from "@/components/student/dashboard/StudentHeader";
 import { XPTracker } from "@/components/student/dashboard/XPTracker";
 import { QuestGrid } from "@/components/student/dashboard/QuestGrid";
 import { AchievementBanner } from "@/components/student/dashboard/AchievementBanner";
 import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
-
-// Mock student data - will connect to backend later
-const mockStudent = {
-  name: "Alex",
-  level: 5,
-  currentXP: 350,
-  xpToNextLevel: 500,
-  totalXP: 2350,
-  streak: 7,
-  avatar: "🌟",
-};
 
 // Helper function to convert StudentQuestDto to Quest format for QuestGrid
 function convertToQuestFormat(quests: StudentQuestDto[]) {
@@ -50,8 +40,28 @@ function getIconForSubject(subject: string): string {
 }
 
 export default function StudentDashboard() {
+  const { user } = useAuth();
   const [quests, setQuests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Create student object from auth user
+  const student = user ? {
+    name: user.displayName || user.email?.split('@')[0] || "Student",
+    level: 5,
+    currentXP: 350,
+    xpToNextLevel: 500,
+    totalXP: 2350,
+    streak: 7,
+    avatar: "🌟",
+  } : {
+    name: "Student",
+    level: 1,
+    currentXP: 0,
+    xpToNextLevel: 100,
+    totalXP: 0,
+    streak: 0,
+    avatar: "🌟",
+  };
 
   useEffect(() => {
     async function loadQuests() {
@@ -72,12 +82,12 @@ export default function StudentDashboard() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
-      <StudentHeader student={mockStudent} />
+      <StudentHeader student={student} />
       
       <main className="max-w-6xl mx-auto px-6 py-8">
         <AchievementBanner />
         
-        <XPTracker student={mockStudent} />
+        <XPTracker student={student} />
         
         <div className="mt-8">
           <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
