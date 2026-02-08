@@ -1,9 +1,11 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { StudentHeader } from "@/components/student/dashboard/StudentHeader";
 import { XPTracker } from "@/components/student/dashboard/XPTracker";
 import { QuestGrid } from "@/components/student/dashboard/QuestGrid";
 import { AchievementBanner } from "@/components/student/dashboard/AchievementBanner";
+import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
 
 // Mock student data - will connect to backend later
 const mockStudent = {
@@ -16,75 +18,58 @@ const mockStudent = {
   avatar: "🌟",
 };
 
-const mockQuests = [
-  {
-    id: "1",
-    number: 1,
-    title: "The Mystery Begins",
-    description: "Discover what plants need to survive!",
-    icon: "🔍",
-    status: "completed" as const,
-    score: 95,
-    stars: 3,
-    xpEarned: 100,
-  },
-  {
-    id: "2",
-    number: 2,
-    title: "The Three Ingredients",
-    description: "Build the photosynthesis equation",
-    icon: "🧪",
-    status: "completed" as const,
-    score: 88,
-    stars: 3,
-    xpEarned: 100,
-  },
-  {
-    id: "3",
-    number: 3,
-    title: "The Green Machine",
-    description: "Explore inside a leaf with your microscope!",
-    icon: "🔬",
-    status: "in-progress" as const,
-    progress: 60,
-    attempts: 2,
-  },
-  {
-    id: "4",
-    number: 4,
-    title: "What Do Plants Make?",
-    description: "Discover glucose and oxygen",
-    icon: "🌿",
-    status: "locked" as const,
-  },
-  {
-    id: "5",
-    number: 5,
-    title: "Energy Detective",
-    description: "Trace energy from sun to you!",
-    icon: "☀️",
-    status: "locked" as const,
-  },
-  {
-    id: "6",
-    number: 6,
-    title: "Real-World Plant Doctor",
-    description: "Solve real plant problems",
-    icon: "🏥",
-    status: "locked" as const,
-  },
-  {
-    id: "7",
-    number: 7,
-    title: "Save the Forest!",
-    description: "Final mission - use all your knowledge!",
-    icon: "🏆",
-    status: "locked" as const,
-    isFinal: true,
-  },
-];
+// Helper function to convert StudentQuestDto to Quest format for QuestGrid
+function convertToQuestFormat(quests: StudentQuestDto[]) {
+  return quests.map((quest, index) => ({
+    id: quest.questId,
+    number: index + 1,
+    title: quest.title,
+    description: quest.description,
+    icon: getIconForSubject(quest.subject),
+    status: "available" as const,
+    className: quest.className,
+    dueDate: quest.dueDate,
+    xpReward: quest.xpReward,
+    playUrl: quest.playUrl,
+  }));
+}
+
+function getIconForSubject(subject: string): string {
+  const icons: Record<string, string> = {
+    Science: "🔬",
+    Math: "🔢",
+    "English Language Arts": "📚",
+    "Social Studies": "🌍",
+    History: "📜",
+    Geography: "🗺️",
+    Art: "🎨",
+    Music: "🎵",
+    "Physical Education": "⚽",
+  };
+  return icons[subject] || "📖";
+}
 
 export default function StudentDashboard() {
+  const [quests, setQuests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadQuests() {
+      try {
+        const assignedQuests = await getMyQuests();
+        const formattedQuests = convertToQuestFormat(assignedQuests);
+        setQuests(formattedQuests);
+      } catch (error) {
+        console.error("Error loading quests:", error);
+        setQuests([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuests();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
       <StudentHeader student={mockStudent} />
@@ -96,13 +81,29 @@ export default function StudentDashboard() {
         
         <div className="mt-8">
           <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
-            🌳 Forest Rescue Quests
+            🎯 My Assigned Quests
           </h2>
           <p className="font-nunito text-xl text-white/90 text-center mb-8">
-            Complete quests to save the forest and become a photosynthesis expert!
+            Complete your assigned quests to earn XP and level up!
           </p>
           
-          <QuestGrid quests={mockQuests} />
+          {loading ? (
+            <div className="text-center text-white py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+              <p className="font-nunito">Loading your quests...</p>
+            </div>
+          ) : quests.length === 0 ? (
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+              <p className="font-nunito text-xl text-white mb-2">
+                No quests assigned yet! 📚
+              </p>
+              <p className="font-nunito text-white/80">
+                Ask your teacher to assign you some learning adventures!
+              </p>
+            </div>
+          ) : (
+            <QuestGrid quests={quests} />
+          )}
         </div>
       </main>
     </div>
