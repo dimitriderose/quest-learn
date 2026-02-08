@@ -9,6 +9,12 @@ import { Search, Filter, BookOpen, Clock, Award, Users } from "lucide-react";
 import { questApi, QuestDto } from "@/lib/api/quests";
 import { classApi, ClassDto } from "@/lib/api/classes";
 
+interface QuestCardProps {
+  quest: QuestDto;
+  classes: ClassDto[];
+  onAssign: (questId: string, classId: string) => void;
+}
+
 export default function TeacherCurriculaPage() {
   const [quests, setQuests] = useState<QuestDto[]>([]);
   const [classes, setClasses] = useState<ClassDto[]>([]);
@@ -194,11 +200,8 @@ export default function TeacherCurriculaPage() {
   );
 }
 
-function QuestCard({ quest, classes, onAssign }: {
-  quest: QuestDto;
-  classes: ClassDto[];
-  onAssign: (questId: string, classId: string) => void;
-}) {
+function QuestCard(props: QuestCardProps) {
+  const { quest, classes, onAssign } = props;
   const [showAssignMenu, setShowAssignMenu] = useState(false);
 
   const difficultyColors = {
