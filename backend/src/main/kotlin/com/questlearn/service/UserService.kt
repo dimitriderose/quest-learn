@@ -2,6 +2,7 @@ package com.questlearn.service
 
 import com.questlearn.model.User
 import com.questlearn.model.UserRole
+import com.questlearn.repository.ClassRepository
 import com.questlearn.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -17,7 +18,8 @@ import java.util.UUID
 @Service
 @Transactional
 class UserService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val classRepository: ClassRepository
 ) {
     
     /**
@@ -92,6 +94,35 @@ class UserService(
         )
         
         return userRepository.save(updated)
+    }
+    
+    /**
+     * Delete user account and remove from all classes
+     * Only students can delete their own accounts
+     */
+    fun deleteAccount(userId: String) {
+        val user = getUserById(userId)
+        
+        // Only allow students to delete themselves
+        if (user.role != UserRole.STUDENT) {
+            throw IllegalArgumentException("Only students can delete their own accounts")
+        }
+        
+        // Remove student from all classes
+        val allClasses = classRepository.findAll()
+        allClasses.forEach { clazz ->
+            if (clazz.studentIds.contains(userId)) {
+                val updated = clazz.copy(
+                    studentIds = clazz.studentIds - userId,
+                    studentCount = (clazz.studentCount - 1).coerceAtLeast(0),
+                    updatedAt = Instant.now()
+                )
+                classRepository.save(updated)
+            }
+        }
+        
+        // Delete the user
+        userRepository.deleteById(userId)
     }
     
     /**
