@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*
 
 /**
  * User Profile Controller
- * Handles user profile updates
+ * Handles user profile updates and account deletion
  */
 @RestController
 @RequestMapping("/api/v1/users")
@@ -43,6 +43,25 @@ class UserController(
             error("VALIDATION_ERROR", e.message ?: "Invalid profile data")
         } catch (e: Exception) {
             error("UPDATE_FAILED", e.message ?: "Failed to update profile")
+        }
+    }
+    
+    /**
+     * Delete current user's account
+     * DELETE /api/v1/users/me
+     * 
+     * Removes user from all classes and deletes account permanently
+     * Only available for students
+     */
+    @DeleteMapping("/me")
+    fun deleteAccount(@AuthenticationPrincipal user: User): ApiResponse<Map<String, String>> {
+        return try {
+            userService.deleteAccount(user.uid)
+            success(mapOf("message" to "Account deleted successfully"))
+        } catch (e: IllegalArgumentException) {
+            error("FORBIDDEN", e.message ?: "Cannot delete this account")
+        } catch (e: Exception) {
+            error("DELETE_FAILED", e.message ?: "Failed to delete account")
         }
     }
 }
