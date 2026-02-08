@@ -10,7 +10,13 @@ interface Quest {
   title: string;
   description: string;
   icon: string;
-  status: "completed" | "in-progress" | "locked";
+  status: "available" | "completed" | "in-progress" | "locked";
+  className?: string;
+  subject?: string;
+  gradeLevel?: string;
+  dueDate?: string;
+  xpReward?: number;
+  playUrl?: string;
   score?: number;
   stars?: number;
   xpEarned?: number;
@@ -27,6 +33,7 @@ export function QuestCard({ quest }: QuestCardProps) {
   const isLocked = quest.status === "locked";
   const isCompleted = quest.status === "completed";
   const isInProgress = quest.status === "in-progress";
+  const isAvailable = quest.status === "available";
 
   const cardStyle = quest.isFinal
     ? "bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500"
@@ -34,11 +41,20 @@ export function QuestCard({ quest }: QuestCardProps) {
     ? "bg-gradient-to-br from-green-400 to-emerald-600"
     : isInProgress
     ? "bg-gradient-to-br from-blue-400 to-purple-600"
+    : isAvailable
+    ? "bg-gradient-to-br from-indigo-500 to-purple-600"
     : "bg-gray-400";
+
+  const handleStartQuest = () => {
+    if (quest.playUrl) {
+      window.location.href = quest.playUrl;
+    }
+  };
 
   return (
     <Card
-      className={`p-6 border-0 shadow-xl ${cardStyle} ${!isLocked && "hover:scale-105"} transition-all duration-300 relative overflow-hidden`}
+      className={`p-6 border-0 shadow-xl ${cardStyle} ${!isLocked && "hover:scale-105 cursor-pointer"} transition-all duration-300 relative overflow-hidden`}
+      onClick={isAvailable || isInProgress ? handleStartQuest : undefined}
     >
       {/* Quest Number Badge */}
       <div className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/30 backdrop-blur-sm flex items-center justify-center font-fredoka font-bold text-white text-lg">
@@ -65,6 +81,53 @@ export function QuestCard({ quest }: QuestCardProps) {
         {quest.description}
       </p>
 
+      {/* Class Info Badge (for assigned quests) */}
+      {quest.className && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-nunito">
+            📚 {quest.className}
+          </span>
+          {quest.subject && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-nunito">
+              {quest.subject}
+            </span>
+          )}
+          {quest.gradeLevel && (
+            <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm font-nunito">
+              Grade {quest.gradeLevel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* XP Reward */}
+      {quest.xpReward && (
+        <div className="mb-3 flex items-center gap-2 text-white">
+          <span className="text-2xl">⭐</span>
+          <span className="font-fredoka text-lg font-bold">
+            +{quest.xpReward} XP
+          </span>
+        </div>
+      )}
+
+      {/* Available State (NEW - for assigned quests) */}
+      {isAvailable && (
+        <div className="space-y-3">
+          {quest.dueDate && (
+            <div className="text-center text-white/90 text-sm font-nunito">
+              Due: {new Date(quest.dueDate).toLocaleDateString()}
+            </div>
+          )}
+          <Button 
+            variant="hero" 
+            className="w-full font-fredoka"
+            onClick={handleStartQuest}
+          >
+            ▶️ Start Quest!
+          </Button>
+        </div>
+      )}
+
       {/* Completed State */}
       {isCompleted && (
         <div className="space-y-3">
@@ -87,11 +150,13 @@ export function QuestCard({ quest }: QuestCardProps) {
           <div className="text-center font-nunito text-white/90 text-sm">
             +{quest.xpEarned} XP earned!
           </div>
-          <Link href={`/student/quest/${quest.id}`}>
-            <Button variant="secondary" className="w-full">
-              ▶️ Play Again
-            </Button>
-          </Link>
+          <Button 
+            variant="secondary" 
+            className="w-full"
+            onClick={handleStartQuest}
+          >
+            ▶️ Play Again
+          </Button>
         </div>
       )}
 
@@ -108,11 +173,13 @@ export function QuestCard({ quest }: QuestCardProps) {
             <span>{quest.progress}% complete</span>
             <span>Attempt {quest.attempts}</span>
           </div>
-          <Link href={`/student/quest/${quest.id}`}>
-            <Button variant="hero" className="w-full font-fredoka">
-              ▶️ Continue Quest!
-            </Button>
-          </Link>
+          <Button 
+            variant="hero" 
+            className="w-full font-fredoka"
+            onClick={handleStartQuest}
+          >
+            ▶️ Continue Quest!
+          </Button>
         </div>
       )}
 
