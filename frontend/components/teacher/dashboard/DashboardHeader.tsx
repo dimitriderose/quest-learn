@@ -19,16 +19,16 @@ export function DashboardHeader() {
             
             <nav className="hidden md:flex gap-6">
               <Link
-                href="/teacher/dashboard"
+                href="/teacher/classes"
                 className="text-teacher-primary font-semibold"
               >
-                Dashboard
+                My Classes
               </Link>
               <Link
                 href="/teacher/curricula"
                 className="text-gray-600 dark:text-gray-400 hover:text-teacher-primary"
               >
-                My Curricula
+                Curricula
               </Link>
               <Link
                 href="/teacher/reports"
