@@ -1,5 +1,7 @@
 "use client";
 
+import { ThemeToggle } from "@/components/ThemeToggle";
+
 interface Student {
   name: string;
   level: number;
@@ -37,6 +39,8 @@ export function StudentHeader({ student }: StudentHeaderProps) {
                 <div className="font-bold">7 days</div>
               </div>
             </div>
+            
+            <ThemeToggle />
             
             <button className="bg-white/20 hover:bg-white/30 rounded-full p-3 transition-colors">
               <span className="text-2xl">⚙️</span>
