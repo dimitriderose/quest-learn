@@ -469,14 +469,14 @@ function QuestCard({
             ) : (
               classes.map((cls) => (
                 <button
-                  key={cls.classId}
+                  key={cls.id}
                   onClick={() => {
-                    onAssign(quest.id, cls.classId);
+                    onAssign(quest.id, cls.id);
                     setShowAssignMenu(false);
                   }}
                   className="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 last:border-0"
                 >
-                  {cls.className}
+                  {cls.name}
                 </button>
               ))
             )}
