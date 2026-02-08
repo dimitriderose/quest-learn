@@ -5,7 +5,7 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Search, Filter, BookOpen, Clock, Sparkles, X } from "lucide-react";
+import { Search, Filter, BookOpen, Clock, Sparkles, X, User, Users } from "lucide-react";
 import { questApi, QuestMetadata } from "@/lib/api/quests";
 import { classApi, ClassDto } from "@/lib/api/classes";
 
@@ -16,16 +16,31 @@ export default function TeacherCurriculaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("all");
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   useEffect(() => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    loadData();
+  }, [selectedSubject, selectedGrade, showOnlyMine]);
+
   const loadData = async () => {
+    setLoading(true);
     try {
+      const userStr = localStorage.getItem('user');
+      const user = userStr ? JSON.parse(userStr) : null;
+      const teacherId = user?.id;
+
+      const filters: any = {};
+      if (showOnlyMine && teacherId) filters.teacherId = teacherId;
+      if (selectedSubject !== "all") filters.subject = selectedSubject;
+      if (selectedGrade !== "all") filters.gradeLevel = selectedGrade;
+
       const [questsData, classesData] = await Promise.all([
-        questApi.list(),
+        questApi.list(filters),
         classApi.getAll(),
       ]);
       setQuests(questsData);
@@ -41,13 +56,11 @@ export default function TeacherCurriculaPage() {
     const matchesSearch =
       quest.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       quest.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesSubject = selectedSubject === "all" || quest.subject === selectedSubject;
-    const matchesGrade = selectedGrade === "all" || quest.gradeLevel.toString() === selectedGrade;
-    return matchesSearch && matchesSubject && matchesGrade;
+    return matchesSearch;
   });
 
-  const subjects = Array.from(new Set(quests.map((q) => q.subject)));
-  const grades = Array.from(new Set(quests.map((q) => parseInt(q.gradeLevel)))).sort((a, b) => a - b);
+  const subjects = ["Science", "Math", "English", "History"];
+  const grades = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   const handleAssignQuest = async (questId: string, classId: string) => {
     try {
@@ -63,6 +76,7 @@ export default function TeacherCurriculaPage() {
     setSearchQuery("");
     setSelectedSubject("all");
     setSelectedGrade("all");
+    setShowOnlyMine(false);
   };
 
   if (loading) {
@@ -106,6 +120,34 @@ export default function TeacherCurriculaPage() {
           </div>
 
           <div className="mb-6 space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">View:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowOnlyMine(false)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    !showOnlyMine
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  All Quests
+                </button>
+                <button
+                  onClick={() => setShowOnlyMine(true)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    showOnlyMine
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  My Quests
+                </button>
+              </div>
+            </div>
+
             <div className="relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -144,17 +186,17 @@ export default function TeacherCurriculaPage() {
                 <option value="all">All Grades</option>
                 {grades.map((grade) => (
                   <option key={grade} value={grade}>
-                    {grade === 0 ? "Kindergarten" : `Grade ${grade}`}
+                    Grade {grade}
                   </option>
                 ))}
               </select>
 
-              {(searchQuery || selectedSubject !== "all" || selectedGrade !== "all") && (
+              {(searchQuery || selectedSubject !== "all" || selectedGrade !== "all" || showOnlyMine) && (
                 <button
                   onClick={clearFilters}
                   className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
                 >
-                  Clear filters
+                  Clear all filters
                 </button>
               )}
             </div>
@@ -163,6 +205,7 @@ export default function TeacherCurriculaPage() {
           <div className="mb-6">
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Showing {filteredQuests.length} of {quests.length} quests
+              {showOnlyMine && " (your quests)"}
             </p>
           </div>
 
@@ -173,7 +216,9 @@ export default function TeacherCurriculaPage() {
                 No Quests Found
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Try adjusting your filters or generate a new quest!
+                {showOnlyMine
+                  ? "You haven't created any quests yet. Generate your first quest!"
+                  : "Try adjusting your filters or generate a new quest!"}
               </p>
             </Card>
           ) : (
