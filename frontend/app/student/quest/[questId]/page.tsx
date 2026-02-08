@@ -1,18 +1,53 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { QuestPlayer } from "@/components/student/quest/QuestPlayer";
-import { useState } from "react";
+import { getQuest } from "@/lib/api/quests";
+
+interface QuestDetails {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  gradeLevel: string;
+}
 
 export default function QuestPage() {
   const params = useParams();
   const router = useRouter();
   const questId = params.questId as string;
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  const [quest, setQuest] = useState<QuestDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // TODO: Get studentId and curriculumId from auth context
   const studentId = "student-123"; // Placeholder
   const curriculumId = "curriculum-456"; // Placeholder
+
+  useEffect(() => {
+    async function loadQuest() {
+      try {
+        const questData = await getQuest(questId);
+        setQuest({
+          id: questData.id,
+          title: questData.title,
+          description: questData.description,
+          subject: questData.subject,
+          gradeLevel: questData.gradeLevel,
+        });
+        
+        // Update browser tab title
+        document.title = `${questData.title} - QuestLearn`;
+      } catch (error) {
+        console.error("Error loading quest:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadQuest();
+  }, [questId]);
 
   const handleQuestComplete = () => {
     // Show completion animation/modal
@@ -35,11 +70,18 @@ export default function QuestPage() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-          <h1 className="text-white font-fredoka text-xl">Quest {questId}</h1>
+          <h1 className="text-white font-fredoka text-xl">
+            {loading ? "Loading..." : quest?.title || "Quest"}
+          </h1>
         </div>
         
         {/* Progress Indicator */}
         <div className="flex items-center gap-4">
+          {quest && (
+            <div className="text-white/80 text-sm">
+              {quest.subject} • Grade {quest.gradeLevel}
+            </div>
+          )}
           <div className="text-white/60 text-sm">In Progress</div>
         </div>
       </div>
