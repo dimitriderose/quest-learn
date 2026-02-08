@@ -2,11 +2,10 @@ package com.questlearn.controller
 
 import com.questlearn.dto.*
 import com.questlearn.model.Class
+import com.questlearn.model.User
 import com.questlearn.service.ClassService
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.oauth2.jwt.Jwt
+import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
-import java.time.Instant
 
 @RestController
 @RequestMapping("/api/v1/classes")
@@ -17,16 +16,15 @@ class ClassController(
     @PostMapping
     fun createClass(
         @RequestBody request: CreateClassRequest,
-        @AuthenticationPrincipal jwt: Jwt
+        authentication: Authentication
     ): ApiResponse<Class> {
         return try {
-            // Extract teacherId and teacherName from JWT
-            val teacherId = request.teacherId ?: jwt.subject
-            val teacherName = request.teacherName ?: jwt.getClaimAsString("name")
+            // Extract user from authentication (set by JwtAuthenticationFilter)
+            val user = authentication.principal as User
             
             val clazz = Class(
-                teacherId = teacherId,
-                teacherName = teacherName,
+                teacherId = user.uid,
+                teacherName = user.displayName,
                 name = request.className,
                 subject = request.subject,
                 gradeLevel = request.gradeLevel,
@@ -43,11 +41,11 @@ class ClassController(
     // Get all classes for the authenticated teacher
     @GetMapping
     fun getClasses(
-        @AuthenticationPrincipal jwt: Jwt
+        authentication: Authentication
     ): ApiResponse<List<Class>> {
         return try {
-            val teacherId = jwt.subject
-            val classes = classService.getTeacherClasses(teacherId)
+            val user = authentication.principal as User
+            val classes = classService.getTeacherClasses(user.uid)
             success(classes)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch classes")
