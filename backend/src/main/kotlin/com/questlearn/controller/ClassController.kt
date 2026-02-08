@@ -2,15 +2,22 @@ package com.questlearn.controller
 
 import com.questlearn.dto.*
 import com.questlearn.model.Class
+import com.questlearn.model.ClassQuest
 import com.questlearn.model.User
+import com.questlearn.repository.ClassQuestRepository
 import com.questlearn.service.ClassService
+import com.questlearn.service.QuestService
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1/classes")
 class ClassController(
-    private val classService: ClassService
+    private val classService: ClassService,
+    private val classQuestRepository: ClassQuestRepository,
+    private val questService: QuestService
 ) {
     
     @PostMapping
@@ -111,13 +118,46 @@ class ClassController(
     @PostMapping("/{classId}/quests")
     fun assignQuest(
         @PathVariable classId: String,
-        @RequestBody request: AssignQuestRequest
-    ): ApiResponse<String> {
+        @RequestBody request: AssignQuestRequest,
+        authentication: Authentication
+    ): ApiResponse<ClassQuest> {
         return try {
-            // For now, just return success
-            // TODO: Store quest assignments in database
-            success("Quest assigned successfully")
+            val user = authentication.principal as User
+            
+            // Verify class exists and teacher owns it
+            val clazz = classService.getClass(classId)
+            if (clazz == null) {
+                return error("CLASS_NOT_FOUND", "Class not found")
+            }
+            if (clazz.teacherId != user.uid) {
+                return error("UNAUTHORIZED", "You can only assign quests to your own classes")
+            }
+            
+            // Verify quest exists
+            val quest = questService.getQuest(request.questId)
+            if (quest == null) {
+                return error("QUEST_NOT_FOUND", "Quest not found")
+            }
+            
+            // Create assignment
+            val assignment = ClassQuest(
+                id = UUID.randomUUID().toString(),
+                classId = classId,
+                questId = request.questId,
+                assignedAt = Instant.now(),
+                dueDate = request.dueDate?.let { Instant.parse(it) },
+                assignedBy = user.uid
+            )
+            
+            val saved = classQuestRepository.save(assignment)
+            
+            println("DEBUG: Quest assigned successfully - classId=$classId, questId=${request.questId}, assignmentId=${saved.id}")
+            
+            success(saved)
+            
         } catch (e: Exception) {
+            println("ERROR: Failed to assign quest - ${e.message}")
+            e.printStackTrace()
             error("ASSIGN_FAILED", e.message ?: "Failed to assign quest")
         }
     }
