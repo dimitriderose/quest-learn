@@ -31,10 +31,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", next === "dark");
   };
 
-  if (!mounted) {
-    return <>{children}</>;
-  }
-
+  // Always provide context, even during SSR/hydration
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
       {children}
