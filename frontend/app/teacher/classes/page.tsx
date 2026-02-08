@@ -29,9 +29,9 @@ export default function TeacherClassesPage() {
     }
   };
 
-  const handleCreateClass = async (className: string, gradeLevel: number) => {
+  const handleCreateClass = async (className: string, gradeLevel: number, subject: string, schoolYear: string) => {
     try {
-      await classApi.create({ className, gradeLevel });
+      await classApi.create({ className, gradeLevel, subject, schoolYear });
       await loadClasses();
       setShowCreateForm(false);
     } catch (error: any) {
@@ -109,13 +109,25 @@ export default function TeacherClassesPage() {
 }
 
 function CreateClassForm({ onSubmit, onCancel }: {
-  onSubmit: (className: string, gradeLevel: number) => Promise<void>;
+  onSubmit: (className: string, gradeLevel: number, subject: string, schoolYear: string) => Promise<void>;
   onCancel: () => void;
 }) {
   const [className, setClassName] = useState("");
   const [gradeLevel, setGradeLevel] = useState("");
+  const [subject, setSubject] = useState("");
+  const [schoolYear, setSchoolYear] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Auto-populate current school year
+  useEffect(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1; // 0-indexed
+    // School year starts in August (month 8)
+    const currentSchoolYear = month >= 8 ? `${year}-${year + 1}` : `${year - 1}-${year}`;
+    setSchoolYear(currentSchoolYear);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +135,7 @@ function CreateClassForm({ onSubmit, onCancel }: {
     setLoading(true);
 
     try {
-      await onSubmit(className, parseInt(gradeLevel));
+      await onSubmit(className, parseInt(gradeLevel), subject, schoolYear);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -152,6 +164,29 @@ function CreateClassForm({ onSubmit, onCancel }: {
 
         <div>
           <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Subject
+          </label>
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            required
+          >
+            <option value="">Select subject</option>
+            <option value="Math">Math</option>
+            <option value="Science">Science</option>
+            <option value="ELA">English Language Arts</option>
+            <option value="Social Studies">Social Studies</option>
+            <option value="History">History</option>
+            <option value="Art">Art</option>
+            <option value="Music">Music</option>
+            <option value="PE">Physical Education</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
             Grade Level
           </label>
           <select
@@ -168,6 +203,23 @@ function CreateClassForm({ onSubmit, onCancel }: {
               </option>
             ))}
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            School Year
+          </label>
+          <input
+            type="text"
+            value={schoolYear}
+            onChange={(e) => setSchoolYear(e.target.value)}
+            placeholder="e.g., 2025-2026"
+            className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+            required
+          />
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Auto-populated with current school year
+          </p>
         </div>
 
         {error && (
