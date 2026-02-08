@@ -16,7 +16,7 @@ export default function TeacherCurriculaPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedGrade, setSelectedGrade] = useState("all");
-  const [showOnlyMine, setShowOnlyMine] = useState(false);
+  const [showOnlyMine, setShowOnlyMine] = useState(true); // Default to My Quests
   const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ export default function TeacherCurriculaPage() {
     try {
       const userStr = localStorage.getItem('user');
       const user = userStr ? JSON.parse(userStr) : null;
-      const teacherId = user?.id;
+      const teacherId = user?.uid; // Changed from user.id to user.uid
 
       const filters: any = {};
       if (showOnlyMine && teacherId) filters.teacherId = teacherId;
@@ -124,17 +124,6 @@ export default function TeacherCurriculaPage() {
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">View:</span>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setShowOnlyMine(false)}
-                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
-                    !showOnlyMine
-                      ? "bg-blue-500 text-white"
-                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
-                  }`}
-                >
-                  <Users className="w-4 h-4" />
-                  All Quests
-                </button>
-                <button
                   onClick={() => setShowOnlyMine(true)}
                   className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
                     showOnlyMine
@@ -144,6 +133,17 @@ export default function TeacherCurriculaPage() {
                 >
                   <User className="w-4 h-4" />
                   My Quests
+                </button>
+                <button
+                  onClick={() => setShowOnlyMine(false)}
+                  className={`px-4 py-2 rounded-lg font-semibold transition-colors flex items-center gap-2 ${
+                    !showOnlyMine
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  All Quests
                 </button>
               </div>
             </div>
