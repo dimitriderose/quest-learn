@@ -72,6 +72,29 @@ class UserService(
     }
     
     /**
+     * Update user profile (display name and/or email)
+     */
+    fun updateProfile(userId: String, displayName: String?, email: String?): User {
+        val user = getUserById(userId)
+        
+        // Validate email is not already taken (if changing)
+        if (email != null && email != user.email) {
+            val existingUser = userRepository.findByEmail(email)
+            if (existingUser != null) {
+                throw IllegalArgumentException("Email already in use")
+            }
+        }
+        
+        val updated = user.copy(
+            displayName = displayName ?: user.displayName,
+            email = email ?: user.email,
+            updatedAt = Instant.now()
+        )
+        
+        return userRepository.save(updated)
+    }
+    
+    /**
      * Find or create student by name and class code
      * Used for student class-code authentication
      */
