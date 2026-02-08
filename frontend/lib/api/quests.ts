@@ -34,6 +34,10 @@ export interface QuestMetadata {
   standards: string[];
   createdAt: string;
   createdBy: string;
+  curriculum?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface AssignQuestRequest {
@@ -112,3 +116,13 @@ export const questApi = {
     await apiClient.post(`/api/v1/classes/${data.classId}/quests`, data);
   },
 };
+
+// ============================================================================
+// Convenience exports for common operations
+// ============================================================================
+
+export const getQuest = questApi.getMetadata;
+export const getQuestHtml = questApi.getHtml;
+export const generateQuest = questApi.generate;
+export const listQuests = questApi.list;
+export const assignQuest = questApi.assign;
