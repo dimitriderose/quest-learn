@@ -3,12 +3,14 @@ package com.questlearn.service
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.questlearn.dto.GenerateQuestRequest
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
+import java.nio.charset.StandardCharsets
 
 @Service
 class GeminiQuestGeneratorService(
@@ -20,6 +22,14 @@ class GeminiQuestGeneratorService(
     private lateinit var geminiApiKey: String
     
     private val geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
+    
+    // Load prompt template once at startup
+    private val promptTemplate: String by lazy {
+        ClassPathResource("prompts/quest-generation-prompt.txt")
+            .inputStream
+            .readBytes()
+            .toString(StandardCharsets.UTF_8)
+    }
     
     fun generateQuest(request: GenerateQuestRequest): String {
         val prompt = buildQuestPrompt(request)
@@ -33,17 +43,26 @@ class GeminiQuestGeneratorService(
         return questHtml
     }
     
-private fun buildQuestPrompt(request: GenerateQuestRequest): String {
-    val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
-    val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
-    val questId = "quest_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+    private fun buildQuestPrompt(request: GenerateQuestRequest): String {
+        val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
+        val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
+        val questId = "quest_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        
+        return promptTemplate
+            .replace("{{topic}}", request.topic)
+            .replace("{{subject}}", request.subject)
+            .replace("{{gradeLevel}}", request.gradeLevel.toString())
+            .replace("{{difficulty}}", request.difficulty)
+            .replace("{{durationMinutes}}", request.durationMinutes.toString())
+            .replace("{{standards}}", request.standards.joinToString(", "))
+            .replace("{{questId}}", questId)
+            .replace("{{themeGuidance}}", themeGuidance)
+            .replace("{{mechanicGuidance}}", mechanicGuidance)
+    }
     
-    return """[TRUNCATED FOR LENGTH]"""
-}
-
-private fun getThemeGuidance(gradeLevel: Int, topic: String, subject: String): String {
-    return when {
-        gradeLevel <= 2 -> """
+    private fun getThemeGuidance(gradeLevel: Int, topic: String, subject: String): String {
+        return when {
+            gradeLevel <= 2 -> """
 GRADE K-2 THEMES:
 Options: Animals/pets, fantasy creatures (friendly dragons), nature exploration
 Tone: Bright, playful, encouraging, parent-child voice
@@ -52,8 +71,8 @@ Language: Simple sentences, repetition, lots of encouragement
 Character: Helpful animal friend or magical creature
 Example: "Buzzy the Bee needs your help finding flowers!"
 """
-        
-        gradeLevel > 2 && gradeLevel <= 5 -> """
+            
+            gradeLevel > 2 && gradeLevel <= 5 -> """
 GRADE 3-5 THEMES:
 Options: Adventure/exploration, mystery/detective, science discovery
 Tone: Exciting, heroic, empowering, "you're the expert"
@@ -62,8 +81,8 @@ Language: Active voice, challenge-oriented, aspirational
 Character: Mentor figure (scientist, explorer, detective)
 Example: "Detective ${topic.split(" ").firstOrNull() ?: "Science"} needs YOU to solve the mystery!"
 """
-        
-        gradeLevel > 5 && gradeLevel <= 8 -> """
+            
+            gradeLevel > 5 && gradeLevel <= 8 -> """
 GRADE 6-8 THEMES:
 Options: Real-world careers, challenge/achievement, strategy
 Tone: Cool, aspirational, skill-focused, respect student intelligence
@@ -72,8 +91,8 @@ Language: Direct, less hand-holding, emphasize skills and mastery
 Character: Professional mentor (engineer, journalist, researcher)
 Example: "As a junior ${subject} researcher, can you crack the code?"
 """
-        
-        else -> """
+            
+            else -> """
 GRADE 9-12 THEMES:
 Options: Professional simulations, authentic scenarios, portfolio building
 Tone: Mature, purposeful, professional, college/career prep
@@ -82,54 +101,50 @@ Language: Academic register, technical vocabulary appropriate
 Character: Professional colleague or none (direct challenge)
 Example: "Analyze this ${topic} scenario like a professional ${subject} expert."
 """
+        }
     }
-}
-
-private fun getMechanicGuidance(subject: String, topic: String): String {
-    val topicLower = topic.lowercase()
     
-    return when {
-        // Math-specific mechanics
-        subject.contains("Math", ignoreCase = true) || 
-        topicLower.contains("fraction") || topicLower.contains("algebra") -> """
+    private fun getMechanicGuidance(subject: String, topic: String): String {
+        val topicLower = topic.lowercase()
+        
+        return when {
+            subject.contains("Math", ignoreCase = true) || 
+            topicLower.contains("fraction") || topicLower.contains("algebra") -> """
 MATH MECHANIC:
 - Fraction: Drag pieces to divide objects equally, build fraction bars
 - Algebra: Build equations by dragging numbers/operators into slots
 - Geometry: Arrange shapes, measure angles with interactive protractor
 - Word Problems: Simulate the scenario (shopping cart, recipe scaling)
 """
-        
-        // Science-specific mechanics
-        subject.contains("Science", ignoreCase = true) ||
-        topicLower.contains("photosynthesis") || topicLower.contains("ecosystem") -> """
+            
+            subject.contains("Science", ignoreCase = true) ||
+            topicLower.contains("photosynthesis") || topicLower.contains("ecosystem") -> """
 SCIENCE MECHANIC:
 - Photosynthesis: Drag sun/water/CO2 into plant, watch energy production
 - Ecosystem: Build food web by connecting organisms
 - Chemistry: Combine elements/compounds, observe reactions
 - Physics: Adjust variables in simulation (ramps, pulleys, circuits)
 """
-        
-        // ELA-specific mechanics
-        subject.contains("English", ignoreCase = true) || 
-        topicLower.contains("writing") || topicLower.contains("grammar") -> """
+            
+            subject.contains("English", ignoreCase = true) || 
+            topicLower.contains("writing") || topicLower.contains("grammar") -> """
 ELA MECHANIC:
 - Grammar: Click words in sentence to identify parts of speech
 - Persuasive Writing: Arrange argument cards from weak → strong
 - Story Structure: Drag events into plot diagram (exposition, climax, etc.)
 - Vocabulary: Match words to context by completing comic panels
 """
-        
-        // Social Studies-specific mechanics
-        subject.contains("Social Studies", ignoreCase = true) ||
-        subject.contains("History", ignoreCase = true) -> """
+            
+            subject.contains("Social Studies", ignoreCase = true) ||
+            subject.contains("History", ignoreCase = true) -> """
 SOCIAL STUDIES MECHANIC:
 - Timeline: Arrange events chronologically on interactive timeline
 - Geography: Click regions on map, match resources to locations
 - Economics: Make trade decisions, manage resources in scenario
 - Historical Role-play: Choose dialogue/actions as historical figure
 """
-        
-        else -> """
+            
+            else -> """
 GENERAL MECHANIC:
 Analyze the topic and select the most appropriate:
 - Sorting/Categorization: Drag items into correct groups
@@ -138,8 +153,8 @@ Analyze the topic and select the most appropriate:
 - Building: Construct something by combining components
 - Simulation: Adjust variables and observe outcomes
 """
+        }
     }
-}
     
     private fun callGeminiAPI(prompt: String): String {
         val webClient = webClientBuilder
