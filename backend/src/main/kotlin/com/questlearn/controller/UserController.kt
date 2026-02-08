@@ -24,6 +24,22 @@ class UserController(
     )
     
     /**
+     * Get user by ID
+     * GET /api/v1/users/{userId}
+     * Teachers can fetch student details for their classes
+     */
+    @GetMapping("/{userId}")
+    fun getUserById(@PathVariable userId: String): ApiResponse<User> {
+        return try {
+            val user = userService.getUserById(userId)
+                ?: return error("NOT_FOUND", "User not found")
+            success(user)
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch user")
+        }
+    }
+    
+    /**
      * Update current user's profile
      * PUT /api/v1/users/me
      */
