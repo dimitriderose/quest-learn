@@ -8,9 +8,9 @@ export interface CreateClassRequest {
 }
 
 export interface ClassDto {
-  classId: string;
+  id: string;  // Backend uses 'id' not 'classId'
   teacherId: string;
-  className: string;
+  name: string;  // Backend uses 'name' not 'className'
   classCode: string;
   gradeLevel: number;
   studentCount: number;
@@ -19,8 +19,8 @@ export interface ClassDto {
 }
 
 export interface ClassDetailsDto {
-  classId: string;
-  className: string;
+  id: string;
+  name: string;
   classCode: string;
   gradeLevel: number;
   teacherName: string;
