@@ -63,7 +63,7 @@ export default function StudentLoginPage() {
                 value={classCode}
                 onChange={(e) => setClassCode(e.target.value.toUpperCase())}
                 placeholder="ABC123"
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-student-purple focus:border-transparent dark:bg-gray-800 dark:text-white uppercase text-center text-2xl font-bold tracking-wider"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-student-purple focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500 uppercase text-center text-2xl font-bold tracking-wider"
                 maxLength={10}
                 required
               />
@@ -78,7 +78,7 @@ export default function StudentLoginPage() {
                 value={studentName}
                 onChange={(e) => setStudentName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-student-purple focus:border-transparent dark:bg-gray-800 dark:text-white"
+                className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-student-purple focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 required
               />
             </div>
