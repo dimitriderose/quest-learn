@@ -19,7 +19,6 @@ class ClassController(
         authentication: Authentication
     ): ApiResponse<Class> {
         return try {
-            // Extract user from authentication (set by JwtAuthenticationFilter)
             val user = authentication.principal as User
             
             val clazz = Class(
@@ -27,7 +26,7 @@ class ClassController(
                 teacherName = user.displayName,
                 name = request.className,
                 subject = request.subject,
-                gradeLevel = request.gradeLevel.toString(),  // Convert Int to String
+                gradeLevel = request.gradeLevel.toString(),
                 schoolYear = request.schoolYear
             )
             
@@ -38,7 +37,6 @@ class ClassController(
         }
     }
     
-    // Get all classes for the authenticated teacher
     @GetMapping
     fun getClasses(
         authentication: Authentication
@@ -64,10 +62,6 @@ class ClassController(
         }
     }
     
-    /**
-     * Get class details with student roster
-     * Returns ClassDetailsDto with full student information
-     */
     @GetMapping("/{id}")
     fun getClass(@PathVariable id: String): ApiResponse<ClassDetailsDto> {
         return try {
@@ -113,4 +107,24 @@ class ClassController(
             error("REMOVE_FAILED", e.message ?: "Failed to remove student")
         }
     }
+    
+    @PostMapping("/{classId}/quests")
+    fun assignQuest(
+        @PathVariable classId: String,
+        @RequestBody request: AssignQuestRequest
+    ): ApiResponse<String> {
+        return try {
+            // For now, just return success
+            // TODO: Store quest assignments in database
+            success("Quest assigned successfully")
+        } catch (e: Exception) {
+            error("ASSIGN_FAILED", e.message ?: "Failed to assign quest")
+        }
+    }
 }
+
+data class AssignQuestRequest(
+    val questId: String,
+    val classId: String,
+    val dueDate: String? = null
+)
