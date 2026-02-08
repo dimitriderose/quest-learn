@@ -1,7 +1,7 @@
 package com.questlearn.model
 
 import org.springframework.data.annotation.Id
-import org.springframework.data.relational.core.mapping.Table
+import org.springframework.data.jdbc.core.mapping.Table
 import java.time.Instant
 
 @Table("class_quests")
