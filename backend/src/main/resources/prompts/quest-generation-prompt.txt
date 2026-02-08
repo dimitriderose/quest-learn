@@ -277,6 +277,12 @@ WHY THIS MATTERS:
 📡 REQUIRED JAVASCRIPT (copy exactly)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+⚠️ CRITICAL WARNING FOR AI GENERATION:
+Functions marked with "CRITICAL" or "DO NOT MODIFY" comments MUST be included EXACTLY as written.
+DO NOT simplify, remove, or change these functions - they are essential for the quest to work.
+Functions you MUST implement yourself: validateAnswer(), getSelectedAnswer(), playConfetti()
+All other functions: COPY EXACTLY from the template below.
+
 <script>
 // ========================================
 // GAME STATE (required)
@@ -739,16 +745,20 @@ function displayModal(title, content) {
     }
 }
 
+// CRITICAL FUNCTION - DO NOT SIMPLIFY OR MODIFY
+// This function MUST check if closing a tutorial and reset flags
+// WITHOUT this code, tutorials will only appear once and break the adaptive help system
 function closeModal() {
     const modal = document.getElementById('feedbackModal');
     if (modal) {
-        // Check if this modal has tutorial content by looking at its title
+        // REQUIRED: Check if this modal has tutorial content by looking at its title
         const titleEl = modal.querySelector('#modalTitle');
         const isTutorialModal = titleEl && titleEl.textContent === 'Tutorial';
         
         modal.remove();
         
-        // If we just closed a tutorial, reset flags so it can appear again after 3 more wrong attempts
+        // CRITICAL: Reset flags so tutorial can appear again after 3 more wrong attempts
+        // DO NOT REMOVE: Without this, tier2Offered stays true forever
         if (isTutorialModal) {
             tier2Offered = false;
             wrongAttemptCount = 0;
