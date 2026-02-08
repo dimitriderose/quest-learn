@@ -31,6 +31,7 @@ class AuthController(
      * Student Login with Class Code
      * 
      * Allows students to login without Google account using class code + name
+     * Automatically adds student to the class
      * POST /api/v1/auth/login/student
      */
     @PostMapping("/login/student")
@@ -45,6 +46,11 @@ class AuthController(
         
         // Find or create student
         val student = userService.findOrCreateStudent(request.classCode, request.studentName)
+        
+        // AUTO-ADD STUDENT TO CLASS if not already added
+        if (!classEntity.studentIds.contains(student.uid)) {
+            classService.addStudent(classEntity.id, student.uid)
+        }
         
         // Generate JWT token
         val token = jwtTokenProvider.generateToken(
