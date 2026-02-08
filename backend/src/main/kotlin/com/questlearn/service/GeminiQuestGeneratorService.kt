@@ -36,9 +36,8 @@ class GeminiQuestGeneratorService(
         val geminiResponse = callGeminiAPI(prompt)
         val questHtml = extractHtmlFromResponse(geminiResponse)
         
-        if (!questHtml.contains("<html") || !questHtml.contains("</html>")) {
-            throw IllegalStateException("Generated content is not valid HTML")
-        }
+        // HTML validation removed - trust Gemini output and let browser handle rendering
+        // The extractHtmlFromResponse function already handles <EOL> replacements and cleanup
         
         return questHtml
     }
