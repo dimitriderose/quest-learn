@@ -1,5 +1,7 @@
 package com.questlearn.service
 
+import com.questlearn.dto.ClassDetailsDto
+import com.questlearn.dto.StudentDto
 import com.questlearn.model.Class
 import com.questlearn.model.UserRole
 import com.questlearn.repository.ClassRepository
@@ -15,6 +17,38 @@ class ClassService(
     private val classRepository: ClassRepository,
     private val userRepository: UserRepository
 ) {
+    
+    /**
+     * Get class details with student information for roster display
+     */
+    fun getClassDetails(classId: String): ClassDetailsDto {
+        val classEntity = classRepository.findById(classId)
+            .orElseThrow { IllegalArgumentException("Class not found with id: $classId") }
+        
+        // Fetch student details for each studentId
+        val students = classEntity.studentIds.mapNotNull { studentId ->
+            userRepository.findById(studentId).orElse(null)?.let { user ->
+                StudentDto(
+                    uid = user.uid,
+                    displayName = user.displayName,
+                    email = user.email,
+                    enrolledAt = user.createdAt,
+                    lastActive = user.lastLoginAt
+                )
+            }
+        }
+        
+        return ClassDetailsDto(
+            id = classEntity.id,
+            name = classEntity.name,
+            classCode = classEntity.classCode,
+            gradeLevel = classEntity.gradeLevel.toIntOrNull() ?: 0,
+            teacherName = classEntity.teacherName,
+            students = students,
+            createdAt = classEntity.createdAt,
+            updatedAt = classEntity.updatedAt
+        )
+    }
     
     /**
      * Generate unique class code (6 characters, alphanumeric)
