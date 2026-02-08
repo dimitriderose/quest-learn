@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
@@ -12,7 +12,6 @@ import Link from "next/link";
 
 export default function ClassDetailsPage() {
   const params = useParams();
-  const router = useRouter();
   const classId = params.classId as string;
 
   const [classDetails, setClassDetails] = useState<ClassDetailsDto | null>(null);
@@ -89,7 +88,6 @@ export default function ClassDetailsPage() {
         <DashboardHeader />
 
         <main className="max-w-7xl mx-auto px-8 py-8">
-          {/* Header */}
           <div className="mb-8">
             <Link
               href="/teacher/classes"
@@ -102,7 +100,7 @@ export default function ClassDetailsPage() {
             <div className="flex items-start justify-between">
               <div>
                 <h1 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white">
-                  {classDetails.className}
+                  {classDetails.name}
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
                   {classDetails.gradeLevel === 0 ? 'Kindergarten' : `Grade ${classDetails.gradeLevel}`}
@@ -111,7 +109,6 @@ export default function ClassDetailsPage() {
             </div>
           </div>
 
-          {/* Class Code Card */}
           <Card className="p-6 mb-8">
             <div className="flex items-center justify-between">
               <div>
@@ -137,11 +134,10 @@ export default function ClassDetailsPage() {
             </div>
           </Card>
 
-          {/* Students Section */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-merriweather text-2xl font-bold text-gray-900 dark:text-white">
-                Students ({classDetails.students.length})
+                Students ({classDetails.students?.length || 0})
               </h2>
               <Button variant="primary">
                 <UserPlus className="w-5 h-5 mr-2" />
@@ -149,7 +145,7 @@ export default function ClassDetailsPage() {
               </Button>
             </div>
 
-            {classDetails.students.length === 0 ? (
+            {!classDetails.students || classDetails.students.length === 0 ? (
               <Card className="p-12 text-center">
                 <div className="text-6xl mb-4">👥</div>
                 <h3 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-2">
