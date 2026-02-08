@@ -40,6 +40,20 @@ class ClassController(
         }
     }
     
+    // Get all classes for the authenticated teacher
+    @GetMapping
+    fun getClasses(
+        @AuthenticationPrincipal jwt: Jwt
+    ): ApiResponse<List<Class>> {
+        return try {
+            val teacherId = jwt.subject
+            val classes = classService.getTeacherClasses(teacherId)
+            success(classes)
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch classes")
+        }
+    }
+    
     @GetMapping("/teacher/{teacherId}")
     fun getTeacherClasses(
         @PathVariable teacherId: String

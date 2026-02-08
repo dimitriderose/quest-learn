@@ -3,6 +3,8 @@ import apiClient from './client';
 export interface CreateClassRequest {
   className: string;
   gradeLevel: number;
+  subject: string;
+  schoolYear: string;
 }
 
 export interface ClassDto {
