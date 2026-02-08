@@ -2,7 +2,6 @@
 
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import Link from "next/link";
 
 interface Quest {
   id: string;
@@ -47,7 +46,8 @@ export function QuestCard({ quest }: QuestCardProps) {
 
   const handleStartQuest = () => {
     if (quest.playUrl) {
-      window.location.href = quest.playUrl;
+      // Navigate directly to the quest HTML file in a new tab
+      window.open(quest.playUrl, '_blank');
     }
   };
 
@@ -121,7 +121,10 @@ export function QuestCard({ quest }: QuestCardProps) {
           <Button 
             variant="hero" 
             className="w-full font-fredoka"
-            onClick={handleStartQuest}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartQuest();
+            }}
           >
             ▶️ Start Quest!
           </Button>
@@ -153,7 +156,10 @@ export function QuestCard({ quest }: QuestCardProps) {
           <Button 
             variant="secondary" 
             className="w-full"
-            onClick={handleStartQuest}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartQuest();
+            }}
           >
             ▶️ Play Again
           </Button>
@@ -176,7 +182,10 @@ export function QuestCard({ quest }: QuestCardProps) {
           <Button 
             variant="hero" 
             className="w-full font-fredoka"
-            onClick={handleStartQuest}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStartQuest();
+            }}
           >
             ▶️ Continue Quest!
           </Button>
