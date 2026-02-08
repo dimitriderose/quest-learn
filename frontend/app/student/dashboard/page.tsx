@@ -18,6 +18,8 @@ function convertToQuestFormat(quests: StudentQuestDto[]) {
     icon: getIconForSubject(quest.subject),
     status: "available" as const,
     className: quest.className,
+    subject: quest.subject,
+    gradeLevel: quest.gradeLevel,
     dueDate: quest.dueDate,
     xpReward: quest.xpReward,
     playUrl: quest.playUrl,
