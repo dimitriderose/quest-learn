@@ -67,7 +67,8 @@ class StudentQuestController(
                         classId = clazz.id,
                         assignedAt = assignment.assignedAt.toString(),
                         dueDate = assignment.dueDate?.toString(),
-                        playUrl = "/student/quest/${quest.id}"
+                        // Use the quest's htmlFilePath for the play URL
+                        playUrl = quest.htmlFilePath ?: "/student/quest/${quest.id}"
                     )
                 } else {
                     println("DEBUG: Skipping assignment ${assignment.id} - quest or class not found")
