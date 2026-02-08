@@ -38,11 +38,14 @@ class ClassService(
             }
         }
         
+        // Parse gradeLevel String to Int, default to 0 if parsing fails
+        val gradeLevelInt = classEntity.gradeLevel.toIntOrNull() ?: 0
+        
         return ClassDetailsDto(
             id = classEntity.id,
             name = classEntity.name,
-            classCode = classEntity.classCode,
-            gradeLevel = classEntity.gradeLevel.toIntOrNull() ?: 0,
+            classCode = classEntity.classCode ?: "",  // Handle nullable classCode
+            gradeLevel = gradeLevelInt,
             teacherName = classEntity.teacherName,
             students = students,
             createdAt = classEntity.createdAt,
