@@ -64,13 +64,19 @@ class ClassController(
         }
     }
     
+    /**
+     * Get class details with student roster
+     * Returns ClassDetailsDto with full student information
+     */
     @GetMapping("/{id}")
-    fun getClass(@PathVariable id: String): ApiResponse<Class> {
-        val clazz = classService.getClass(id)
-        return if (clazz != null) {
-            success(clazz)
-        } else {
-            error("NOT_FOUND", "Class not found")
+    fun getClass(@PathVariable id: String): ApiResponse<ClassDetailsDto> {
+        return try {
+            val classDetails = classService.getClassDetails(id)
+            success(classDetails)
+        } catch (e: IllegalArgumentException) {
+            error("NOT_FOUND", e.message ?: "Class not found")
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch class details")
         }
     }
     
