@@ -1,32 +1,39 @@
 import apiClient from './client';
 
-export interface QuestDto {
+// ============================================================================
+// DTOs - Match backend exactly
+// ============================================================================
+
+export interface GenerateQuestRequest {
+  topic: string;
+  subject: string;
+  gradeLevel: number;
+  difficulty: string; // 'enrichment' | 'standard' | 'scaffolded'
+  durationMinutes: number;
+  standards?: string[];
+  curriculumId?: string;
+}
+
+export interface GeneratedQuestResponse {
   questId: string;
   title: string;
   description: string;
-  subject: string;
-  gradeLevel: number;
-  difficulty: 'easy' | 'medium' | 'hard';
-  estimatedMinutes: number;
-  xpReward: number;
-  status: 'draft' | 'active' | 'archived';
-  totalChallenges: number;
-  createdAt: string;
-  htmlUrl?: string;
+  previewUrl: string; // /api/v1/quests/{id}/html
+  playUrl: string;    // /student/quest/{id}
+  message: string;
 }
 
-export interface StudentProgressDto {
-  progressId: string;
-  studentId: string;
-  questId: string;
-  status: 'not_started' | 'in_progress' | 'completed';
-  currentChallenge: number;
-  totalChallenges: number;
-  score: number;
-  xpEarned: number;
-  startedAt: string | null;
-  lastActivityAt: string | null;
-  completedAt: string | null;
+export interface QuestMetadata {
+  id: string;
+  title: string;
+  description: string;
+  topic: string;
+  gradeLevel: string;
+  subject: string;
+  durationMinutes: number;
+  standards: string[];
+  createdAt: string;
+  createdBy: string;
 }
 
 export interface AssignQuestRequest {
@@ -35,52 +42,73 @@ export interface AssignQuestRequest {
   dueDate?: string;
 }
 
-export interface GenerateQuestRequest {
-  subject: string;
-  gradeLevel: number;
-  topic: string;
-  difficulty: 'easy' | 'medium' | 'hard';
-}
+// ============================================================================
+// API Client
+// ============================================================================
 
 export const questApi = {
   /**
-   * Get all quests for the authenticated teacher
+   * Generate a new quest using Gemini AI
+   * POST /api/v1/quests/generate
    */
-  getAll: async (): Promise<QuestDto[]> => {
-    const response = await apiClient.get<QuestDto[]>('/api/v1/quests');
-    return response.data;
-  },
-
-  /**
-   * Get quests assigned to a specific class
-   */
-  getByClass: async (classId: string): Promise<QuestDto[]> => {
-    const response = await apiClient.get<QuestDto[]>(`/api/v1/classes/${classId}/quests`);
-    return response.data;
-  },
-
-  /**
-   * Assign a quest to a class
-   */
-  assign: async (data: AssignQuestRequest): Promise<void> => {
-    await apiClient.post(`/api/v1/classes/${data.classId}/quests`, data);
-  },
-
-  /**
-   * Get student progress for a quest
-   */
-  getProgress: async (classId: string, questId: string): Promise<StudentProgressDto[]> => {
-    const response = await apiClient.get<StudentProgressDto[]>(
-      `/api/v1/classes/${classId}/quests/${questId}/progress`
+  generate: async (data: GenerateQuestRequest): Promise<GeneratedQuestResponse> => {
+    const response = await apiClient.post<GeneratedQuestResponse>(
+      '/api/v1/quests/generate',
+      data
     );
     return response.data;
   },
 
   /**
-   * Generate a new quest using AI
+   * Get quest HTML for rendering in iframe
+   * GET /api/v1/quests/{id}/html
+   * Returns raw HTML string
    */
-  generate: async (data: GenerateQuestRequest): Promise<QuestDto> => {
-    const response = await apiClient.post<QuestDto>('/api/v1/quests/generate', data);
+  getHtml: async (questId: string): Promise<string> => {
+    const response = await apiClient.get<string>(
+      `/api/v1/quests/${questId}/html`,
+      {
+        headers: { 'Accept': 'text/html' },
+        responseType: 'text' as any,
+      }
+    );
     return response.data;
+  },
+
+  /**
+   * Get quest metadata (without HTML content)
+   * GET /api/v1/quests/{id}
+   */
+  getMetadata: async (questId: string): Promise<QuestMetadata> => {
+    const response = await apiClient.get<QuestMetadata>(`/api/v1/quests/${questId}`);
+    return response.data;
+  },
+
+  /**
+   * List quests with optional filters
+   * GET /api/v1/quests?gradeLevel=5&subject=Math
+   */
+  list: async (filters?: {
+    gradeLevel?: string;
+    subject?: string;
+    teacherId?: string;
+  }): Promise<QuestMetadata[]> => {
+    const params = new URLSearchParams();
+    if (filters?.gradeLevel) params.append('gradeLevel', filters.gradeLevel);
+    if (filters?.subject) params.append('subject', filters.subject);
+    if (filters?.teacherId) params.append('teacherId', filters.teacherId);
+
+    const response = await apiClient.get<QuestMetadata[]>(
+      `/api/v1/quests?${params.toString()}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Assign a quest to a class
+   * (Backend endpoint may need to be implemented)
+   */
+  assign: async (data: AssignQuestRequest): Promise<void> => {
+    await apiClient.post(`/api/v1/classes/${data.classId}/quests`, data);
   },
 };
