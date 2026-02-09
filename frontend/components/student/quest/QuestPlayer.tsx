@@ -41,13 +41,21 @@ export function QuestPlayer({
       if (messageType !== 'QUEST_COMPLETE') return;
 
       console.log('Quest completion data received:', messageData);
+      console.log('About to call progressApi.recordQuestCompletion with:', {
+        studentId,
+        curriculumId,
+        questId,
+        classId,
+        score: messageData.score
+      });
 
       const attempts = messageData.attempts || 1;
       const timeSpentMinutes = Math.round((messageData.timeSpent || 0) / 60);
       const hintsUsed = messageData.hintsUsed || 0;
 
       try {
-        await progressApi.recordQuestCompletion({
+        console.log('Calling progressApi.recordQuestCompletion...');
+        const result = await progressApi.recordQuestCompletion({
           studentId,
           curriculumId,
           questId,
@@ -66,10 +74,15 @@ export function QuestPlayer({
           challengeResults: messageData.challengeResults || [],
         });
 
+        console.log('Quest completion API call result:', result);
         console.log('Quest completion recorded successfully');
+        
+        console.log('Calling onComplete callback...');
         onComplete?.();
+        console.log('onComplete callback finished');
       } catch (error) {
         console.error('Failed to record quest completion:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
       }
     };
 
