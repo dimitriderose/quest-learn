@@ -147,22 +147,54 @@ class UserService(
     }
     
     /**
-     * Find or create student by name and class code
+     * Find or create student by name and optional email
      * Used for student class-code authentication
+     * 
+     * Logic:
+     * 1. If email provided, search by email first (most reliable)
+     * 2. Fall back to search by display name
+     * 3. If found, update email if it changed
+     * 4. If not found, create new student
      */
-    fun findOrCreateStudent(classCode: String, studentName: String): User {
-        // Try to find existing student with this name in this class
-        val existingStudent = userRepository.findByDisplayNameAndRole(studentName, UserRole.STUDENT)
+    fun findOrCreateStudent(
+        classCode: String, 
+        studentName: String,
+        email: String? = null
+    ): User {
+        // Try to find existing student
+        val existingStudent = if (email != null) {
+            // If email provided, search by email first (most reliable identifier)
+            userRepository.findByEmail(email)
+                ?: userRepository.findByDisplayNameAndRole(studentName, UserRole.STUDENT)
+        } else {
+            // No email, search by name only
+            userRepository.findByDisplayNameAndRole(studentName, UserRole.STUDENT)
+        }
         
         if (existingStudent != null) {
+            // Found existing student
+            // Update their email if provided and different
+            val updatedStudent = if (email != null && email != existingStudent.email) {
+                val updated = existingStudent.copy(
+                    email = email,
+                    updatedAt = Instant.now()
+                )
+                userRepository.save(updated)
+            } else {
+                existingStudent
+            }
+            
             // Update last login
-            updateLastLogin(existingStudent.uid)
-            return existingStudent
+            updateLastLogin(updatedStudent.uid)
+            return updatedStudent
         }
         
         // Create new student
+        val studentEmail = email 
+            ?: "${studentName.lowercase().replace(" ", ".")}@student.questlearn.local"
+        
         return createUser(
-            email = "${UUID.randomUUID()}@student.questlearn.local",  // Synthetic email
+            email = studentEmail,
             displayName = studentName,
             photoURL = null,
             role = UserRole.STUDENT
