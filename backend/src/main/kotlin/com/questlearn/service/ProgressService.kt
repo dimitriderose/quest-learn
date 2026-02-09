@@ -124,7 +124,7 @@ class ProgressService(
             curriculumTitle = curriculum.title,
             classId = studentClass.id,
             teacherId = studentClass.teacherId,
-            totalQuests = curriculum.quests?.size ?: 1
+            totalQuests = curriculum.totalQuests
         )
     }
     
