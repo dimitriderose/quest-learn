@@ -259,8 +259,14 @@ function GenerateQuestModal({
   const [subject, setSubject] = useState("Science");
   const [gradeLevel, setGradeLevel] = useState(5);
   const [topic, setTopic] = useState("");
-  const [difficulty, setDifficulty] = useState<"enrichment" | "standard" | "scaffolded">("standard");
+  const [difficulty, setDifficulty] = useState<"advanced" | "grade-level" | "foundational">("grade-level");
   const [generating, setGenerating] = useState(false);
+
+  const difficultyOptions = [
+    { value: "advanced", label: "Advanced", description: "For high-achieving students" },
+    { value: "grade-level", label: "Grade-Level", description: "Standard curriculum" },
+    { value: "foundational", label: "Foundational", description: "With additional support" }
+  ];
 
   const handleGenerate = async () => {
     if (!topic.trim()) {
@@ -365,20 +371,21 @@ function GenerateQuestModal({
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Difficulty
+              Difficulty Level
             </label>
             <div className="flex gap-3">
-              {["enrichment", "standard", "scaffolded"].map((level) => (
+              {difficultyOptions.map((option) => (
                 <button
-                  key={level}
-                  onClick={() => setDifficulty(level as any)}
-                  className={`flex-1 px-4 py-2 rounded-lg border-2 font-semibold transition-colors ${
-                    difficulty === level
+                  key={option.value}
+                  onClick={() => setDifficulty(option.value as any)}
+                  className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold transition-colors ${
+                    difficulty === option.value
                       ? "bg-blue-500 text-white border-blue-500"
                       : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500"
                   }`}
                 >
-                  {level.charAt(0).toUpperCase() + level.slice(1)}
+                  <div className="font-bold">{option.label}</div>
+                  <div className="text-xs mt-1 opacity-75">{option.description}</div>
                 </button>
               ))}
             </div>
