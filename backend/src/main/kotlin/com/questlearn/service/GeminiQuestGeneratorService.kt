@@ -52,6 +52,7 @@ class GeminiQuestGeneratorService(
         val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
         val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
         val questId = "quest_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        val totalChallenges = (4..7).random()  // Random 4-7 challenges
         
         return promptTemplate
             .replace("{{topic}}", request.topic)
@@ -63,6 +64,7 @@ class GeminiQuestGeneratorService(
             .replace("{{questId}}", questId)
             .replace("{{themeGuidance}}", themeGuidance)
             .replace("{{mechanicGuidance}}", mechanicGuidance)
+            .replace("{{totalChallenges}}", totalChallenges.toString())
     }
     
     private fun getThemeGuidance(gradeLevel: Int, topic: String, subject: String): String {
