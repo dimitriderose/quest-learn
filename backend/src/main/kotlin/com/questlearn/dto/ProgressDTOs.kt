@@ -1,5 +1,7 @@
 package com.questlearn.dto
 
+import java.time.Instant
+
 data class InitializeProgressRequest(
     val studentId: String,
     val studentName: String,
@@ -21,4 +23,23 @@ data class QuestCompletionRequest(
     val timeSpentMinutes: Int,
     val hintsUsed: Int = 0,
     val tutorialsViewed: Int = 0
+)
+
+data class ClassDetailsDto(
+    val id: String,
+    val name: String,
+    val classCode: String,
+    val gradeLevel: Int,
+    val teacherName: String,
+    val students: List<StudentDto>,
+    val createdAt: Instant,
+    val updatedAt: Instant
+)
+
+data class StudentDto(
+    val uid: String,
+    val displayName: String,
+    val email: String,
+    val enrolledAt: Instant,
+    val lastActive: Instant?
 )
