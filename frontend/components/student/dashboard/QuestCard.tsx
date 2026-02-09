@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -30,6 +31,7 @@ interface QuestCardProps {
 }
 
 export function QuestCard({ quest }: QuestCardProps) {
+  const router = useRouter();
   const isLocked = quest.status === "locked";
   const isCompleted = quest.status === "completed";
   const isInProgress = quest.status === "in-progress";
@@ -46,10 +48,11 @@ export function QuestCard({ quest }: QuestCardProps) {
     : "bg-gray-400";
 
   const handleStartQuest = () => {
-    if (quest.playUrl) {
-      // Navigate to quest page with classId
-      window.location.href = `/student/quest/${quest.id}?classId=${quest.classId}`;
-    }
+    // Build URL with classId only if it exists
+    const url = quest.classId 
+      ? `/student/quest/${quest.id}?classId=${quest.classId}`
+      : `/student/quest/${quest.id}`;
+    router.push(url);
   };
 
   return (
