@@ -3,8 +3,8 @@ FROM node:18-alpine AS deps
 WORKDIR /app
 
 # Copy package files
-COPY frontend/package.json frontend/package-lock.json* ./
-RUN npm ci
+COPY frontend/package.json ./
+RUN npm install
 
 # Stage 2: Build
 FROM node:18-alpine AS builder
