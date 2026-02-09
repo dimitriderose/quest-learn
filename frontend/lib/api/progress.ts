@@ -70,13 +70,24 @@ export interface QuestCompletionRequest {
   challengeResults?: ChallengeResult[];
 }
 
+// Backend wraps responses in ApiResponse<T>
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  error: string | null;
+  meta: {
+    timestamp: string;
+    requestId: string;
+  };
+}
+
 export const progressApi = {
   async getProgress(studentId: string, curriculumId: string): Promise<StudentProgress | null> {
     try {
-      const response = await apiClient.get<StudentProgress>(
+      const response = await apiClient.get<ApiResponse<StudentProgress>>(
         `/api/v1/progress/student/${studentId}/curriculum/${curriculumId}`
       );
-      return response.data;
+      return response.data.data; // Unwrap ApiResponse
     } catch (error) {
       console.error('Failed to fetch progress:', error);
       return null;
@@ -85,10 +96,11 @@ export const progressApi = {
 
   async getAllProgress(studentId: string): Promise<StudentProgress[]> {
     try {
-      const response = await apiClient.get<StudentProgress[]>(
+      const response = await apiClient.get<ApiResponse<StudentProgress[]>>(
         `/api/v1/progress/student/${studentId}`
       );
-      return Array.isArray(response.data) ? response.data : [];
+      const data = response.data.data; // Unwrap ApiResponse
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Failed to fetch all progress:', error);
       return [];
@@ -97,11 +109,11 @@ export const progressApi = {
 
   async recordQuestCompletion(request: QuestCompletionRequest): Promise<StudentProgress | null> {
     try {
-      const response = await apiClient.post<StudentProgress>(
+      const response = await apiClient.post<ApiResponse<StudentProgress>>(
         '/api/v1/progress/quest-completion',
         request
       );
-      return response.data;
+      return response.data.data; // Unwrap ApiResponse
     } catch (error) {
       console.error('Failed to record quest completion:', error);
       return null;
