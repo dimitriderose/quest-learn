@@ -382,13 +382,16 @@ All other functions: COPY EXACTLY from the template below.
 let attempts = 0;
 let hintsUsed = 0;
 let tutorialsViewed = 0;
+let tutorialStylesViewed = []; // Track which learning styles: ['video', 'breakdown', 'simple', 'diagram']
 let startTime = Date.now();
 let wrongAttemptCount = 0;
 let tier2Offered = false;
 let currentChallengeNumber = 1;
+let totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]')?.content || '1');
 let challengeStates = {}; // Track state per challenge
 let challengeAttempts = {}; // Track attempts per challenge
-let answersShown = {}; // Track challenges where answer was shown (skip with 0 points)
+let answersShown = {}; // Track challenges where answer was shown (challengeId: true)
+let challengeResults = []; // Track per-challenge performance for backend
 
 // ========================================
 // POSTMESSAGE HELPER (required)
@@ -483,7 +486,7 @@ function checkAnswer() {
     sendToParent({
         type: 'CHALLENGE_ATTEMPT',
         questId: '{{questId}}',
-        challengeId: 'challenge_1',
+        challengeId: `challenge_${currentChallengeNumber}`,
         correct: isCorrect,
         attemptNumber: attempts,
         selectedAnswer: getSelectedAnswer(), // YOU IMPLEMENT getSelectedAnswer()
@@ -499,8 +502,27 @@ function checkAnswer() {
     }
     
     if (isCorrect) {
-        completeQuest();
+        // Record this challenge's performance
+        challengeResults.push({
+            challengeId: `challenge_${currentChallengeNumber}`,
+            correct: true,
+            wasSkipped: false,
+            attempts: challengeAttempts[currentChallengeNumber] || 1,
+            hintsUsed: hintsUsed,
+            timeSpentSeconds: Math.floor((Date.now() - startTime) / 1000)
+        });
+        
+        // Move to next challenge or complete quest
+        if (currentChallengeNumber < totalChallenges) {
+            currentChallengeNumber++;
+            challengeAttempts[currentChallengeNumber] = 0;
+            // YOU IMPLEMENT: Show next challenge UI
+        } else {
+            completeQuest();
+        }
     } else {
+        // Track per-challenge attempts
+        challengeAttempts[currentChallengeNumber] = (challengeAttempts[currentChallengeNumber] || 0) + 1;
         trackWrongAttempt();
     }
 }
@@ -532,7 +554,7 @@ function showHint() {
     sendToParent({
         type: 'HINT_USED',
         questId: '{{questId}}',
-        challengeId: 'challenge_1',
+        challengeId: `challenge_${currentChallengeNumber}`,
         hintLevel: hintLevel,
         hintType: 'contextual',
         timestamp: Date.now()
@@ -622,11 +644,16 @@ function showLearningStyleModal() {
 function showTutorial(type) {
     tutorialsViewed++;
     
+    // Track which tutorial style was viewed
+    if (!tutorialStylesViewed.includes(type)) {
+        tutorialStylesViewed.push(type);
+    }
+    
     // REQUIRED: Send TUTORIAL_VIEWED event
     sendToParent({
         type: 'TUTORIAL_VIEWED',
         questId: '{{questId}}',
-        challengeId: 'challenge_1',
+        challengeId: `challenge_${currentChallengeNumber}`,
         tutorialType: type,
         tier: 2,
         timestamp: Date.now()
@@ -715,11 +742,29 @@ function showTutorial(type) {
 // ========================================
 // TIER 3: SHOW ANSWER & SKIP (after tutorials)
 // ========================================
-let answersShown = {}; // Track which challenges had answers revealed
-
 function showAnswerAndSkip(challengeNumber) {
-    // Mark this challenge as skipped with answer shown
-    answersShown[challengeNumber] = true;
+    const challengeId = `challenge_${challengeNumber}`;
+    
+    // Mark this challenge as skipped
+    answersShown[challengeId] = true;
+    
+    // Record skipped challenge with 0 score
+    challengeResults.push({
+        challengeId: challengeId,
+        correct: false,
+        wasSkipped: true,
+        attempts: 0,
+        hintsUsed: 0,
+        timeSpentSeconds: 0
+    });
+    
+    // Send analytics event
+    sendToParent({
+        type: 'ANSWER_SHOWN',
+        questId: '{{questId}}',
+        challengeId: challengeId,
+        timestamp: Date.now()
+    });
     
     // Disable Submit and Reset buttons
     const buttons = document.querySelectorAll('.challenge-controls button');
@@ -727,23 +772,15 @@ function showAnswerAndSkip(challengeNumber) {
     
     // Display the complete answer with explanation
     const answerExplanation = `
-        <h3>Here's the Answer</h3>
+        <h3>Here's the Complete Answer</h3>
         <p>[REVEAL COMPLETE ANSWER with detailed explanation]</p>
         <p style="margin-top: 20px; color: var(--color-text-secondary); font-size: 14px;">
-            ⚠️ No points awarded for this challenge. You'll move on to the next challenge.
+            ⚠️ No points awarded for this challenge.
         </p>
     `;
     
     // Show modal with "Continue" button
     displayAnswerSkipModal('Complete Answer', answerExplanation, challengeNumber);
-    
-    // Send analytics event
-    sendToParent({
-        type: 'ANSWER_SHOWN',
-        questId: '{{questId}}',
-        challengeId: `challenge_${challengeNumber}`,
-        timestamp: Date.now()
-    });
 }
 
 function displayAnswerSkipModal(title, content, challengeNumber) {
@@ -787,12 +824,11 @@ function displayAnswerSkipModal(title, content, challengeNumber) {
 function moveToNextChallenge(completedChallengeNumber) {
     closeModal();
     
-    const totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]').content);
-    
     if (completedChallengeNumber >= totalChallenges) {
         completeQuest(); // Last challenge
     } else {
         currentChallengeNumber = completedChallengeNumber + 1;
+        challengeAttempts[currentChallengeNumber] = 0;
         // YOU IMPLEMENT: Show next challenge UI
         
         const statusMessage = document.getElementById('statusMessage');
@@ -810,7 +846,11 @@ function completeQuest() {
     const score = calculateScore();
     const xp = score * 2; // XP = score * 2
     
-    // REQUIRED: Send QUEST_COMPLETE event
+    // Count completed vs skipped challenges
+    const skippedChallenges = Object.keys(answersShown).length;
+    const completedChallenges = totalChallenges - skippedChallenges;
+    
+    // REQUIRED: Send comprehensive QUEST_COMPLETE event
     sendToParent({
         type: 'QUEST_COMPLETE',
         questId: '{{questId}}',
@@ -818,7 +858,12 @@ function completeQuest() {
         totalAttempts: attempts,
         hintsUsed: hintsUsed,
         tutorialsViewed: tutorialsViewed,
+        tutorialStylesViewed: tutorialStylesViewed,
         timeSpent: timeSpent,
+        completedChallenges: completedChallenges,
+        skippedChallenges: skippedChallenges,
+        totalChallenges: totalChallenges,
+        challengeResults: challengeResults,
         timestamp: Date.now()
     });
     
@@ -832,27 +877,22 @@ function completeQuest() {
 }
 
 function calculateScore() {
-    const totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]').content);
-    
-    // Count completed challenges (not skipped)
+    // Count completed vs skipped challenges
     const skippedChallenges = Object.keys(answersShown).length;
     const completedChallenges = totalChallenges - skippedChallenges;
     
-    // Base score per completed challenge
+    // Base score only for completed challenges
     const baseScorePerChallenge = 100 / totalChallenges;
-    
-    // Calculate score only for completed challenges
     let completedScore = completedChallenges * baseScorePerChallenge;
     
     // Apply penalties only to completed challenges
-    const attemptPenalty = (attempts - completedChallenges) * 2;  // -2% per extra attempt beyond 1 per challenge
-    const hintPenalty = hintsUsed * 5;                             // -5% per hint used
-    const tutorialPenalty = tutorialsViewed * 3;                   // -3% per tutorial viewed
+    const attemptPenalty = Math.max(0, (attempts - completedChallenges) * 2);
+    const hintPenalty = hintsUsed * 5;
+    const tutorialPenalty = tutorialsViewed * 3;
     
     completedScore = completedScore - attemptPenalty - hintPenalty - tutorialPenalty;
     
-    // Skipped challenges contribute 0 points
-    // Final score is the completed score (can't go below 0)
+    // Skipped challenges = 0 points, final score cannot go below 0
     return Math.max(0, Math.round(completedScore));
 }
 
@@ -1064,7 +1104,7 @@ Before you output the HTML, verify:
 □ All 5 postMessage events implemented (CHALLENGE_ATTEMPT, HINT_USED, TUTORIAL_VIEWED, QUEST_COMPLETE, QUEST_ERROR)
 □ 3-tier adaptive help: progressive hints → learning styles → direct answer
 □ Learning style modal with 4 options (video, breakdown, simple, diagram)
-□ Score calculation formula: max(50, 100 - attemptPenalty - hintPenalty - tutorialPenalty)
+□ Score calculation formula: max(0, completedScore - penalties)
 □ Interactive game mechanic (not text quiz)
 □ Age-appropriate theme and language
 □ Mobile-responsive design
