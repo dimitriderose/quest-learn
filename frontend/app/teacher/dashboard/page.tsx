@@ -61,14 +61,18 @@ export default function TeacherDashboard() {
       try {
         setError(null);
 
-        // Fetch teacher's classes and curricula in parallel
-        const [classesData, curriculaData] = await Promise.all([
-          getMyClasses(),
-          listCurricula({ teacherId: user.uid })
-        ]);
-
+        // Fetch teacher's classes
+        const classesData = await getMyClasses();
         setClasses(classesData || []);
-        setCurricula(curriculaData || []);
+
+        // Try to fetch curricula, but don't fail if endpoint doesn't exist
+        try {
+          const curriculaData = await listCurricula({ teacherId: user.uid });
+          setCurricula(curriculaData || []);
+        } catch (curriculaError) {
+          console.warn("Curricula endpoint not available yet:", curriculaError);
+          setCurricula([]);
+        }
 
         // Fetch student details for all students across all classes
         const studentIdSet = new Set<string>();
