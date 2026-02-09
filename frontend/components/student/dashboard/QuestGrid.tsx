@@ -10,6 +10,7 @@ interface Quest {
   icon: string;
   status: "available" | "completed" | "in-progress" | "locked";
   className?: string;
+  classId?: string;
   subject?: string;
   gradeLevel?: string;
   dueDate?: string;

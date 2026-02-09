@@ -11,6 +11,7 @@ interface Quest {
   icon: string;
   status: "available" | "completed" | "in-progress" | "locked";
   className?: string;
+  classId?: string;
   subject?: string;
   gradeLevel?: string;
   dueDate?: string;
@@ -46,8 +47,8 @@ export function QuestCard({ quest }: QuestCardProps) {
 
   const handleStartQuest = () => {
     if (quest.playUrl) {
-      // Navigate directly to the quest HTML file in a new tab
-      window.open(quest.playUrl, '_blank');
+      // Navigate to quest page with classId
+      window.location.href = `/student/quest/${quest.id}?classId=${quest.classId}`;
     }
   };
 
