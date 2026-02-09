@@ -122,6 +122,13 @@ export default function StudentDashboard() {
         // Fetch all student progress
         if (user?.uid) {
           const progressData = await progressApi.getAllProgress(user.uid);
+          console.log('📊 Dashboard loaded progress data:', progressData);
+          console.log('👤 Student object will be:', {
+            totalXP: progressData[0]?.totalXP,
+            currentLevel: progressData[0]?.currentLevel,
+            completedQuests: progressData[0]?.completedQuests,
+            averageScore: calculateAverageScore(progressData)
+          });
           setAllProgress(progressData);
         }
       } catch (error) {
@@ -134,6 +141,9 @@ export default function StudentDashboard() {
 
     loadData();
   }, [user?.uid]);
+
+  console.log('🎯 Current student state:', student);
+  console.log('📈 Progress data length:', allProgress.length);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
