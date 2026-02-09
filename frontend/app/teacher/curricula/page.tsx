@@ -59,7 +59,7 @@ export default function TeacherCurriculaPage() {
     return matchesSearch;
   });
 
-  const subjects = ["Science", "Math", "English", "History"];
+  const subjects = ["Math", "Science", "ELA", "Social Studies", "History", "Art", "Music", "PE", "Other"];
   const grades = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   const handleAssignQuest = async (questId: string, classId: string) => {
@@ -321,10 +321,15 @@ function GenerateQuestModal({
               onChange={(e) => setSubject(e.target.value)}
               className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value="Science">Science</option>
               <option value="Math">Math</option>
-              <option value="English">English</option>
+              <option value="Science">Science</option>
+              <option value="ELA">English Language Arts</option>
+              <option value="Social Studies">Social Studies</option>
               <option value="History">History</option>
+              <option value="Art">Art</option>
+              <option value="Music">Music</option>
+              <option value="PE">Physical Education</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
