@@ -32,13 +32,14 @@ export default function AuthCallbackPage() {
 
           localStorage.setItem("user", JSON.stringify(user));
 
-          // Redirect based on role
+          // CRITICAL: Use window.location.href for full page reload
+          // This ensures localStorage is fully persisted before navigation
           if (user.role === "TEACHER") {
-            router.push("/teacher/dashboard");
+            window.location.href = "/teacher/dashboard";
           } else if (user.role === "STUDENT") {
-            router.push("/student/dashboard");
+            window.location.href = "/student/dashboard";
           } else {
-            router.push("/");
+            window.location.href = "/";
           }
         } else {
           // No token in URL - backend might have set it in session/cookie
@@ -48,12 +49,13 @@ export default function AuthCallbackPage() {
             const user = response.data;
             localStorage.setItem("user", JSON.stringify(user));
 
+            // Use full page reload to ensure localStorage is persisted
             if (user.role === "TEACHER") {
-              router.push("/teacher/dashboard");
+              window.location.href = "/teacher/dashboard";
             } else if (user.role === "STUDENT") {
-              router.push("/student/dashboard");
+              window.location.href = "/student/dashboard";
             } else {
-              router.push("/");
+              window.location.href = "/";
             }
           } catch (err) {
             setError("Authentication failed. Please try again.");
