@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile.dev"
+watchPatterns = ["**"]
+
+[deploy]
+startCommand = "java -jar app.jar"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
