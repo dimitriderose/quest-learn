@@ -247,7 +247,7 @@ export default function TeacherReportsPage() {
             >
               {classes.map((cls) => (
                 <option key={cls.classId} value={cls.classId}>
-                  {cls.className}
+                  {cls.name}
                 </option>
               ))}
             </select>
