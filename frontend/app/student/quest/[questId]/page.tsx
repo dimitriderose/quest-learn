@@ -12,6 +12,7 @@ interface QuestDetails {
   description: string;
   subject: string;
   gradeLevel: string;
+  curriculumId?: string;
   curriculum?: {
     id: string;
     name: string;
@@ -45,6 +46,7 @@ export default function QuestPage() {
           description: questData.description,
           subject: questData.subject,
           gradeLevel: questData.gradeLevel,
+          curriculumId: (questData as any).curriculumId, // Backend returns curriculumId directly
           curriculum: questData.curriculum ? {
             id: questData.curriculum.id,
             name: questData.curriculum.name,
@@ -141,7 +143,7 @@ export default function QuestPage() {
           <QuestPlayer 
             questId={questId}
             studentId={studentId}
-            curriculumId={quest?.curriculum?.id || ""}
+            curriculumId={quest?.curriculumId || quest?.curriculum?.id || ""}
             onComplete={handleQuestComplete}
           />
         )}
