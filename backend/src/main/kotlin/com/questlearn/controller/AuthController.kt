@@ -31,6 +31,7 @@ class AuthController(
      * Student Login with Class Code
      * 
      * Allows students to login without Google account using class code + name
+     * Optionally accepts email for better student identification
      * Automatically adds student to the class
      * POST /api/v1/auth/login/student
      */
@@ -44,10 +45,15 @@ class AuthController(
                 .body(mapOf("error" to "Invalid class code: ${request.classCode}"))
         }
         
-        // Find or create student
-        val student = userService.findOrCreateStudent(request.classCode, request.studentName)
+        // Find or create student (with optional email)
+        val student = userService.findOrCreateStudent(
+            request.classCode, 
+            request.studentName,
+            request.email
+        )
         
         // AUTO-ADD STUDENT TO CLASS if not already added
+        // CRITICAL: Always use student.uid (not email!) to prevent duplicates
         if (!classEntity.studentIds.contains(student.uid)) {
             classService.addStudent(classEntity.id, student.uid)
         }
