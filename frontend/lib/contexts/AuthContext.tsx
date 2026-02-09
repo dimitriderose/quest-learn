@@ -32,26 +32,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Load user from localStorage on mount
   useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem('auth_token');
-      const storedUser = localStorage.getItem('user');
+    const token = localStorage.getItem('auth_token');
+    const storedUser = localStorage.getItem('user');
 
-      if (token && storedUser) {
-        try {
-          // Trust localStorage - JWT will be validated by backend on API calls
-          setUser(JSON.parse(storedUser));
-        } catch (error) {
-          // Only clear if parsing fails
-          console.error('Failed to parse stored user:', error);
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('user');
-          setUser(null);
-        }
+    if (token && storedUser) {
+      try {
+        // Trust localStorage - JWT will be validated by backend on API calls
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        console.log('[AuthContext] Loaded user from localStorage:', parsedUser.uid);
+      } catch (error) {
+        // Only clear if parsing fails
+        console.error('[AuthContext] Failed to parse stored user:', error);
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user');
+        setUser(null);
       }
-      setLoading(false);
-    };
-
-    loadUser();
+    } else {
+      console.log('[AuthContext] No token or user in localStorage');
+    }
+    
+    setLoading(false);
+    console.log('[AuthContext] Loading complete');
   }, []);
 
   const login = async (classCode: string, studentName: string) => {
