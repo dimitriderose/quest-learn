@@ -140,6 +140,11 @@ data class QuestCompletion(
     val tutorialsViewed: List<String> = emptyList(),
     val learningStyleChosen: LearningStyle? = null,
     
+    // Enhanced tracking
+    val completedChallenges: Int = 0,
+    val skippedChallenges: Int = 0,
+    val totalChallenges: Int = 1,
+    
     // Per-challenge breakdown
     val challengeResults: List<ChallengeResult> = emptyList(),
     
@@ -151,6 +156,7 @@ data class QuestCompletion(
 data class ChallengeResult(
     val challengeId: String = "",
     val correct: Boolean = false,
+    val wasSkipped: Boolean = false,
     val attempts: Int = 0,
     val hintsUsed: Int = 0,
     val timeSpentSeconds: Int = 0

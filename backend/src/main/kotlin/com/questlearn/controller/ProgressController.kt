@@ -3,6 +3,7 @@ package com.questlearn.controller
 import com.questlearn.dto.*
 import com.questlearn.model.StudentProgress
 import com.questlearn.model.QuestCompletion
+import com.questlearn.model.ChallengeResult
 import com.questlearn.service.ProgressService
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
@@ -75,6 +76,7 @@ class ProgressController(
         @RequestBody request: QuestCompletionRequest
     ): ApiResponse<StudentProgress> {
         return try {
+            // Map DTO to model
             val completion = QuestCompletion(
                 questId = request.questId,
                 questTitle = request.questTitle,
@@ -83,12 +85,22 @@ class ProgressController(
                 attempts = request.attempts,
                 timeSpentMinutes = request.timeSpentMinutes,
                 hintsUsed = request.hintsUsed,
-                // Convert tutorial count to list for database model
-                // Model expects List<String>, we receive Int count from frontend
-                tutorialsViewed = if (request.tutorialsViewed > 0) {
-                    (1..request.tutorialsViewed).map { "tutorial_$it" }
-                } else {
-                    emptyList()
+                // Use actual tutorial styles viewed, not just count
+                tutorialsViewed = request.tutorialStylesViewed,
+                // Enhanced tracking
+                completedChallenges = request.completedChallenges,
+                skippedChallenges = request.skippedChallenges,
+                totalChallenges = request.totalChallenges,
+                // Map challenge results from DTO to model
+                challengeResults = request.challengeResults.map { dto ->
+                    ChallengeResult(
+                        challengeId = dto.challengeId,
+                        correct = dto.correct,
+                        wasSkipped = dto.wasSkipped,
+                        attempts = dto.attempts,
+                        hintsUsed = dto.hintsUsed,
+                        timeSpentSeconds = dto.timeSpentSeconds
+                    )
                 }
             )
             
