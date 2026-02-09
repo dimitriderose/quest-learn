@@ -257,11 +257,11 @@ export default function TeacherReportsPage() {
               onChange={(e) => setTimeRange(e.target.value)}
               className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
+              <option key="today" value="today">Today</option>
+              <option key="week" value="week">This Week</option>
+              <option key="month" value="month">This Month</option>
+              <option key="quarter" value="quarter">This Quarter</option>
+              <option key="year" value="year">This Year</option>
             </select>
           </div>
 
