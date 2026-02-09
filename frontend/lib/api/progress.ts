@@ -24,6 +24,15 @@ export interface ValidateAnswerResponse {
   attemptId: string;
 }
 
+export interface ChallengeResult {
+  challengeId: string;
+  correct: boolean;
+  wasSkipped: boolean;
+  attempts: number;
+  hintsUsed: number;
+  timeSpentSeconds: number;
+}
+
 export interface QuestCompletionRequest {
   studentId: string;
   curriculumId: string;
@@ -35,6 +44,12 @@ export interface QuestCompletionRequest {
   timeSpentMinutes: number;
   hintsUsed?: number;
   tutorialsViewed?: number;
+  // NEW COMPREHENSIVE TRACKING FIELDS
+  tutorialStylesViewed?: string[];
+  completedChallenges?: number;
+  skippedChallenges?: number;
+  totalChallenges?: number;
+  challengeResults?: ChallengeResult[];
 }
 
 export interface StudentProgress {

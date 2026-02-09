@@ -115,7 +115,12 @@ export function QuestPlayer({
         timeSpentMinutes,
         hintsUsed,
         tutorialsViewed: data.tutorialsViewed || 0,
-        answersShown, // Track how many times "Show Answer" was used
+        // NEW COMPREHENSIVE TRACKING FIELDS
+        tutorialStylesViewed: data.tutorialStylesViewed || [],
+        completedChallenges: data.completedChallenges || 0,
+        skippedChallenges: data.skippedChallenges || 0,
+        totalChallenges: data.totalChallenges || 1,
+        challengeResults: data.challengeResults || [],
       });
 
       // Notify parent component
