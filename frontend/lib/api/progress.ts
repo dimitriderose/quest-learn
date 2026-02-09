@@ -74,7 +74,7 @@ export const progressApi = {
   async getProgress(studentId: string, curriculumId: string): Promise<StudentProgress | null> {
     try {
       const response = await apiClient.get<StudentProgress>(
-        `/progress/student/${studentId}/curriculum/${curriculumId}`
+        `/api/v1/progress/student/${studentId}/curriculum/${curriculumId}`
       );
       return response.data;
     } catch (error) {
@@ -86,7 +86,7 @@ export const progressApi = {
   async getAllProgress(studentId: string): Promise<StudentProgress[]> {
     try {
       const response = await apiClient.get<StudentProgress[]>(
-        `/progress/student/${studentId}`
+        `/api/v1/progress/student/${studentId}`
       );
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
@@ -98,7 +98,7 @@ export const progressApi = {
   async recordQuestCompletion(request: QuestCompletionRequest): Promise<StudentProgress | null> {
     try {
       const response = await apiClient.post<StudentProgress>(
-        '/progress/quest-completion',
+        '/api/v1/progress/quest-completion',
         request
       );
       return response.data;
