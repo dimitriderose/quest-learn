@@ -10,6 +10,9 @@ interface Student {
   progress: number;
   status: "on-track" | "struggling" | "excelling";
   lastActive: string;
+  totalXP?: number;
+  completedQuests?: number;
+  averageScore?: number;
 }
 
 interface StudentCardProps {
@@ -53,9 +56,36 @@ export function StudentCard({ student, onClick }: StudentCardProps) {
             {student.currentQuest}
           </p>
           
+          {/* XP and Quests Completed */}
+          {(student.totalXP !== undefined || student.completedQuests !== undefined) && (
+            <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+              {student.totalXP !== undefined && (
+                <span className="flex items-center gap-1">
+                  ⭐ <strong>{student.totalXP}</strong> XP
+                </span>
+              )}
+              {student.completedQuests !== undefined && (
+                <span className="flex items-center gap-1">
+                  ✓ <strong>{student.completedQuests}</strong> quest{student.completedQuests !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
+          )}
+          
+          {/* Average Score */}
+          {student.averageScore !== undefined && student.averageScore > 0 && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                <span>Average Score</span>
+                <span className="font-semibold">{student.averageScore}%</span>
+              </div>
+            </div>
+          )}
+          
+          {/* Progress Bar */}
           <div className="mt-3">
             <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-              <span>Progress</span>
+              <span>Overall Progress</span>
               <span>{student.progress}%</span>
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -66,6 +96,7 @@ export function StudentCard({ student, onClick }: StudentCardProps) {
             </div>
           </div>
           
+          {/* Status and Last Active */}
           <div className="mt-3 flex items-center justify-between text-xs">
             <span className={`font-semibold ${
               student.status === "struggling"
