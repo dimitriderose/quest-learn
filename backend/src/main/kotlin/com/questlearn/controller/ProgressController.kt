@@ -117,6 +117,7 @@ class ProgressController(
             val updated = progressService.recordQuestCompletion(
                 studentId = request.studentId,
                 curriculumId = request.curriculumId,
+                classId = request.classId,
                 questCompletion = completion
             )
             
