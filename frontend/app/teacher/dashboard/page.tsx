@@ -164,10 +164,10 @@ export default function TeacherDashboard() {
                 ? "All quests complete!"
                 : "No quest assigned";
               
-              // Calculate progress percentage across all curricula
+              // Calculate progress percentage across all curricula (cap at 100%)
               const totalProgress = progressData.reduce((sum, p) => sum + p.progressPercentage, 0);
               const avgProgress = progressData.length > 0 
-                ? Math.round(totalProgress / progressData.length) 
+                ? Math.min(100, Math.round(totalProgress / progressData.length))
                 : 0;
               
               return {
