@@ -32,17 +32,19 @@ export function QuestPlayer({
 
   useEffect(() => {
     const handleQuestComplete = async (event: MessageEvent) => {
-      // Debug: Log all messages
       console.log('QuestPlayer received message:', event.data);
 
-      if (event.data.type !== 'QUEST_COMPLETE') return;
+      // The message might be wrapped in a data property
+      const messageData = event.data.data || event.data;
+      const messageType = messageData.type;
 
-      const data = event.data;
-      console.log('Quest completion data received:', data);
+      if (messageType !== 'QUEST_COMPLETE') return;
 
-      const attempts = data.attempts || 1;
-      const timeSpentMinutes = Math.round((data.timeSpent || 0) / 60);
-      const hintsUsed = data.hintsUsed || 0;
+      console.log('Quest completion data received:', messageData);
+
+      const attempts = messageData.attempts || 1;
+      const timeSpentMinutes = Math.round((messageData.timeSpent || 0) / 60);
+      const hintsUsed = messageData.hintsUsed || 0;
 
       try {
         await progressApi.recordQuestCompletion({
@@ -50,18 +52,18 @@ export function QuestPlayer({
           curriculumId,
           questId,
           classId,
-          questTitle: data.questTitle || 'Quest',
-          questNumber: data.questNumber || 1,
-          score: data.score || 0,
+          questTitle: messageData.questTitle || 'Quest',
+          questNumber: messageData.questNumber || 1,
+          score: messageData.score || 0,
           attempts,
           timeSpentMinutes,
           hintsUsed,
-          tutorialsViewed: data.tutorialsViewed || 0,
-          tutorialStylesViewed: data.tutorialStylesViewed || [],
-          completedChallenges: data.completedChallenges || 0,
-          skippedChallenges: data.skippedChallenges || 0,
-          totalChallenges: data.totalChallenges || 1,
-          challengeResults: data.challengeResults || [],
+          tutorialsViewed: messageData.tutorialsViewed || 0,
+          tutorialStylesViewed: messageData.tutorialStylesViewed || [],
+          completedChallenges: messageData.completedChallenges || 0,
+          skippedChallenges: messageData.skippedChallenges || 0,
+          totalChallenges: messageData.totalChallenges || 1,
+          challengeResults: messageData.challengeResults || [],
         });
 
         console.log('Quest completion recorded successfully');
