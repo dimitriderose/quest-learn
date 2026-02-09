@@ -7,6 +7,7 @@ import { XPTracker } from "@/components/student/dashboard/XPTracker";
 import { QuestGrid } from "@/components/student/dashboard/QuestGrid";
 import { AchievementBanner } from "@/components/student/dashboard/AchievementBanner";
 import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
+import { progressApi, StudentProgress, QuestCompletion } from "@/lib/api/progress";
 
 // Helper function to convert StudentQuestDto to Quest format for QuestGrid
 function convertToQuestFormat(quests: StudentQuestDto[]) {
@@ -41,46 +42,96 @@ function getIconForSubject(subject: string): string {
   return icons[subject] || "📖";
 }
 
+/**
+ * Calculate overall average across all curricula/subjects.
+ * Each subject weighted equally regardless of quest count.
+ */
+function calculateAverageScore(allProgress: StudentProgress[]): number {
+  if (allProgress.length === 0) return 0;
+  
+  const curriculumAverages: number[] = [];
+  
+  // Calculate average for each curriculum
+  allProgress.forEach(progress => {
+    if (progress.questCompletions.length === 0) return;
+    
+    // Get best score per quest (handles retries)
+    const bestScores = new Map<string, number>();
+    progress.questCompletions.forEach(completion => {
+      const currentBest = bestScores.get(completion.questId) || 0;
+      if (completion.score > currentBest) {
+        bestScores.set(completion.questId, completion.score);
+      }
+    });
+    
+    // Calculate this curriculum's average
+    const scores = Array.from(bestScores.values());
+    const curriculumAvg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    curriculumAverages.push(curriculumAvg);
+  });
+  
+  if (curriculumAverages.length === 0) return 0;
+  
+  // Average the curriculum averages
+  const overallAvg = curriculumAverages.reduce((sum, avg) => sum + avg, 0) / curriculumAverages.length;
+  return Math.round(overallAvg);
+}
+
+function calculateXPForNextLevel(currentLevel: number): number {
+  // XP needed = (level + 1) * 100
+  return (currentLevel + 1) * 100;
+}
+
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [quests, setQuests] = useState<any[]>([]);
+  const [allProgress, setAllProgress] = useState<StudentProgress[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Create student object from auth user
-  const student = user ? {
+  // Create student object from real progress data
+  const student = user && allProgress.length > 0 ? {
     name: user.displayName || user.email?.split('@')[0] || "Student",
-    level: 5,
-    currentXP: 350,
-    xpToNextLevel: 500,
-    totalXP: 2350,
-    streak: 7,
+    level: allProgress[0]?.currentLevel || 1,
+    currentXP: allProgress[0]?.totalXP || 0,
+    xpToNextLevel: calculateXPForNextLevel(allProgress[0]?.currentLevel || 1),
+    totalXP: allProgress[0]?.totalXP || 0,
+    averageScore: calculateAverageScore(allProgress),
+    streak: 0, // TODO: Calculate from lastActivityAt
     avatar: "🌟",
   } : {
-    name: "Student",
+    name: user?.displayName || "Student",
     level: 1,
     currentXP: 0,
     xpToNextLevel: 100,
     totalXP: 0,
+    averageScore: 0,
     streak: 0,
     avatar: "🌟",
   };
 
   useEffect(() => {
-    async function loadQuests() {
+    async function loadData() {
       try {
+        // Fetch assigned quests
         const assignedQuests = await getMyQuests();
         const formattedQuests = convertToQuestFormat(assignedQuests);
         setQuests(formattedQuests);
+
+        // Fetch all student progress
+        if (user?.uid) {
+          const progressData = await progressApi.getAllProgress(user.uid);
+          setAllProgress(progressData);
+        }
       } catch (error) {
-        console.error("Error loading quests:", error);
+        console.error("Error loading data:", error);
         setQuests([]);
       } finally {
         setLoading(false);
       }
     }
 
-    loadQuests();
-  }, []);
+    loadData();
+  }, [user?.uid]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-student-purple via-student-teal to-student-yellow dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors">
@@ -90,6 +141,27 @@ export default function StudentDashboard() {
         <AchievementBanner />
         
         <XPTracker student={student} />
+        
+        {/* Average Score Card */}
+        {allProgress.length > 0 && student.averageScore > 0 && (
+          <div className="mt-8">
+            <div className="bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl p-6 shadow-2xl border-0">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-fredoka text-2xl text-white mb-2">
+                    📈 Overall Average
+                  </h3>
+                  <p className="font-nunito text-white/80 text-sm">
+                    Across all subjects
+                  </p>
+                </div>
+                <div className="text-5xl font-bold text-white">
+                  {student.averageScore}%
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         
         <div className="mt-8">
           <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
