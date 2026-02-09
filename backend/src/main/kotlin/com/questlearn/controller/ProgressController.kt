@@ -81,7 +81,15 @@ class ProgressController(
                 questNumber = request.questNumber,
                 score = request.score,
                 attempts = request.attempts,
-                timeSpentMinutes = request.timeSpentMinutes
+                timeSpentMinutes = request.timeSpentMinutes,
+                hintsUsed = request.hintsUsed,
+                // Convert tutorial count to list for database model
+                // Model expects List<String>, we receive Int count from frontend
+                tutorialsViewed = if (request.tutorialsViewed > 0) {
+                    (1..request.tutorialsViewed).map { "tutorial_$it" }
+                } else {
+                    emptyList()
+                }
             )
             
             val updated = progressService.recordQuestCompletion(
