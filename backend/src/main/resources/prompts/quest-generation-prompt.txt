@@ -97,7 +97,35 @@ WHY CSP IS REQUIRED:
                 aria-label="Submit your answer">
             ✅ Submit
         </button>
+        <!-- Show Answer button - only appears after tutorial has been viewed -->
+        <button id="showAnswerBtn" 
+                onclick="showAnswerAndSkip(currentChallengeNumber)" 
+                aria-label="Show answer and skip to next challenge"
+                style="display: none; background: var(--color-text-secondary);">
+            👁️ Show Answer
+        </button>
     </div>
+
+
+SHOW ANSWER BUTTON BEHAVIOR:
+- Hidden by default (display: none)
+- Appears immediately AFTER a tutorial modal is closed (when student closes any tutorial)
+- Once visible, student can click it ANY TIME to skip the challenge
+- When clicked:
+  * Shows complete answer with explanation
+  * Awards 0 points for this challenge
+  * Disables reset and submit buttons for this challenge
+  * Shows "Continue →" button to move to next challenge
+  * If last challenge, moves to completion screen
+- Button styling: Secondary color (less prominent than Submit)
+
+ADAPTIVE HELP FLOW WITH SHOW ANSWER:
+1. Tier 1: Student gets wrong answers → Show progressive hints (2-5 hints depending on difficulty)
+2. Tier 2: After 3 wrong attempts → Offer learning style tutorials (video, breakdown, simple, diagram)
+3. Student views a tutorial → "Show Answer" button appears
+4. Student can now click "Show Answer" ANY TIME to skip with 0 points
+5. No Tier 3 automatic reveal - student always has control
+
 </div>
 
 <div id="celebrationScreen" class="screen">
@@ -360,6 +388,7 @@ let tier2Offered = false;
 let currentChallengeNumber = 1;
 let challengeStates = {}; // Track state per challenge
 let challengeAttempts = {}; // Track attempts per challenge
+let answersShown = {}; // Track challenges where answer was shown (skip with 0 points)
 
 // ========================================
 // POSTMESSAGE HELPER (required)
@@ -480,17 +509,15 @@ function trackWrongAttempt() {
     wrongAttemptCount++;
     
     // Tier 2: After 3 wrong attempts, offer learning styles
+    // Once student views any tutorial, "Show Answer" button becomes available
     if (wrongAttemptCount === 3 && !tier2Offered) {
         tier2Offered = true;
         setTimeout(() => {
             showLearningStyleModal();
         }, 1500);
-    } else if (wrongAttemptCount <= 3) {
-        // Tier 1: Show progressive hints
-        showContextualHint(wrongAttemptCount);
-    } else if (wrongAttemptCount >= 5) {
-        // Tier 3: Show direct answer
-        showDirectAnswer();
+    } else {
+        // Tier 1: Continue showing progressive hints
+        showContextualHint(Math.min(wrongAttemptCount, 5)); // Cap at hint level 5
     }
 }
 
@@ -675,19 +702,104 @@ function showTutorial(type) {
     
     // Don't add button here - displayModal adds it
     displayModal('Tutorial', tutorialContent);
+    
+    // After showing tutorial, reveal the Show Answer button
+    setTimeout(() => {
+        const showAnswerBtn = document.getElementById('showAnswerBtn');
+        if (showAnswerBtn) {
+            showAnswerBtn.style.display = 'inline-block';
+        }
+    }, 500);
 }
 
 // ========================================
-// TIER 3: DIRECT ANSWER (required)
+// TIER 3: SHOW ANSWER & SKIP (after tutorials)
 // ========================================
-function showDirectAnswer() {
+let answersShown = {}; // Track which challenges had answers revealed
+
+function showAnswerAndSkip(challengeNumber) {
+    // Mark this challenge as skipped with answer shown
+    answersShown[challengeNumber] = true;
+    
+    // Disable Submit and Reset buttons
+    const buttons = document.querySelectorAll('.challenge-controls button');
+    buttons.forEach(btn => btn.disabled = true);
+    
+    // Display the complete answer with explanation
     const answerExplanation = `
-        <h3>Let Me Show You</h3>
-        <p>[REVEAL COMPLETE ANSWER with explanation]</p>
-        <p>Now go ahead and select the correct answer!</p>
+        <h3>Here's the Answer</h3>
+        <p>[REVEAL COMPLETE ANSWER with detailed explanation]</p>
+        <p style="margin-top: 20px; color: var(--color-text-secondary); font-size: 14px;">
+            ⚠️ No points awarded for this challenge. You'll move on to the next challenge.
+        </p>
     `;
     
-    displayModal('Answer Revealed', answerExplanation);
+    // Show modal with "Continue" button
+    displayAnswerSkipModal('Complete Answer', answerExplanation, challengeNumber);
+    
+    // Send analytics event
+    sendToParent({
+        type: 'ANSWER_SHOWN',
+        questId: '{{questId}}',
+        challengeId: `challenge_${challengeNumber}`,
+        timestamp: Date.now()
+    });
+}
+
+function displayAnswerSkipModal(title, content, challengeNumber) {
+    const existingModal = document.getElementById('feedbackModal');
+    if (existingModal) existingModal.remove();
+    
+    const modal = document.createElement('div');
+    modal.id = 'feedbackModal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'modalTitle');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); display: flex;
+        align-items: center; justify-content: center;
+        z-index: 10000; animation: fadeIn 0.3s ease;
+    `;
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="background: white; border-radius: 20px;
+            padding: 40px; max-width: 500px; max-height: 80vh; overflow-y: auto;
+            text-align: center; animation: slideIn 0.3s ease;">
+            <h2 id="modalTitle" style="font-family: var(--font-primary); margin-bottom: 20px;">${title}</h2>
+            <div id="modalContent" style="margin: 20px 0;">${content}</div>
+            <button onclick="moveToNextChallenge(${challengeNumber})" 
+                    aria-label="Continue to next challenge"
+                    style="margin-top: 20px; padding: 12px 24px;
+                        background: var(--color-primary); color: white;
+                        border: none; border-radius: 12px;
+                        font-family: var(--font-primary); font-size: 16px;
+                        cursor: pointer;">
+                Continue →
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.querySelector('button').focus();
+}
+
+function moveToNextChallenge(completedChallengeNumber) {
+    closeModal();
+    
+    const totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]').content);
+    
+    if (completedChallengeNumber >= totalChallenges) {
+        completeQuest(); // Last challenge
+    } else {
+        currentChallengeNumber = completedChallengeNumber + 1;
+        // YOU IMPLEMENT: Show next challenge UI
+        
+        const statusMessage = document.getElementById('statusMessage');
+        if (statusMessage) {
+            statusMessage.textContent = `Moving to challenge ${currentChallengeNumber}`;
+        }
+    }
 }
 
 // ========================================
@@ -721,13 +833,19 @@ function completeQuest() {
 
 function calculateScore() {
     const baseScore = 100;
+    const totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]').content);
+    
+    // Count skipped challenges (shown answers)
+    const skippedChallenges = Object.keys(answersShown).length;
+    const skippedPenalty = (skippedChallenges / totalChallenges) * 100;
+    
     const attemptPenalty = (attempts - 1) * 5;    // -5% per extra attempt
     const hintPenalty = hintsUsed * 10;           // -10% per hint
     const tutorialPenalty = tutorialsViewed * 5;  // -5% per tutorial
     
     return Math.max(
-        50,  // Minimum score is always 50%
-        Math.min(100, baseScore - attemptPenalty - hintPenalty - tutorialPenalty)
+        0,  // Minimum 0 if all challenges skipped
+        Math.min(100, baseScore - skippedPenalty - attemptPenalty - hintPenalty - tutorialPenalty)
     );
 }
 
