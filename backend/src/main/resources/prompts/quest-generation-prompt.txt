@@ -299,13 +299,17 @@ let tier2Offered = false;
 // ========================================
 // POSTMESSAGE HELPER (required)
 // ========================================
-function sendToParent(data) {
+function sendToParent(eventData) {
     try {
         if (window.parent && window.parent !== window) {
-            window.parent.postMessage(data, '*');
+            // Normalize format to match QuestPlayer expectations
+            window.parent.postMessage({
+                type: eventData.type.toLowerCase(),
+                data: eventData
+            }, '*');
         } else {
             // Not in iframe (standalone testing)
-            console.log('[DEV] PostMessage:', data);
+            console.log('[DEV] PostMessage:', eventData);
         }
     } catch (error) {
         console.error('PostMessage failed:', error);
@@ -313,12 +317,14 @@ function sendToParent(data) {
         // Attempt to send error notification to parent
         try {
             window.parent.postMessage({
-                type: 'QUEST_ERROR',
-                questId: '{{questId}}',
-                errorType: 'postmessage_failed',
-                errorMessage: error.message,
-                recoverable: true,
-                timestamp: Date.now()
+                type: 'quest_error',
+                data: {
+                    questId: '{{questId}}',
+                    errorType: 'postmessage_failed',
+                    errorMessage: error.message,
+                    recoverable: true,
+                    timestamp: Date.now()
+                }
             }, '*');
         } catch (e) {
             // Quest is isolated - can't communicate with parent
