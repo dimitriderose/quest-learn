@@ -23,7 +23,9 @@ export function QuestPlayer({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    const url = `/quests/${questId}.html`;
+    // Use the backend API endpoint for quest HTML
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+    const url = `${apiUrl}/api/v1/quests/${questId}/html`;
     setQuestUrl(url);
     setIsLoading(false);
   }, [questId]);
