@@ -10,6 +10,7 @@ Grade Level: {{gradeLevel}}
 Difficulty: {{difficulty}}
 Duration: {{durationMinutes}} minutes
 Standards: {{standards}}
+Total Challenges: {{totalChallenges}}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🎯 YOUR MISSION
@@ -21,6 +22,15 @@ Generate ONE complete, self-contained, interactive HTML quest that:
 ✓ Sends postMessage events for React integration
 ✓ Uses age-appropriate theme and tone
 ✓ Teaches {{topic}} through play
+✓ Contains {{totalChallenges}} sequential challenges that build on each other
+
+CRITICAL MULTI-CHALLENGE REQUIREMENTS:
+- Generate EXACTLY {{totalChallenges}} challenges (NOT just 1!)
+- Each challenge must progressively increase in difficulty
+- Later challenges must build on knowledge from earlier challenges
+- Update challengeId in postMessage events: challenge_1, challenge_2, challenge_3, etc.
+- Each challenge needs its own section within the challengeScreen
+- Track completion of each challenge separately before showing celebrationScreen
 
 OUTPUT: ONLY THE HTML - No explanations, no markdown, just the code
 START WITH: <!DOCTYPE html>
@@ -46,7 +56,7 @@ END WITH: </html>
 <meta name="learning-objective" content="[Measurable learning objective]">
 <meta name="standards-covered" content="{{standards}}">
 <meta name="estimated-minutes" content="{{durationMinutes}}">
-<meta name="total-challenges" content="1">
+<meta name="total-challenges" content="{{totalChallenges}}">
 
 WHY CSP IS REQUIRED:
 - Prevents XSS attacks
