@@ -36,8 +36,14 @@ class GeminiQuestGeneratorService(
         val geminiResponse = callGeminiAPI(prompt)
         val questHtml = extractHtmlFromResponse(geminiResponse)
         
-        // HTML validation removed - trust Gemini output and let browser handle rendering
-        // The extractHtmlFromResponse function already handles <EOL> replacements and cleanup
+        // Validation: Check if HTML is complete
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated quest HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+        
+        if (questHtml.length > 100_000) {
+            println("WARNING: Quest HTML is ${questHtml.length} bytes - very large!")
+        }
         
         return questHtml
     }
@@ -174,7 +180,7 @@ Analyze the topic and select the most appropriate:
                     "thinkingLevel" to "MEDIUM"
                 ),
                 "temperature" to 1.0,
-                "maxOutputTokens" to 8000
+                "maxOutputTokens" to 64000
             )
         )
         
