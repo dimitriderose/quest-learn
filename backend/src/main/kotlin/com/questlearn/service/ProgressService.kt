@@ -3,6 +3,9 @@ package com.questlearn.service
 import com.questlearn.model.*
 import com.questlearn.repository.StudentProgressRepository
 import com.questlearn.repository.StudentActionRepository
+import com.questlearn.repository.UserRepository
+import com.questlearn.repository.CurriculumRepository
+import com.questlearn.repository.ClassRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -12,7 +15,10 @@ import java.time.Instant
 @Transactional
 class ProgressService(
     private val progressRepository: StudentProgressRepository,
-    private val actionRepository: StudentActionRepository
+    private val actionRepository: StudentActionRepository,
+    private val userRepository: UserRepository,
+    private val curriculumRepository: CurriculumRepository,
+    private val classRepository: ClassRepository
 ) {
     
     /**
@@ -74,6 +80,52 @@ class ProgressService(
         )
         
         return progressRepository.save(progress)
+    }
+    
+    /**
+     * Auto-initialize progress if it doesn't exist
+     * Called when a student completes their first quest
+     */
+    private fun getOrCreateProgress(
+        studentId: String,
+        curriculumId: String
+    ): StudentProgress {
+        // Try to find existing progress
+        val existing = getStudentProgress(studentId, curriculumId)
+        if (existing != null) {
+            return existing
+        }
+        
+        // Progress doesn't exist - auto-create it
+        // Fetch required data from database
+        val student = userRepository.findById(studentId).orElseThrow {
+            IllegalStateException("Student not found: $studentId")
+        }
+        
+        val curriculum = curriculumRepository.findById(curriculumId).orElseThrow {
+            IllegalStateException("Curriculum not found: $curriculumId")
+        }
+        
+        // Find the class this student is enrolled in that has this curriculum
+        val classIds = student.classIds ?: emptyList()
+        val studentClass = classIds.mapNotNull { classId ->
+            classRepository.findById(classId).orElse(null)
+        }.firstOrNull { clazz ->
+            clazz.assignedCurricula?.contains(curriculumId) == true
+        } ?: throw IllegalStateException(
+            "No class found for student $studentId with curriculum $curriculumId"
+        )
+        
+        // Auto-initialize progress
+        return initializeProgress(
+            studentId = studentId,
+            studentName = student.displayName ?: "Student",
+            curriculumId = curriculumId,
+            curriculumTitle = curriculum.title,
+            classId = studentClass.id,
+            teacherId = studentClass.teacherId,
+            totalQuests = curriculum.quests?.size ?: 1
+        )
     }
     
     /**
@@ -152,14 +204,15 @@ class ProgressService(
     
     /**
      * Record quest completion with automatic metrics calculation
+     * AUTO-CREATES progress record if it doesn't exist yet
      */
     fun recordQuestCompletion(
         studentId: String,
         curriculumId: String,
         questCompletion: QuestCompletion
     ): StudentProgress? {
-        val progress = getStudentProgress(studentId, curriculumId)
-            ?: throw IllegalStateException("Progress not found")
+        // Get existing progress OR auto-create if first quest
+        val progress = getOrCreateProgress(studentId, curriculumId)
         
         val updatedCompletions = progress.questCompletions + questCompletion
         val completedCount = updatedCompletions.size
