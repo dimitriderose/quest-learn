@@ -18,5 +18,7 @@ data class QuestCompletionRequest(
     val questNumber: Int,
     val score: Int,
     val attempts: Int,
-    val timeSpentMinutes: Int
+    val timeSpentMinutes: Int,
+    val hintsUsed: Int = 0,
+    val tutorialsViewed: Int = 0
 )
