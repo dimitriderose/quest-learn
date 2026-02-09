@@ -1,6 +1,18 @@
 import apiClient from './client';
 
 // ============================================================================
+// Backend ApiResponse wrapper type
+// ============================================================================
+interface ApiResponse<T> {
+  success: boolean;
+  data: T | null;
+  error: {
+    code: string;
+    message: string;
+  } | null;
+}
+
+// ============================================================================
 // DTOs - Match backend exactly
 // ============================================================================
 
@@ -65,7 +77,9 @@ export interface StudentProgress {
   completedQuests: number;
   totalQuests: number;
   totalXP: number;
+  currentLevel: number;
   questCompletions: QuestCompletion[];
+  metrics: ProgressMetrics;
   startedAt: string;
   lastActivityAt: string;
   updatedAt: string;
@@ -80,7 +94,16 @@ export interface QuestCompletion {
   timeSpentMinutes: number;
   hintsUsed: number;
   tutorialsViewed: number;
+  completedChallenges: number;
+  skippedChallenges: number;
+  totalChallenges: number;
   completedAt: string;
+}
+
+export interface ProgressMetrics {
+  averageScore: number;
+  averageTimePerQuest: number;
+  hintUsageRate: number;
 }
 
 export interface StudentStatsResponse {
@@ -111,11 +134,14 @@ export const progressApi = {
    * POST /api/v1/progress/validate-answer
    */
   validateAnswer: async (data: ValidateAnswerRequest): Promise<ValidateAnswerResponse> => {
-    const response = await apiClient.post<ValidateAnswerResponse>(
+    const response = await apiClient.post<ApiResponse<ValidateAnswerResponse>>(
       '/api/v1/progress/validate-answer',
       data
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Validation failed');
+    }
+    return response.data.data;
   },
 
   /**
@@ -123,11 +149,14 @@ export const progressApi = {
    * POST /api/v1/progress/quest-completion
    */
   recordQuestCompletion: async (data: QuestCompletionRequest): Promise<StudentProgress> => {
-    const response = await apiClient.post<StudentProgress>(
+    const response = await apiClient.post<ApiResponse<StudentProgress>>(
       '/api/v1/progress/quest-completion',
       data
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to record completion');
+    }
+    return response.data.data;
   },
 
   /**
@@ -135,21 +164,29 @@ export const progressApi = {
    * GET /api/v1/progress/student/{studentId}/curriculum/{curriculumId}
    */
   getProgress: async (studentId: string, curriculumId: string): Promise<StudentProgress> => {
-    const response = await apiClient.get<StudentProgress>(
+    const response = await apiClient.get<ApiResponse<StudentProgress>>(
       `/api/v1/progress/student/${studentId}/curriculum/${curriculumId}`
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Progress not found');
+    }
+    return response.data.data;
   },
 
   /**
    * Get all progress for a student across all curricula
    * GET /api/v1/progress/student/{studentId}
+   * 
+   * FIXED: Properly unwrap ApiResponse<List<StudentProgress>>
    */
   getAllProgress: async (studentId: string): Promise<StudentProgress[]> => {
-    const response = await apiClient.get<StudentProgress[]>(
+    const response = await apiClient.get<ApiResponse<StudentProgress[]>>(
       `/api/v1/progress/student/${studentId}`
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to fetch progress');
+    }
+    return response.data.data;  // ← FIXED: response.data.data, not response.data
   },
 
   /**
@@ -157,10 +194,13 @@ export const progressApi = {
    * GET /api/v1/progress/class/{classId}
    */
   getClassProgress: async (classId: string): Promise<StudentProgress[]> => {
-    const response = await apiClient.get<StudentProgress[]>(
+    const response = await apiClient.get<ApiResponse<StudentProgress[]>>(
       `/api/v1/progress/class/${classId}`
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to fetch class progress');
+    }
+    return response.data.data;
   },
 
   /**
@@ -168,11 +208,14 @@ export const progressApi = {
    * POST /api/v1/progress/initialize
    */
   initializeProgress: async (data: InitializeProgressRequest): Promise<StudentProgress> => {
-    const response = await apiClient.post<StudentProgress>(
+    const response = await apiClient.post<ApiResponse<StudentProgress>>(
       '/api/v1/progress/initialize',
       data
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to initialize progress');
+    }
+    return response.data.data;
   },
 
   /**
@@ -180,9 +223,12 @@ export const progressApi = {
    * GET /api/v1/progress/student/{studentId}/curriculum/{curriculumId}/stats
    */
   getStats: async (studentId: string, curriculumId: string): Promise<StudentStatsResponse> => {
-    const response = await apiClient.get<StudentStatsResponse>(
+    const response = await apiClient.get<ApiResponse<StudentStatsResponse>>(
       `/api/v1/progress/student/${studentId}/curriculum/${curriculumId}/stats`
     );
-    return response.data;
+    if (!response.data.success || !response.data.data) {
+      throw new Error(response.data.error?.message || 'Failed to fetch student stats');
+    }
+    return response.data.data;
   },
 };
