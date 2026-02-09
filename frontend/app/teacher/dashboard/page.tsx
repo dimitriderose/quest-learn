@@ -25,9 +25,27 @@ export default function TeacherDashboard() {
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [timeoutError, setTimeoutError] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
   const [curricula, setCurricula] = useState<any[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
+
+  // Timeout if user doesn't load within 5 seconds when token exists
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const hasToken = localStorage.getItem('auth_token');
+    
+    if (hasToken && !user && !authLoading) {
+      console.log('[Dashboard] Token exists but user not loaded, starting 5s timeout');
+      const timer = setTimeout(() => {
+        console.error('[Dashboard] Timeout: User failed to load after 5 seconds');
+        setTimeoutError(true);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [user, authLoading]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -110,7 +128,43 @@ export default function TeacherDashboard() {
     loadDashboardData();
   }, [user, authLoading]);
 
-  if (authLoading || loading) {
+  // Show timeout error
+  if (timeoutError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center max-w-md">
+          <div className="text-red-600 text-6xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+            Authentication Timeout
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Failed to load user information. This might be due to a network issue or expired session.
+          </p>
+          <div className="space-y-3">
+            <button 
+              onClick={() => window.location.reload()}
+              className="w-full px-6 py-3 bg-teacher-teal text-white rounded-lg hover:bg-teal-600 transition"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => {
+                localStorage.clear();
+                window.location.href = '/login';
+              }}
+              className="w-full px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Wait for user to load if token exists
+  const hasToken = typeof window !== 'undefined' && localStorage.getItem('auth_token');
+  if (authLoading || (hasToken && !user) || loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
