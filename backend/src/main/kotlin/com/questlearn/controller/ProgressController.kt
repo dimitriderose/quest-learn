@@ -5,6 +5,7 @@ import com.questlearn.model.StudentProgress
 import com.questlearn.model.QuestCompletion
 import com.questlearn.model.ChallengeResult
 import com.questlearn.service.ProgressService
+import com.questlearn.service.StudentStatsResponse
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 
@@ -51,6 +52,19 @@ class ProgressController(
         }
     }
     
+    @GetMapping("/student/{studentId}/curriculum/{curriculumId}/stats")
+    fun getStudentStats(
+        @PathVariable studentId: String,
+        @PathVariable curriculumId: String
+    ): ApiResponse<StudentStatsResponse> {
+        return try {
+            val stats = progressService.getStudentStats(studentId, curriculumId)
+            success(stats)
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch student stats")
+        }
+    }
+    
     @PostMapping("/initialize")
     fun initializeProgress(
         @RequestBody request: InitializeProgressRequest
@@ -76,7 +90,6 @@ class ProgressController(
         @RequestBody request: QuestCompletionRequest
     ): ApiResponse<StudentProgress> {
         return try {
-            // Map DTO to model
             val completion = QuestCompletion(
                 questId = request.questId,
                 questTitle = request.questTitle,
@@ -85,13 +98,10 @@ class ProgressController(
                 attempts = request.attempts,
                 timeSpentMinutes = request.timeSpentMinutes,
                 hintsUsed = request.hintsUsed,
-                // Use actual tutorial styles viewed, not just count
                 tutorialsViewed = request.tutorialStylesViewed,
-                // Enhanced tracking
                 completedChallenges = request.completedChallenges,
                 skippedChallenges = request.skippedChallenges,
                 totalChallenges = request.totalChallenges,
-                // Map challenge results from DTO to model
                 challengeResults = request.challengeResults.map { dto ->
                     ChallengeResult(
                         challengeId = dto.challengeId,
