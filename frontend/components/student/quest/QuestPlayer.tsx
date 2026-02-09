@@ -24,12 +24,7 @@ export function QuestPlayer({
 
   useEffect(() => {
     // Use the backend API endpoint for quest HTML
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-    if (!apiUrl) {
-      console.error('NEXT_PUBLIC_API_URL is not set');
-      setIsLoading(false);
-      return;
-    }
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
     const url = `${apiUrl}/api/v1/quests/${questId}/html`;
     setQuestUrl(url);
     setIsLoading(false);
@@ -81,14 +76,6 @@ export function QuestPlayer({
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-xl">Loading quest...</div>
-      </div>
-    );
-  }
-
-  if (!questUrl) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-xl text-red-500">Error: API URL not configured</div>
       </div>
     );
   }
