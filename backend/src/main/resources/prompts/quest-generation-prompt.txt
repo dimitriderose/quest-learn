@@ -832,21 +832,28 @@ function completeQuest() {
 }
 
 function calculateScore() {
-    const baseScore = 100;
     const totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]').content);
     
-    // Count skipped challenges (shown answers)
+    // Count completed challenges (not skipped)
     const skippedChallenges = Object.keys(answersShown).length;
-    const skippedPenalty = (skippedChallenges / totalChallenges) * 100;
+    const completedChallenges = totalChallenges - skippedChallenges;
     
-    const attemptPenalty = (attempts - 1) * 5;    // -5% per extra attempt
-    const hintPenalty = hintsUsed * 10;           // -10% per hint
-    const tutorialPenalty = tutorialsViewed * 5;  // -5% per tutorial
+    // Base score per completed challenge
+    const baseScorePerChallenge = 100 / totalChallenges;
     
-    return Math.max(
-        0,  // Minimum 0 if all challenges skipped
-        Math.min(100, baseScore - skippedPenalty - attemptPenalty - hintPenalty - tutorialPenalty)
-    );
+    // Calculate score only for completed challenges
+    let completedScore = completedChallenges * baseScorePerChallenge;
+    
+    // Apply penalties only to completed challenges
+    const attemptPenalty = (attempts - completedChallenges) * 2;  // -2% per extra attempt beyond 1 per challenge
+    const hintPenalty = hintsUsed * 5;                             // -5% per hint used
+    const tutorialPenalty = tutorialsViewed * 3;                   // -3% per tutorial viewed
+    
+    completedScore = completedScore - attemptPenalty - hintPenalty - tutorialPenalty;
+    
+    // Skipped challenges contribute 0 points
+    // Final score is the completed score (can't go below 0)
+    return Math.max(0, Math.round(completedScore));
 }
 
 // ========================================
