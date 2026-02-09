@@ -7,17 +7,17 @@ interface Student {
   status: "on-track" | "struggling" | "excelling";
 }
 
-interface Curriculum {
+interface Quest {
   id: string;
-  name: string;
+  title: string;
 }
 
 interface QuickStatsCardProps {
   students: Student[];
-  curricula: Curriculum[];
+  quests: Quest[];
 }
 
-export function QuickStatsCard({ students, curricula }: QuickStatsCardProps) {
+export function QuickStatsCard({ students, quests }: QuickStatsCardProps) {
   const totalStudents = students.length;
   const struggling = students.filter(s => s.status === "struggling").length;
   const onTrack = students.filter(s => s.status === "on-track").length;
@@ -27,9 +27,9 @@ export function QuickStatsCard({ students, curricula }: QuickStatsCardProps) {
     ? Math.round(((onTrack + excelling) / totalStudents) * 100)
     : 0;
 
-  const activeCurricula = curricula.length;
-  const curriculaNames = curricula.slice(0, 2).map(c => c.name).join(", ");
-  const moreCount = curricula.length > 2 ? ` +${curricula.length - 2} more` : "";
+  const activeQuests = quests.length;
+  const questTitles = quests.slice(0, 2).map(q => q.title).join(", ");
+  const moreCount = quests.length > 2 ? ` +${quests.length - 2} more` : "";
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -39,11 +39,11 @@ export function QuickStatsCard({ students, curricula }: QuickStatsCardProps) {
       </Card>
 
       <Card className="p-6">
-        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Active Curricula</div>
-        <div className="text-3xl font-bold text-teacher-primary">{activeCurricula}</div>
-        {activeCurricula > 0 && (
-          <div className="text-xs text-gray-500 mt-1 truncate" title={curricula.map(c => c.name).join(", ")}>
-            {curriculaNames}{moreCount}
+        <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Active Quests</div>
+        <div className="text-3xl font-bold text-teacher-primary">{activeQuests}</div>
+        {activeQuests > 0 && (
+          <div className="text-xs text-gray-500 mt-1 truncate" title={quests.map(q => q.title).join(", ")}>
+            {questTitles}{moreCount}
           </div>
         )}
       </Card>
