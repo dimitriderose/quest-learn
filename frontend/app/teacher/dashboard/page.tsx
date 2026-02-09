@@ -8,9 +8,10 @@ import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
 import { getMyClasses } from "@/lib/api/classes";
 import { questApi, QuestMetadata } from "@/lib/api/quests";
+import { progressApi, StudentProgress } from "@/lib/api/progress";
 import apiClient from "@/lib/api/client";
 
-interface Student {
+interface StudentWithProgress {
   id: string;
   name: string;
   email: string;
@@ -19,6 +20,59 @@ interface Student {
   progress: number;
   status: "on-track" | "excelling" | "struggling";
   lastActive: string;
+  totalXP: number;
+  completedQuests: number;
+  averageScore: number;
+}
+
+function calculateAverageScore(progressData: StudentProgress[]): number {
+  if (progressData.length === 0) return 0;
+  
+  let totalScore = 0;
+  let totalCompletions = 0;
+  
+  progressData.forEach(curriculum => {
+    // Get best score per quest (handles retries)
+    const bestScores = new Map<string, number>();
+    curriculum.questCompletions.forEach(completion => {
+      const currentBest = bestScores.get(completion.questId) || 0;
+      if (completion.score > currentBest) {
+        bestScores.set(completion.questId, completion.score);
+      }
+    });
+    
+    bestScores.forEach(score => {
+      totalScore += score;
+      totalCompletions++;
+    });
+  });
+  
+  return totalCompletions > 0 ? Math.round(totalScore / totalCompletions) : 0;
+}
+
+function determineStatus(averageScore: number, completedQuests: number): "on-track" | "excelling" | "struggling" {
+  if (completedQuests === 0) return "on-track";
+  if (averageScore < 60) return "struggling";
+  if (averageScore >= 85) return "excelling";
+  return "on-track";
+}
+
+function formatLastActive(lastActivityAt: string | null): string {
+  if (!lastActivityAt) return "Never";
+  
+  const now = new Date();
+  const lastActivity = new Date(lastActivityAt);
+  const diffMs = now.getTime() - lastActivity.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return lastActivity.toLocaleDateString();
 }
 
 export default function TeacherDashboard() {
@@ -29,7 +83,7 @@ export default function TeacherDashboard() {
   const [timeoutError, setTimeoutError] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
   const [quests, setQuests] = useState<QuestMetadata[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<StudentWithProgress[]>([]);
 
   // Timeout if user doesn't load within 5 seconds when token exists
   useEffect(() => {
@@ -79,38 +133,70 @@ export default function TeacherDashboard() {
         const studentIds = Array.from(studentIdSet);
         
         if (studentIds.length > 0) {
-          // Fetch user details for all students
-          const studentPromises = studentIds.map(async (studentId) => {
+          // Fetch user details and progress for all students in parallel
+          const studentDataPromises = studentIds.map(async (studentId) => {
             try {
-              const response = await apiClient.get(`/api/v1/users/${studentId}`);
-              return response.data.data || response.data;
+              const [userResponse, progressData] = await Promise.all([
+                apiClient.get(`/api/v1/users/${studentId}`),
+                progressApi.getAllProgress(studentId)
+              ]);
+              
+              const userData = userResponse.data.data || userResponse.data;
+              
+              // Calculate aggregate stats across all curricula
+              const totalXP = progressData.reduce((sum, p) => sum + p.totalXP, 0);
+              const completedQuests = progressData.reduce((sum, p) => sum + p.completedQuests, 0);
+              const averageScore = calculateAverageScore(progressData);
+              
+              // Find most recent activity
+              const lastActivityDates = progressData
+                .map(p => p.lastActivityAt)
+                .filter(Boolean)
+                .sort()
+                .reverse();
+              const lastActivity = lastActivityDates[0] || null;
+              
+              // Find current quest (most recent incomplete curriculum)
+              const inProgressCurricula = progressData.filter(p => p.status === 'IN_PROGRESS');
+              const currentQuest = inProgressCurricula.length > 0 
+                ? inProgressCurricula[0].curriculumTitle
+                : completedQuests > 0 
+                ? "All quests complete!"
+                : "No quest assigned";
+              
+              // Calculate progress percentage across all curricula
+              const totalProgress = progressData.reduce((sum, p) => sum + p.progressPercentage, 0);
+              const avgProgress = progressData.length > 0 
+                ? Math.round(totalProgress / progressData.length) 
+                : 0;
+              
+              return {
+                id: userData.uid,
+                name: userData.displayName || userData.email.split('@')[0],
+                email: userData.email,
+                avatar: (userData.displayName || userData.email)
+                  .split(' ')
+                  .map((n: string) => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2),
+                currentQuest,
+                progress: avgProgress,
+                status: determineStatus(averageScore, completedQuests),
+                lastActive: formatLastActive(lastActivity),
+                totalXP,
+                completedQuests,
+                averageScore,
+              };
             } catch (error) {
               console.error(`Error fetching student ${studentId}:`, error);
               return null;
             }
           });
 
-          const studentData = await Promise.all(studentPromises);
+          const studentData = await Promise.all(studentDataPromises);
+          const formattedStudents = studentData.filter((s) => s !== null) as StudentWithProgress[];
           
-          // Convert to Student format
-          const formattedStudents: Student[] = studentData
-            .filter((s) => s !== null)
-            .map((student: any) => ({
-              id: student.uid,
-              name: student.displayName || student.email.split('@')[0],
-              email: student.email,
-              avatar: (student.displayName || student.email)
-                .split(' ')
-                .map((n: string) => n[0])
-                .join('')
-                .toUpperCase()
-                .slice(0, 2),
-              currentQuest: "No quest assigned",
-              progress: 0,
-              status: "on-track" as const,
-              lastActive: "Not tracked yet",
-            }));
-
           setStudents(formattedStudents);
         }
       } catch (error: any) {
