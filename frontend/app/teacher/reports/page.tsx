@@ -6,7 +6,7 @@ import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader"
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { classApi, ClassDto } from "@/lib/api/classes";
-import { questApi } from "@/lib/api/quests";
+import { progressApi, StudentProgress } from "@/lib/api/progress";
 import { 
   BarChart3, 
   TrendingUp, 
@@ -15,28 +15,75 @@ import {
   CheckCircle2, 
   Clock,
   Download,
-  Filter
+  Filter,
+  Trophy
 } from "lucide-react";
 import Link from "next/link";
 
-interface ClassProgress {
-  classId: string;
-  className: string;
-  totalStudents: number;
-  activeStudents: number;
-  averageCompletion: number;
+interface StudentWithProgress {
+  studentId: string;
+  studentName: string;
+  studentEmail: string;
+  progress: StudentProgress[];
+  averageScore: number;
+  completedQuests: number;
   totalXP: number;
+}
+
+/**
+ * Calculate overall average across all curricula/subjects.
+ * Each subject weighted equally regardless of quest count.
+ */
+function calculateAverageScore(allProgress: StudentProgress[]): number {
+  if (allProgress.length === 0) return 0;
+  
+  const curriculumAverages: number[] = [];
+  
+  allProgress.forEach(progress => {
+    if (progress.questCompletions.length === 0) return;
+    
+    const bestScores = new Map<string, number>();
+    progress.questCompletions.forEach(completion => {
+      const currentBest = bestScores.get(completion.questId) || 0;
+      if (completion.score > currentBest) {
+        bestScores.set(completion.questId, completion.score);
+      }
+    });
+    
+    const scores = Array.from(bestScores.values());
+    const curriculumAvg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    curriculumAverages.push(curriculumAvg);
+  });
+  
+  if (curriculumAverages.length === 0) return 0;
+  
+  const overallAvg = curriculumAverages.reduce((sum, avg) => sum + avg, 0) / curriculumAverages.length;
+  return Math.round(overallAvg);
+}
+
+function getScoreBadgeColor(score: number): string {
+  if (score >= 90) return "bg-green-500";
+  if (score >= 75) return "bg-blue-500";
+  if (score >= 60) return "bg-yellow-500";
+  return "bg-orange-500";
 }
 
 export default function TeacherReportsPage() {
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
+  const [studentsWithProgress, setStudentsWithProgress] = useState<StudentWithProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<string>("week");
 
   useEffect(() => {
     loadClasses();
   }, []);
+
+  useEffect(() => {
+    if (selectedClass) {
+      loadStudentProgress();
+    }
+  }, [selectedClass]);
 
   const loadClasses = async () => {
     try {
@@ -49,6 +96,63 @@ export default function TeacherReportsPage() {
       console.error('Failed to load classes:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadStudentProgress = async () => {
+    try {
+      const classDetails = await classApi.getDetails(selectedClass);
+      
+      if (!classDetails.students || classDetails.students.length === 0) {
+        setStudentsWithProgress([]);
+        return;
+      }
+
+      const studentsData = await Promise.all(
+        classDetails.students.map(async (student) => {
+          try {
+            const progress = await progressApi.getAllProgress(student.uid);
+            
+            const averageScore = calculateAverageScore(progress);
+            
+            const completedQuests = progress.reduce((sum, p) => {
+              const uniqueQuests = new Set(p.questCompletions.map(c => c.questId));
+              return sum + uniqueQuests.size;
+            }, 0);
+            
+            const totalXP = progress.reduce((sum, p) => sum + (p.totalXP || 0), 0);
+            
+            return {
+              studentId: student.uid,
+              studentName: student.displayName,
+              studentEmail: student.email,
+              progress,
+              averageScore,
+              completedQuests,
+              totalXP
+            };
+          } catch (err) {
+            console.error(`Failed to load progress for student ${student.uid}:`, err);
+            return {
+              studentId: student.uid,
+              studentName: student.displayName,
+              studentEmail: student.email,
+              progress: [],
+              averageScore: 0,
+              completedQuests: 0,
+              totalXP: 0
+            };
+          }
+        })
+      );
+      
+      // Sort by average score descending
+      studentsData.sort((a, b) => b.averageScore - a.averageScore);
+      setStudentsWithProgress(studentsData);
+      
+    } catch (error) {
+      console.error('Failed to load student progress:', error);
+      setStudentsWithProgress([]);
     }
   };
 
@@ -97,6 +201,13 @@ export default function TeacherReportsPage() {
   }
 
   const selectedClassData = classes.find(c => c.classId === selectedClass);
+  
+  // Calculate class-wide statistics
+  const classAverage = studentsWithProgress.length > 0
+    ? Math.round(studentsWithProgress.reduce((sum, s) => sum + s.averageScore, 0) / studentsWithProgress.length)
+    : 0;
+  const totalCompletedQuests = studentsWithProgress.reduce((sum, s) => sum + s.completedQuests, 0);
+  const totalXP = studentsWithProgress.reduce((sum, s) => sum + s.totalXP, 0);
 
   return (
     <ProtectedRoute requiredRole="TEACHER">
@@ -164,86 +275,124 @@ export default function TeacherReportsPage() {
               bgColor="bg-blue-50 dark:bg-blue-900/20"
             />
             <StatCard
-              icon={Clock}
-              label="Active This Week"
-              value="--"
-              subtext="No data yet"
+              icon={Trophy}
+              label="Class Average"
+              value={classAverage > 0 ? `${classAverage}%` : "--"}
+              subtext={studentsWithProgress.length > 0 ? "Across all subjects" : "No data yet"}
               iconColor="text-green-600"
               bgColor="bg-green-50 dark:bg-green-900/20"
             />
             <StatCard
               icon={CheckCircle2}
-              label="Avg Completion"
-              value="--%"
-              subtext="No data yet"
+              label="Quests Completed"
+              value={totalCompletedQuests || "--"}
+              subtext={totalCompletedQuests > 0 ? "By all students" : "No data yet"}
               iconColor="text-purple-600"
               bgColor="bg-purple-50 dark:bg-purple-900/20"
             />
             <StatCard
               icon={Award}
               label="Total XP Earned"
-              value="--"
-              subtext="No data yet"
+              value={totalXP > 0 ? totalXP.toLocaleString() : "--"}
+              subtext={totalXP > 0 ? "By all students" : "No data yet"}
               iconColor="text-yellow-600"
               bgColor="bg-yellow-50 dark:bg-yellow-900/20"
             />
           </div>
 
-          {/* Progress by Quest */}
-          <Card className="p-6 mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white">
-                Quest Progress
-              </h2>
-              <Link href="/teacher/curricula">
-                <Button variant="secondary" size="sm">
-                  Assign New Quest
-                </Button>
-              </Link>
-            </div>
-
-            {/* Empty State */}
-            <div className="text-center py-12">
-              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                No Quest Data Yet
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                Assign quests to {selectedClassData?.className} to see student progress
-              </p>
-            </div>
-          </Card>
-
-          {/* Student Performance */}
+          {/* Student Performance Table */}
           <Card className="p-6">
             <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-6">
               Student Performance
             </h2>
 
-            {selectedClassData && selectedClassData.studentCount > 0 ? (
+            {studentsWithProgress.length === 0 ? (
               <div className="text-center py-12">
                 <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  Students Enrolled
+                  No Student Data Yet
                 </h3>
                 <p className="text-gray-600 dark:text-gray-400">
-                  {selectedClassData.studentCount} students are ready to start learning!
-                  <br />
-                  Assign quests to begin tracking their progress.
+                  {selectedClassData && selectedClassData.studentCount > 0
+                    ? "Students haven't completed any quests yet"
+                    : "No students enrolled in this class"}
                 </p>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
-                  No Students Enrolled
-                </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  Share class code <strong>{selectedClassData?.classCode}</strong> with students
-                </p>
-                <Link href={`/teacher/classes/${selectedClass}`}>
-                  <Button variant="primary">View Class Details</Button>
-                </Link>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200 dark:border-gray-700">
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                        Rank
+                      </th>
+                      <th className="text-left py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                        Student
+                      </th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                        Average Score
+                      </th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                        Quests Completed
+                      </th>
+                      <th className="text-center py-3 px-4 font-semibold text-gray-700 dark:text-gray-300">
+                        Total XP
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {studentsWithProgress.map((student, index) => (
+                      <tr
+                        key={student.studentId}
+                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+                      >
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Trophy className="w-5 h-5 text-yellow-500" />}
+                            {index === 1 && <Trophy className="w-5 h-5 text-gray-400" />}
+                            {index === 2 && <Trophy className="w-5 h-5 text-amber-600" />}
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              #{index + 1}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="font-semibold text-gray-900 dark:text-white">
+                              {student.studentName}
+                            </div>
+                            <div className="text-sm text-gray-500 dark:text-gray-400">
+                              {student.studentEmail}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          {student.averageScore > 0 ? (
+                            <div className="inline-flex items-center gap-2">
+                              <div
+                                className={`${getScoreBadgeColor(student.averageScore)} text-white px-3 py-1 rounded-full font-bold`}
+                              >
+                                {student.averageScore}%
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400 dark:text-gray-600">--</span>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {student.completedQuests}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {student.totalXP.toLocaleString()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </Card>
