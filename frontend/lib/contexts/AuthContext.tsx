@@ -28,21 +28,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  // Load user from localStorage on mount
+  // First useEffect: Mark component as mounted (client-side only)
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Second useEffect: Load user from localStorage ONLY after mounted
+  useEffect(() => {
+    if (!mounted) return;
+
+    console.log('[AuthContext] Component mounted, loading from localStorage');
     const token = localStorage.getItem('auth_token');
     const storedUser = localStorage.getItem('user');
 
+    console.log('[AuthContext] Token exists:', !!token);
+    console.log('[AuthContext] User exists:', !!storedUser);
+
     if (token && storedUser) {
       try {
-        // Trust localStorage - JWT will be validated by backend on API calls
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
         console.log('[AuthContext] Loaded user from localStorage:', parsedUser.uid);
       } catch (error) {
-        // Only clear if parsing fails
         console.error('[AuthContext] Failed to parse stored user:', error);
         localStorage.removeItem('auth_token');
         localStorage.removeItem('user');
@@ -54,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     
     setLoading(false);
     console.log('[AuthContext] Loading complete');
-  }, []);
+  }, [mounted]);
 
   const login = async (classCode: string, studentName: string) => {
     try {
