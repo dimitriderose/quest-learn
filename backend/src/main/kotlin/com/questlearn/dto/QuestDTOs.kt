@@ -21,6 +21,7 @@ data class GeneratedQuestResponse(
 
 data class QuestMetadata(
     val id: String,
+    val curriculumId: String,
     val title: String,
     val description: String,
     val topic: String,
