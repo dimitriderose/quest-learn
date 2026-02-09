@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { QuestPlayer } from "@/components/student/quest/QuestPlayer";
 import { questApi, Quest } from "@/lib/api/quests";
 
