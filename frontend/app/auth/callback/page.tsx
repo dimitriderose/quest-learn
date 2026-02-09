@@ -2,7 +2,9 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import apiClient from "@/lib/api/client";
+import axios from "axios";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://questlearn-production.up.railway.app';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -14,20 +16,26 @@ function AuthCallbackContent() {
       try {
         // Get token from URL params (if backend sends it)
         const token = searchParams.get("token");
-        const error = searchParams.get("error");
+        const errorParam = searchParams.get("error");
 
-        if (error) {
-          setError(decodeURIComponent(error));
+        if (errorParam) {
+          setError(decodeURIComponent(errorParam));
           setTimeout(() => router.push("/login"), 3000);
           return;
         }
 
         if (token) {
-          // Save token
+          // Save token FIRST
           localStorage.setItem("auth_token", token);
 
-          // Get user info
-          const response = await apiClient.get("/api/v1/auth/me");
+          // Get user info with explicit Authorization header
+          // Don't use apiClient here because it might not pick up the token fast enough
+          const response = await axios.get(`${API_BASE_URL}/api/v1/auth/me`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
           const user = response.data;
 
           localStorage.setItem("user", JSON.stringify(user));
@@ -42,25 +50,8 @@ function AuthCallbackContent() {
             window.location.href = "/";
           }
         } else {
-          // No token in URL - backend might have set it in session/cookie
-          // Try to get current user
-          try {
-            const response = await apiClient.get("/api/v1/auth/me");
-            const user = response.data;
-            localStorage.setItem("user", JSON.stringify(user));
-
-            // Use full page reload to ensure localStorage is persisted
-            if (user.role === "TEACHER") {
-              window.location.href = "/teacher/dashboard";
-            } else if (user.role === "STUDENT") {
-              window.location.href = "/student/dashboard";
-            } else {
-              window.location.href = "/";
-            }
-          } catch (err) {
-            setError("Authentication failed. Please try again.");
-            setTimeout(() => router.push("/login"), 3000);
-          }
+          setError("No authentication token received");
+          setTimeout(() => router.push("/login"), 3000);
         }
       } catch (err: any) {
         console.error("Auth callback error:", err);
