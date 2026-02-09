@@ -4,7 +4,7 @@ import com.questlearn.model.*
 import com.questlearn.repository.StudentProgressRepository
 import com.questlearn.repository.StudentActionRepository
 import com.questlearn.repository.UserRepository
-import com.questlearn.repository.CurriculumRepository
+import com.questlearn.repository.QuestRepository
 import com.questlearn.repository.ClassRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -17,12 +17,12 @@ class ProgressService(
     private val progressRepository: StudentProgressRepository,
     private val actionRepository: StudentActionRepository,
     private val userRepository: UserRepository,
-    private val curriculumRepository: CurriculumRepository,
+    private val questRepository: QuestRepository,
     private val classRepository: ClassRepository
 ) {
     
     /**
-     * Get student progress for a curriculum
+     * Get student progress for a curriculum (actually questId stored in curriculum_id column)
      */
     fun getStudentProgress(studentId: String, curriculumId: String): StudentProgress? {
         return progressRepository.findByStudentIdAndCurriculumId(studentId, curriculumId)
@@ -85,6 +85,9 @@ class ProgressService(
     /**
      * Auto-initialize progress if it doesn't exist
      * Called when a student completes their first quest
+     * 
+     * UPDATED: curriculumId parameter is actually a questId
+     * We store questId in the curriculum_id column (database reuse, no migration needed)
      */
     private fun getOrCreateProgress(
         studentId: String,
@@ -102,29 +105,28 @@ class ProgressService(
             IllegalStateException("Student not found: $studentId")
         }
         
-        val curriculum = curriculumRepository.findById(curriculumId).orElseThrow {
-            IllegalStateException("Curriculum not found: $curriculumId")
+        // CHANGED: Look up quest instead of curriculum
+        val quest = questRepository.findById(curriculumId).orElseThrow {
+            IllegalStateException("Quest not found: $curriculumId")
         }
         
-        // Find the class this student is enrolled in that has this curriculum
+        // Find the class this student is enrolled in
         val classIds = student.classIds ?: emptyList()
         val studentClass = classIds.mapNotNull { classId ->
             classRepository.findById(classId).orElse(null)
-        }.firstOrNull { clazz ->
-            clazz.assignedCurricula?.contains(curriculumId) == true
-        } ?: throw IllegalStateException(
-            "No class found for student $studentId with curriculum $curriculumId"
+        }.firstOrNull() ?: throw IllegalStateException(
+            "No class found for student $studentId"
         )
         
         // Auto-initialize progress
         return initializeProgress(
             studentId = studentId,
             studentName = student.displayName ?: "Student",
-            curriculumId = curriculumId,
-            curriculumTitle = curriculum.title,
+            curriculumId = curriculumId, // Actually stores questId
+            curriculumTitle = quest.title,
             classId = studentClass.id,
             teacherId = studentClass.teacherId,
-            totalQuests = curriculum.totalQuests
+            totalQuests = 1 // Single quest tracking
         )
     }
     
