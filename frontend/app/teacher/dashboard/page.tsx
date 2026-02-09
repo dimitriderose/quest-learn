@@ -7,7 +7,7 @@ import { QuickStatsCard } from "@/components/teacher/dashboard/QuickStatsCard";
 import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
 import { getMyClasses } from "@/lib/api/classes";
-import { listCurricula } from "@/lib/api/curricula";
+import { questApi, QuestMetadata } from "@/lib/api/quests";
 import apiClient from "@/lib/api/client";
 
 interface Student {
@@ -28,7 +28,7 @@ export default function TeacherDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [timeoutError, setTimeoutError] = useState(false);
   const [classes, setClasses] = useState<any[]>([]);
-  const [curricula, setCurricula] = useState<any[]>([]);
+  const [quests, setQuests] = useState<QuestMetadata[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
 
   // Timeout if user doesn't load within 5 seconds when token exists
@@ -61,14 +61,14 @@ export default function TeacherDashboard() {
       try {
         setError(null);
 
-        // Fetch teacher's classes and curricula in parallel
-        const [classesData, curriculaData] = await Promise.all([
+        // Fetch teacher's classes and quests in parallel
+        const [classesData, questsData] = await Promise.all([
           getMyClasses(),
-          listCurricula({ teacherId: user.uid })
+          questApi.list({ teacherId: user.uid })
         ]);
 
         setClasses(classesData || []);
-        setCurricula(curriculaData || []);
+        setQuests(questsData || []);
 
         // Fetch student details for all students across all classes
         const studentIdSet = new Set<string>();
@@ -204,7 +204,7 @@ export default function TeacherDashboard() {
 
         <QuickStatsCard 
           students={students}
-          curricula={curricula}
+          quests={quests}
         />
 
         <div className="mt-8">
