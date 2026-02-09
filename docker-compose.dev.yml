@@ -2,12 +2,14 @@
 # This configuration runs:
 # 1. PostgreSQL - Primary database
 # 2. Spring Boot Backend - API server
+# 3. Next.js Frontend - Web application
 #
 # SETUP:
 # 1. Create .env file with required variables (see .env.example)
 # 2. Run: docker-compose -f docker-compose.dev.yml up
 # 3. Access:
-#    - Backend API: http://localhost:8081
+#    - Frontend: http://localhost:3000
+#    - Backend API: http://localhost:8080
 #    - PostgreSQL: localhost:5432
 
 version: '3.8'
@@ -69,7 +71,7 @@ services:
       
       PORT: 8080
     ports:
-      - "8081:8080"
+      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,6 +84,26 @@ services:
       timeout: 10s
       retries: 5
       start_period: 60s
+
+  frontend:
+    image: node:20-alpine
+    container_name: questlearn-frontend
+    working_dir: /app
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NODE_ENV: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+    networks:
+      - questlearn
+    restart: on-failure
 
 networks:
   questlearn:
