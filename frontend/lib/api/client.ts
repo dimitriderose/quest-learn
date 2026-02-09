@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// Hardcoded for production deployment - same fix as auth callback
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://questlearn-production.up.railway.app';
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({
