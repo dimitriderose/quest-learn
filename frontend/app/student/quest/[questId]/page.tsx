@@ -4,14 +4,14 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/contexts/AuthContext";
 import { QuestPlayer } from "@/components/student/quest/QuestPlayer";
-import { questApi, Quest } from "@/lib/api/quests";
+import { questApi, QuestMetadata } from "@/lib/api/quests";
 
 export default function QuestPage() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const [quest, setQuest] = useState<Quest | null>(null);
+  const [quest, setQuest] = useState<QuestMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const questId = params.questId as string;
@@ -26,7 +26,7 @@ export default function QuestPage() {
 
     const loadQuest = async () => {
       try {
-        const questData = await questApi.getQuest(questId);
+        const questData = await questApi.getMetadata(questId);
         setQuest(questData);
       } catch (error) {
         console.error('Failed to load quest:', error);
