@@ -7,6 +7,7 @@ import { QuickStatsCard } from "@/components/teacher/dashboard/QuickStatsCard";
 import { StudentGrid } from "@/components/teacher/dashboard/StudentGrid";
 import { CreateCurriculumFAB } from "@/components/teacher/dashboard/CreateCurriculumFAB";
 import { getMyClasses } from "@/lib/api/classes";
+import { listCurricula } from "@/lib/api/curricula";
 import apiClient from "@/lib/api/client";
 
 interface Student {
@@ -37,9 +38,7 @@ export default function TeacherDashboard() {
     const hasToken = localStorage.getItem('auth_token');
     
     if (hasToken && !user && !authLoading) {
-      console.log('[Dashboard] Token exists but user not loaded, starting 5s timeout');
       const timer = setTimeout(() => {
-        console.error('[Dashboard] Timeout: User failed to load after 5 seconds');
         setTimeoutError(true);
       }, 5000);
       
@@ -61,16 +60,15 @@ export default function TeacherDashboard() {
 
       try {
         setError(null);
-        console.log('Loading dashboard data for user:', user.uid);
-        console.log('Auth token:', localStorage.getItem('auth_token')?.substring(0, 20) + '...');
 
-        // Fetch teacher's classes only (skip curricula for now due to auth issues)
-        const classesData = await getMyClasses();
-        
-        console.log('Classes:', classesData);
+        // Fetch teacher's classes and curricula in parallel
+        const [classesData, curriculaData] = await Promise.all([
+          getMyClasses(),
+          listCurricula({ teacherId: user.uid })
+        ]);
 
         setClasses(classesData || []);
-        setCurricula([]); // TODO: Fix curricula endpoint authentication
+        setCurricula(curriculaData || []);
 
         // Fetch student details for all students across all classes
         const studentIdSet = new Set<string>();
@@ -79,14 +77,13 @@ export default function TeacherDashboard() {
         });
 
         const studentIds = Array.from(studentIdSet);
-        console.log('Student IDs:', studentIds);
         
         if (studentIds.length > 0) {
           // Fetch user details for all students
           const studentPromises = studentIds.map(async (studentId) => {
             try {
               const response = await apiClient.get(`/api/v1/users/${studentId}`);
-              return response.data.data || response.data; // Handle both wrapped and unwrapped responses
+              return response.data.data || response.data;
             } catch (error) {
               console.error(`Error fetching student ${studentId}:`, error);
               return null;
@@ -94,7 +91,6 @@ export default function TeacherDashboard() {
           });
 
           const studentData = await Promise.all(studentPromises);
-          console.log('Student data:', studentData);
           
           // Convert to Student format
           const formattedStudents: Student[] = studentData
