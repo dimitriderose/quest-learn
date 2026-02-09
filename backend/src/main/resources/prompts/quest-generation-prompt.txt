@@ -31,6 +31,8 @@ CRITICAL MULTI-CHALLENGE REQUIREMENTS:
 - Update challengeId in postMessage events: challenge_1, challenge_2, challenge_3, etc.
 - Each challenge needs its own section within the challengeScreen
 - Track completion of each challenge separately before showing celebrationScreen
+- EVERY challenge MUST have a reset button (🔄 Start Over) to clear just that challenge
+- Reset button should NOT affect other challenges or overall quest progress
 
 OUTPUT: ONLY THE HTML - No explanations, no markdown, just the code
 START WITH: <!DOCTYPE html>
@@ -75,8 +77,22 @@ WHY CSP IS REQUIRED:
 <div id="challengeScreen" class="screen">
     <!-- INTERACTIVE GAME - drag-drop, click, build, etc. -->
     <!-- NOT multiple choice quiz! -->
-    <button onclick="showHint()" aria-label="Get a hint">💡 Need a Hint?</button>
-    <button onclick="checkAnswer()" aria-label="Submit your answer">Submit Answer</button>
+    
+    <!-- CRITICAL: Each challenge MUST have its own reset button -->
+    <div class="challenge-controls">
+        <button onclick="resetChallenge(currentChallengeNumber)" 
+                aria-label="Reset this challenge">
+            🔄 Start Over
+        </button>
+        <button onclick="showHint()" 
+                aria-label="Get a hint">
+            💡 Hint
+        </button>
+        <button onclick="checkAnswer(currentChallengeNumber)" 
+                aria-label="Submit your answer">
+            ✅ Submit
+        </button>
+    </div>
 </div>
 
 <div id="celebrationScreen" class="screen">
@@ -158,6 +174,37 @@ button:focus, a:focus, [tabindex]:focus {
     white-space: nowrap;
     border-width: 0;
 }
+
+/* Challenge control buttons */
+.challenge-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.challenge-controls button {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-family: var(--font-primary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Reset button - secondary style (less prominent) */
+.challenge-controls button:first-child {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.challenge-controls button:first-child:hover {
+    background: #bdc3c7;
+}
+
 </style>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -305,6 +352,9 @@ let tutorialsViewed = 0;
 let startTime = Date.now();
 let wrongAttemptCount = 0;
 let tier2Offered = false;
+let currentChallengeNumber = 1;
+let challengeStates = {}; // Track state per challenge
+let challengeAttempts = {}; // Track attempts per challenge
 
 // ========================================
 // POSTMESSAGE HELPER (required)
@@ -781,6 +831,40 @@ function closeModal() {
     }
 }
 
+// ========================================
+// CHALLENGE RESET FUNCTION (required)
+// ========================================
+function resetChallenge(challengeNumber) {
+    // Reset challenge-specific state
+    challengeStates[challengeNumber] = getInitialChallengeState(challengeNumber);
+    
+    // Clear any visual feedback
+    removeFeedbackVisuals(challengeNumber);
+    
+    // Reset challenge attempt counter (but preserve global attempts)
+    challengeAttempts[challengeNumber] = 0;
+    
+    // YOU IMPLEMENT: Reset challenge-specific elements
+    // - Clear drag-drop positions
+    // - Reset input fields
+    // - Remove correct/incorrect indicators
+    // - Return interactive elements to starting positions
+    
+    // Log analytics event
+    sendToParent({
+        type: 'CHALLENGE_RESET',
+        questId: '{{questId}}',
+        challengeId: `challenge_${challengeNumber}`,
+        timestamp: Date.now()
+    });
+    
+    // Announce to screen readers
+    const statusMessage = document.getElementById('statusMessage');
+    if (statusMessage) {
+        statusMessage.textContent = `Challenge ${challengeNumber} has been reset. Try again!`;
+    }
+}
+
 // YOU MUST IMPLEMENT THESE FUNCTIONS:
 function validateAnswer() {
     // Check if student's answer is correct
@@ -868,6 +952,9 @@ Before you output the HTML, verify:
 □ File size < 200KB (500KB absolute max)
 □ Emoji used instead of images where possible
 □ Reusable modal function implemented
+□ Reset button for each challenge (🔄 Start Over)
+□ resetChallenge() function properly clears challenge state
+□ Reset button uses secondary styling (less prominent than Submit)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 🚀 OUTPUT REQUIREMENTS
