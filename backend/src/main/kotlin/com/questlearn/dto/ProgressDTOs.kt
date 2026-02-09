@@ -25,6 +25,7 @@ data class QuestCompletionRequest(
     val studentId: String,
     val curriculumId: String,
     val questId: String,
+    val classId: String,
     val questTitle: String,
     val questNumber: Int,
     val score: Int,
