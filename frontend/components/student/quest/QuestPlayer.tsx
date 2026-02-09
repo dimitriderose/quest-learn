@@ -24,6 +24,7 @@ export function QuestPlayer({
   const [startTime] = useState(Date.now());
   const [hintsUsed, setHintsUsed] = useState(0);
   const [attempts, setAttempts] = useState(0);
+  const [answersShown, setAnswersShown] = useState(0);
 
   // Handle messages from quest iframe
   useEffect(() => {
@@ -33,17 +34,24 @@ export function QuestPlayer({
 
       const { type, data } = event.data;
 
-      switch (type) {
-        case 'validateAnswer':
+      // Normalize event type to handle both QUEST_COMPLETE and questComplete
+      const normalizedType = type?.toLowerCase().replace(/_/g, '');
+
+      switch (normalizedType) {
+        case 'validateanswer':
           await handleValidateAnswer(data);
           break;
         
-        case 'hintUsed':
+        case 'hintused':
           setHintsUsed(prev => prev + 1);
           break;
         
-        case 'questComplete':
+        case 'questcomplete':
           await handleQuestComplete(data);
+          break;
+        
+        case 'answershown':
+          setAnswersShown(prev => prev + 1);
           break;
         
         case 'error':
@@ -107,6 +115,7 @@ export function QuestPlayer({
         timeSpentMinutes,
         hintsUsed,
         tutorialsViewed: data.tutorialsViewed || 0,
+        answersShown, // Track how many times "Show Answer" was used
       });
 
       // Notify parent component
