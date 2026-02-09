@@ -1,52 +1,22 @@
 package com.questlearn.dto
 
-import java.time.Instant
-
-/**
- * Request DTO for creating a new class
- */
 data class CreateClassRequest(
+    val teacherId: String? = null,  // Auto-populated from JWT
+    val teacherName: String? = null,  // Auto-populated from JWT
     val className: String,
-    val gradeLevel: Int,
     val subject: String,
+    val gradeLevel: String,
     val schoolYear: String
 )
 
-/**
- * Basic class information (list view)
- */
-data class ClassDto(
-    val id: String,
-    val teacherId: String,
-    val name: String,
-    val classCode: String,
-    val gradeLevel: Int,
-    val studentCount: Int,
-    val createdAt: Instant,
-    val updatedAt: Instant
-)
-
-/**
- * Detailed class information with student list (detail view)
- */
-data class ClassDetailsDto(
-    val id: String,
-    val name: String,
-    val classCode: String,
-    val gradeLevel: Int,
-    val teacherName: String,
-    val students: List<StudentDto>,
-    val createdAt: Instant,
-    val updatedAt: Instant
-)
-
-/**
- * Student information in class context
- */
-data class StudentDto(
-    val uid: String,
-    val displayName: String,
+data class AddStudentRequest(
     val email: String,
-    val enrolledAt: Instant,
-    val lastActive: Instant?
+    val name: String,
+    val studentId: String? = null
+)
+
+data class EnrollStudentRequest(
+    val classCode: String,
+    val studentId: String,
+    val studentName: String
 )
