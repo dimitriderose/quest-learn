@@ -90,7 +90,7 @@ export default function TeacherReportsPage() {
       const data = await classApi.getAll();
       setClasses(data);
       if (data.length > 0) {
-        setSelectedClass(data[0].classId);
+        setSelectedClass(data[0].id);
       }
     } catch (error) {
       console.error('Failed to load classes:', error);
@@ -200,7 +200,7 @@ export default function TeacherReportsPage() {
     );
   }
 
-  const selectedClassData = classes.find(c => c.classId === selectedClass);
+  const selectedClassData = classes.find(c => c.id === selectedClass);
   
   // Calculate class-wide statistics
   const classAverage = studentsWithProgress.length > 0
@@ -246,7 +246,7 @@ export default function TeacherReportsPage() {
               className="px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
             >
               {classes.map((cls) => (
-                <option key={cls.classId} value={cls.classId}>
+                <option key={cls.id} value={cls.id}>
                   {cls.name}
                 </option>
               ))}
