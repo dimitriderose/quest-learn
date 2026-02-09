@@ -52,7 +52,7 @@ export const authApi = {
    * Get Google OAuth URL for teachers
    */
   getGoogleAuthUrl: (): string => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8081';
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
     return `${baseUrl}/oauth2/authorization/google`;
   },
 };
