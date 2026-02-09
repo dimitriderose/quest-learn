@@ -19,20 +19,24 @@ export interface ListCurriculaParams {
 }
 
 /**
- * List curricula with optional filters
- * GET /api/v1/curricula
+ * List curricula for a teacher
+ * GET /api/v1/curricula/teacher/{teacherId}
  */
 export async function listCurricula(params?: ListCurriculaParams): Promise<Curriculum[]> {
-  const queryParams = new URLSearchParams();
-  
-  if (params?.teacherId) queryParams.append('teacherId', params.teacherId);
-  if (params?.subject) queryParams.append('subject', params.subject);
-  if (params?.gradeLevel) queryParams.append('gradeLevel', params.gradeLevel);
+  if (!params?.teacherId) {
+    console.warn('teacherId is required for listCurricula');
+    return [];
+  }
 
-  const url = `/api/v1/curricula${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-  
-  const response = await apiClient.get<{ success: boolean; data: Curriculum[] }>(url);
-  return response.data.success ? response.data.data : [];
+  try {
+    const response = await apiClient.get<{ success: boolean; data: Curriculum[] }>(
+      `/api/v1/curricula/teacher/${params.teacherId}`
+    );
+    return response.data.success ? response.data.data : [];
+  } catch (error) {
+    console.error('Error fetching curricula:', error);
+    return [];
+  }
 }
 
 /**
