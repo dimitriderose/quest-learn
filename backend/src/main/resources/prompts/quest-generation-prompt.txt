@@ -10,9 +10,9 @@ Grade Level: {{gradeLevel}}
 Difficulty: {{difficulty}}
 
 DIFFICULTY LEVEL DEFINITIONS:
-- advanced: For high-achieving students who need challenging content beyond grade level. Include complex problems, multi-step reasoning, and fewer scaffolds.
-- grade-level: Standard curriculum appropriate for typical students at this grade. Balance challenge with support.
-- foundational: For students needing additional support. Use simpler language, more visual aids, smaller steps, and extra hints.
+- advanced: For high-achieving students who need challenging content beyond grade level. Include complex problems, multi-step reasoning, fewer scaffolds, and fewer hints (2 hints maximum).
+- grade-level: Standard curriculum appropriate for typical students at this grade. Balance challenge with support (standard 3 hints).
+- foundational: For students needing additional support. Use simpler language, more visual aids, smaller steps, and more hints (4-5 hints).
 Duration: {{durationMinutes}} minutes
 Standards: {{standards}}
 Total Challenges: {{totalChallenges}}
