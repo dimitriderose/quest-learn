@@ -38,13 +38,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (token && storedUser) {
         try {
+          // Trust localStorage - JWT will be validated by backend on API calls
           setUser(JSON.parse(storedUser));
-          // Optionally verify token with backend
-          const currentUser = await authApi.getCurrentUser();
-          setUser(currentUser);
-          localStorage.setItem('user', JSON.stringify(currentUser));
         } catch (error) {
-          // Token invalid, clear storage
+          // Only clear if parsing fails
+          console.error('Failed to parse stored user:', error);
           localStorage.removeItem('auth_token');
           localStorage.removeItem('user');
           setUser(null);
