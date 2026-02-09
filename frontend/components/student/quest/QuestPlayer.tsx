@@ -29,12 +29,7 @@ export function QuestPlayer({
   // Handle messages from quest iframe
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      // Security: verify message origin if needed
-      // if (event.origin !== window.location.origin) return;
-
       const { type, data } = event.data;
-
-      // Normalize event type to handle both QUEST_COMPLETE and questComplete
       const normalizedType = type?.toLowerCase().replace(/_/g, '');
 
       switch (normalizedType) {
@@ -81,7 +76,6 @@ export function QuestPlayer({
         timeSpent: Math.floor((Date.now() - startTime) / 1000),
       });
 
-      // Send result back to iframe
       iframeRef.current?.contentWindow?.postMessage({
         type: 'validationResult',
         data: result,
@@ -115,7 +109,6 @@ export function QuestPlayer({
         timeSpentMinutes,
         hintsUsed,
         tutorialsViewed: data.tutorialsViewed || 0,
-        // NEW COMPREHENSIVE TRACKING FIELDS
         tutorialStylesViewed: data.tutorialStylesViewed || [],
         completedChallenges: data.completedChallenges || 0,
         skippedChallenges: data.skippedChallenges || 0,
@@ -123,13 +116,26 @@ export function QuestPlayer({
         challengeResults: data.challengeResults || [],
       });
 
-      // Notify parent component
       onComplete?.();
 
     } catch (error) {
       console.error('Error recording completion:', error);
     }
   };
+
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  
+  if (!apiUrl) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-gray-900">
+        <div className="text-center max-w-md mx-4">
+          <div className="text-6xl mb-4">⚙️</div>
+          <h2 className="text-white font-fredoka text-2xl mb-2">Configuration Required</h2>
+          <p className="text-white/80">API URL not configured. Please contact support.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full h-full relative">
@@ -160,7 +166,7 @@ export function QuestPlayer({
 
       <iframe
         ref={iframeRef}
-        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8081'}/api/v1/quests/${questId}/html`}
+        src={`${apiUrl}/api/v1/quests/${questId}/html`}
         className="w-full h-full border-0"
         onLoad={() => setIsLoading(false)}
         onError={() => {
