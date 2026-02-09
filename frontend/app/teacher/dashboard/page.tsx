@@ -36,14 +36,8 @@ export default function TeacherDashboard() {
         return;
       }
 
-      // If no user and no token in storage, we're definitely not logged in
-      if (!user && !localStorage.getItem('auth_token')) {
-        setLoading(false);
-        return;
-      }
-
-      // If we have a token but no user yet, AuthContext is still loading
       if (!user) {
+        setLoading(false);
         return;
       }
 
