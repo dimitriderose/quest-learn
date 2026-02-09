@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/contexts/AuthContext";
 import { StudentHeader } from "@/components/student/dashboard/StudentHeader";
 import { XPTracker } from "@/components/student/dashboard/XPTracker";
 import { QuestGrid } from "@/components/student/dashboard/QuestGrid";
+import { QuestHistory } from "@/components/student/dashboard/QuestHistory";
 import { AchievementBanner } from "@/components/student/dashboard/AchievementBanner";
 import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
 import { progressApi, StudentProgress, QuestCompletion } from "@/lib/api/progress";
@@ -189,6 +190,19 @@ export default function StudentDashboard() {
             <QuestGrid quests={quests} />
           )}
         </div>
+
+        {/* Quest History Section */}
+        {allProgress.length > 0 && (
+          <div className="mt-12">
+            <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
+              📜 Quest History
+            </h2>
+            <p className="font-nunito text-xl text-white/90 text-center mb-8">
+              Your completed quests and achievements
+            </p>
+            <QuestHistory progressData={allProgress} />
+          </div>
+        )}
       </main>
     </div>
   );
