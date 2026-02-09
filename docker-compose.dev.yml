@@ -9,7 +9,7 @@
 # 2. Run: docker-compose -f docker-compose.dev.yml up
 # 3. Access:
 #    - Frontend: http://localhost:3000
-#    - Backend API: http://localhost:8080
+#    - Backend API: http://localhost:8081
 #    - PostgreSQL: localhost:5432
 
 version: '3.8'
@@ -71,7 +71,7 @@ services:
       
       PORT: 8080
     ports:
-      - "8080:8080"
+      - "8081:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -90,7 +90,7 @@ services:
     container_name: questlearn-frontend
     working_dir: /app
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
       NODE_ENV: development
     volumes:
       - ./frontend:/app
