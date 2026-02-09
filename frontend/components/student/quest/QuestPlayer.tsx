@@ -32,6 +32,9 @@ export function QuestPlayer({
 
   useEffect(() => {
     const handleQuestComplete = async (event: MessageEvent) => {
+      // Debug: Log all messages
+      console.log('QuestPlayer received message:', event.data);
+
       if (event.data.type !== 'QUEST_COMPLETE') return;
 
       const data = event.data;
