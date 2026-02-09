@@ -143,7 +143,7 @@ export default function QuestPage() {
           <QuestPlayer 
             questId={questId}
             studentId={studentId}
-            curriculumId={quest?.curriculumId || quest?.curriculum?.id || ""}
+            curriculumId={questId}
             onComplete={handleQuestComplete}
           />
         )}
