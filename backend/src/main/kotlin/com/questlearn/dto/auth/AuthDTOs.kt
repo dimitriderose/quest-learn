@@ -7,7 +7,8 @@ package com.questlearn.dto.auth
  */
 data class StudentLoginRequest(
     val classCode: String,
-    val studentName: String
+    val studentName: String,
+    val email: String? = null  // Optional email for student account
 )
 
 /**
