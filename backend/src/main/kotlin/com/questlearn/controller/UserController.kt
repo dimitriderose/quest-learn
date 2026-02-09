@@ -24,14 +24,15 @@ class UserController(
     )
     
     /**
-     * Get user by ID
-     * GET /api/v1/users/{userId}
+     * Get user by ID (UID) or email
+     * GET /api/v1/users/{userIdOrEmail}
      * Teachers can fetch student details for their classes
+     * Supports both UID and email address lookups
      */
-    @GetMapping("/{userId}")
-    fun getUserById(@PathVariable userId: String): ApiResponse<User> {
+    @GetMapping("/{userIdOrEmail}")
+    fun getUserById(@PathVariable userIdOrEmail: String): ApiResponse<User> {
         return try {
-            val user = userService.getUserById(userId)
+            val user = userService.getUserByIdOrEmail(userIdOrEmail)
                 ?: return error("NOT_FOUND", "User not found")
             success(user)
         } catch (e: Exception) {
