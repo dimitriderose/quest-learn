@@ -101,6 +101,7 @@ class QuestController(
         
         val metadata = QuestMetadata(
             id = quest.id,
+            curriculumId = quest.curriculumId,
             title = quest.title,
             description = quest.description,
             topic = quest.topic ?: "",
@@ -148,6 +149,7 @@ class QuestController(
         val metadata = filteredQuests.map { quest ->
             QuestMetadata(
                 id = quest.id,
+                curriculumId = quest.curriculumId,
                 title = quest.title,
                 description = quest.description,
                 topic = quest.topic ?: "",
