@@ -30,11 +30,11 @@ export default function LandingPage() {
                 Start Free Trial
               </Button>
             </Link>
-            <Link href="/demo">
+            <a href="https://youtu.be/SunbRWpNIJQ" target="_blank" rel="noopener noreferrer">
               <Button variant="secondary" className="text-xl px-12 py-6">
                 Watch Demo
               </Button>
-            </Link>
+            </a>
           </div>
 
           <p className="text-white/70 text-sm">
@@ -220,7 +220,7 @@ export default function LandingPage() {
               <ul className="space-y-2 text-sm">
                 <li><Link href="/features" className="hover:text-white">Features</Link></li>
                 <li><Link href="/pricing" className="hover:text-white">Pricing</Link></li>
-                <li><Link href="/demo" className="hover:text-white">Demo</Link></li>
+                <li><a href="https://youtu.be/SunbRWpNIJQ" target="_blank" rel="noopener noreferrer" className="hover:text-white">Demo</a></li>
               </ul>
             </div>
             <div>
