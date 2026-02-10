@@ -26,16 +26,20 @@ class QuestController(
     @PostMapping("/generate")
     fun generateQuest(
         @RequestBody request: GenerateQuestRequest,
-        authentication: Authentication
+        authentication: Authentication?  // FIXED: Made optional for permitAll endpoint
     ): ResponseEntity<GeneratedQuestResponse> {
         try {
             val questHtml = geminiService.generateQuest(request)
             val questTitle = extractTitle(questHtml) ?: "Quest: ${request.topic}"
             val questDescription = "Learn about ${request.topic} through an interactive adventure!"
             
-            // Get user from JWT authentication
-            val user = authentication.principal as User
-            val teacherId = user.uid
+            // Get user from JWT authentication if available, otherwise use anonymous
+            val teacherId = if (authentication != null) {
+                val user = authentication.principal as User
+                user.uid
+            } else {
+                "anonymous-teacher"
+            }
             
             println("DEBUG generateQuest: teacherId = $teacherId")
             
