@@ -145,7 +145,7 @@ export default function LandingPage() {
           {[
             { icon: "🤖", title: "AI Curriculum Generation", desc: "Complete 2-week curriculum in 8 minutes" },
             { icon: "🎯", title: "Standards Aligned", desc: "Auto-tagged with NGSS, Common Core, state standards" },
-            { icon: "📈", title: "Adaptive Differentiation", desc: "3 learning tracks: Enrichment, Standard, Scaffolded" },
+            { icon: "📈", title: "Adaptive Differentiation", desc: "3 learning tracks: Advanced, Grade-level, Foundational" },
             { icon: "💡", title: "Smart Hints", desc: "AI provides personalized help when students are stuck" },
             { icon: "⚡", title: "Instant Grading", desc: "Automatic scoring and progress tracking" },
             { icon: "👨‍👩‍👧", title: "Parent Portal", desc: "Automated progress reports for families" },
