@@ -38,7 +38,6 @@ class SecurityConfig(
                     .requestMatchers("/health", "/actuator/**").permitAll()
                     .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login/student").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/v1/quests/generate").permitAll()  // FIXED: Added HttpMethod.POST
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
                     // Allow quest HTML endpoint to be accessed without authentication (for iframe)
                     .requestMatchers(HttpMethod.GET, "/api/v1/quests/*/html").permitAll()
