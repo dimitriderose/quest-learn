@@ -16,7 +16,6 @@ const apiClient: AxiosInstance = axios.create({
 // IMPORTANT: Keep this in sync with backend SecurityConfig.kt
 const PUBLIC_ENDPOINTS = [
   '/api/v1/auth/login/student',           // Student class code login
-  '/api/v1/quests/generate',              // Quest generation (for demo/testing)
   '/oauth2/authorization/google',          // Google OAuth redirect
   '/login/oauth2/code/google',            // Google OAuth callback
 ] as const;
