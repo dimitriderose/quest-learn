@@ -6,60 +6,19 @@ import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader"
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { classApi, ClassDto } from "@/lib/api/classes";
-import { progressApi, StudentProgress } from "@/lib/api/progress";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Users, 
-  Award, 
-  CheckCircle2, 
-  Clock,
+import { progressApi, ClassReportResponse, StudentReportEntry, QuestCompletion } from "@/lib/api/progress";
+import {
+  TrendingUp,
+  Users,
+  Award,
+  CheckCircle2,
   Download,
   Filter,
-  Trophy
+  Trophy,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 import Link from "next/link";
-
-interface StudentWithProgress {
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  progress: StudentProgress[];
-  averageScore: number;
-  completedQuests: number;
-  totalXP: number;
-}
-
-/**
- * Calculate overall average across all curricula/subjects.
- * Each subject weighted equally regardless of quest count.
- */
-function calculateAverageScore(allProgress: StudentProgress[]): number {
-  if (allProgress.length === 0) return 0;
-  
-  const curriculumAverages: number[] = [];
-  
-  allProgress.forEach(progress => {
-    if (progress.questCompletions.length === 0) return;
-    
-    const bestScores = new Map<string, number>();
-    progress.questCompletions.forEach(completion => {
-      const currentBest = bestScores.get(completion.questId) || 0;
-      if (completion.score > currentBest) {
-        bestScores.set(completion.questId, completion.score);
-      }
-    });
-    
-    const scores = Array.from(bestScores.values());
-    const curriculumAvg = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-    curriculumAverages.push(curriculumAvg);
-  });
-  
-  if (curriculumAverages.length === 0) return 0;
-  
-  const overallAvg = curriculumAverages.reduce((sum, avg) => sum + avg, 0) / curriculumAverages.length;
-  return Math.round(overallAvg);
-}
 
 function getScoreBadgeColor(score: number): string {
   if (score >= 90) return "bg-green-500";
@@ -68,12 +27,27 @@ function getScoreBadgeColor(score: number): string {
   return "bg-orange-500";
 }
 
+/**
+ * Deduplicate quest completions by questId, keeping best score, sorted by questNumber.
+ */
+function getBestQuestCompletions(completions: QuestCompletion[]): QuestCompletion[] {
+  const bestByQuest = new Map<string, QuestCompletion>();
+  completions.forEach(c => {
+    const existing = bestByQuest.get(c.questId);
+    if (!existing || c.score > existing.score) {
+      bestByQuest.set(c.questId, c);
+    }
+  });
+  return Array.from(bestByQuest.values()).sort((a, b) => a.questNumber - b.questNumber);
+}
+
 export default function TeacherReportsPage() {
   const [classes, setClasses] = useState<ClassDto[]>([]);
   const [selectedClass, setSelectedClass] = useState<string>("");
-  const [studentsWithProgress, setStudentsWithProgress] = useState<StudentWithProgress[]>([]);
+  const [report, setReport] = useState<ClassReportResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState<string>("week");
+  const [expandedStudents, setExpandedStudents] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadClasses();
@@ -81,7 +55,8 @@ export default function TeacherReportsPage() {
 
   useEffect(() => {
     if (selectedClass) {
-      loadStudentProgress();
+      setExpandedStudents(new Set());
+      loadReport();
     }
   }, [selectedClass]);
 
@@ -99,61 +74,26 @@ export default function TeacherReportsPage() {
     }
   };
 
-  const loadStudentProgress = async () => {
+  const loadReport = async () => {
     try {
-      const classDetails = await classApi.getDetails(selectedClass);
-      
-      if (!classDetails.students || classDetails.students.length === 0) {
-        setStudentsWithProgress([]);
-        return;
-      }
-
-      const studentsData = await Promise.all(
-        classDetails.students.map(async (student) => {
-          try {
-            const progress = await progressApi.getAllProgress(student.uid);
-            
-            const averageScore = calculateAverageScore(progress);
-            
-            const completedQuests = progress.reduce((sum, p) => {
-              const uniqueQuests = new Set(p.questCompletions.map(c => c.questId));
-              return sum + uniqueQuests.size;
-            }, 0);
-            
-            const totalXP = progress.reduce((sum, p) => sum + (p.totalXP || 0), 0);
-            
-            return {
-              studentId: student.uid,
-              studentName: student.displayName,
-              studentEmail: student.email,
-              progress,
-              averageScore,
-              completedQuests,
-              totalXP
-            };
-          } catch (err) {
-            console.error(`Failed to load progress for student ${student.uid}:`, err);
-            return {
-              studentId: student.uid,
-              studentName: student.displayName,
-              studentEmail: student.email,
-              progress: [],
-              averageScore: 0,
-              completedQuests: 0,
-              totalXP: 0
-            };
-          }
-        })
-      );
-      
-      // Sort by average score descending
-      studentsData.sort((a, b) => b.averageScore - a.averageScore);
-      setStudentsWithProgress(studentsData);
-      
+      const data = await progressApi.getClassReport(selectedClass);
+      setReport(data);
     } catch (error) {
-      console.error('Failed to load student progress:', error);
-      setStudentsWithProgress([]);
+      console.error('Failed to load class report:', error);
+      setReport(null);
     }
+  };
+
+  const toggleExpanded = (studentId: string) => {
+    setExpandedStudents(prev => {
+      const next = new Set(prev);
+      if (next.has(studentId)) {
+        next.delete(studentId);
+      } else {
+        next.add(studentId);
+      }
+      return next;
+    });
   };
 
   const exportReport = () => {
@@ -201,13 +141,7 @@ export default function TeacherReportsPage() {
   }
 
   const selectedClassData = classes.find(c => c.id === selectedClass);
-  
-  // Calculate class-wide statistics
-  const classAverage = studentsWithProgress.length > 0
-    ? Math.round(studentsWithProgress.reduce((sum, s) => sum + s.averageScore, 0) / studentsWithProgress.length)
-    : 0;
-  const totalCompletedQuests = studentsWithProgress.reduce((sum, s) => sum + s.completedQuests, 0);
-  const totalXP = studentsWithProgress.reduce((sum, s) => sum + s.totalXP, 0);
+  const students = report?.students ?? [];
 
   return (
     <ProtectedRoute requiredRole="TEACHER">
@@ -270,31 +204,31 @@ export default function TeacherReportsPage() {
             <StatCard
               icon={Users}
               label="Total Students"
-              value={selectedClassData?.studentCount || 0}
+              value={report?.totalStudents ?? selectedClassData?.studentCount ?? 0}
               iconColor="text-blue-600"
               bgColor="bg-blue-50 dark:bg-blue-900/20"
             />
             <StatCard
               icon={Trophy}
               label="Class Average"
-              value={classAverage > 0 ? `${classAverage}%` : "--"}
-              subtext={studentsWithProgress.length > 0 ? "Across all subjects" : "No data yet"}
+              value={report && report.classAverage > 0 ? `${report.classAverage}%` : "--"}
+              subtext={students.length > 0 ? `In ${report?.className || 'this class'}` : "No data yet"}
               iconColor="text-green-600"
               bgColor="bg-green-50 dark:bg-green-900/20"
             />
             <StatCard
               icon={CheckCircle2}
               label="Quests Completed"
-              value={totalCompletedQuests || "--"}
-              subtext={totalCompletedQuests > 0 ? "By all students" : "No data yet"}
+              value={report && report.totalCompletedQuests > 0 ? report.totalCompletedQuests : "--"}
+              subtext={report && report.totalCompletedQuests > 0 ? `In ${report.className}` : "No data yet"}
               iconColor="text-purple-600"
               bgColor="bg-purple-50 dark:bg-purple-900/20"
             />
             <StatCard
               icon={Award}
               label="Total XP Earned"
-              value={totalXP > 0 ? totalXP.toLocaleString() : "--"}
-              subtext={totalXP > 0 ? "By all students" : "No data yet"}
+              value={report && report.totalXP > 0 ? report.totalXP.toLocaleString() : "--"}
+              subtext={report && report.totalXP > 0 ? `In ${report.className}` : "No data yet"}
               iconColor="text-yellow-600"
               bgColor="bg-yellow-50 dark:bg-yellow-900/20"
             />
@@ -306,7 +240,7 @@ export default function TeacherReportsPage() {
               Student Performance
             </h2>
 
-            {studentsWithProgress.length === 0 ? (
+            {students.length === 0 ? (
               <div className="text-center py-12">
                 <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="font-semibold text-gray-900 dark:text-white mb-2">
@@ -341,56 +275,140 @@ export default function TeacherReportsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {studentsWithProgress.map((student, index) => (
-                      <tr
-                        key={student.studentId}
-                        className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {index === 0 && <Trophy className="w-5 h-5 text-yellow-500" />}
-                            {index === 1 && <Trophy className="w-5 h-5 text-gray-400" />}
-                            {index === 2 && <Trophy className="w-5 h-5 text-amber-600" />}
-                            <span className="font-semibold text-gray-900 dark:text-white">
-                              #{index + 1}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-semibold text-gray-900 dark:text-white">
-                              {student.studentName}
-                            </div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">
-                              {student.studentEmail}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          {student.averageScore > 0 ? (
-                            <div className="inline-flex items-center gap-2">
-                              <div
-                                className={`${getScoreBadgeColor(student.averageScore)} text-white px-3 py-1 rounded-full font-bold`}
-                              >
-                                {student.averageScore}%
+                    {students.map((student, index) => {
+                      const isExpanded = expandedStudents.has(student.studentId);
+                      const questCompletions = getBestQuestCompletions(student.classQuestCompletions);
+
+                      return (
+                        <>
+                          <tr
+                            key={student.studentId}
+                            onClick={() => toggleExpanded(student.studentId)}
+                            className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 cursor-pointer"
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                {isExpanded
+                                  ? <ChevronDown className="w-4 h-4 text-gray-400" />
+                                  : <ChevronRight className="w-4 h-4 text-gray-400" />
+                                }
+                                {index === 0 && <Trophy className="w-5 h-5 text-yellow-500" />}
+                                {index === 1 && <Trophy className="w-5 h-5 text-gray-400" />}
+                                {index === 2 && <Trophy className="w-5 h-5 text-amber-600" />}
+                                <span className="font-semibold text-gray-900 dark:text-white">
+                                  #{index + 1}
+                                </span>
                               </div>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 dark:text-gray-600">--</span>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div>
+                                <div className="font-semibold text-gray-900 dark:text-white">
+                                  {student.studentName}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {student.studentEmail}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              {student.classAverageScore > 0 ? (
+                                <div className="flex flex-col items-center gap-1">
+                                  <div
+                                    className={`${getScoreBadgeColor(student.classAverageScore)} text-white px-3 py-1 rounded-full font-bold`}
+                                  >
+                                    {student.classAverageScore}%
+                                  </div>
+                                  {student.overallAverageScore !== student.classAverageScore && (
+                                    <span className="text-xs text-gray-400 dark:text-gray-500">
+                                      Overall: {student.overallAverageScore}%
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 dark:text-gray-600">--</span>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {student.classCompletedQuests}
+                              </span>
+                              {student.overallCompletedQuests !== student.classCompletedQuests && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                  Overall: {student.overallCompletedQuests}
+                                </div>
+                              )}
+                            </td>
+                            <td className="py-4 px-4 text-center">
+                              <span className="font-semibold text-gray-900 dark:text-white">
+                                {student.classTotalXP.toLocaleString()}
+                              </span>
+                              {student.overallTotalXP !== student.classTotalXP && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500">
+                                  Overall: {student.overallTotalXP.toLocaleString()}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+
+                          {/* Expanded quest details */}
+                          {isExpanded && (
+                            <tr key={`${student.studentId}-detail`} className="bg-gray-50 dark:bg-gray-800/30">
+                              <td colSpan={5} className="px-4 py-4">
+                                {questCompletions.length === 0 ? (
+                                  <p className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
+                                    No quests completed in this class yet
+                                  </p>
+                                ) : (
+                                  <div className="ml-8">
+                                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                                      Quest Scores
+                                    </h4>
+                                    <table className="w-full text-sm">
+                                      <thead>
+                                        <tr className="border-b border-gray-200 dark:border-gray-700">
+                                          <th className="text-left py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Quest</th>
+                                          <th className="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Score</th>
+                                          <th className="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Attempts</th>
+                                          <th className="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Time</th>
+                                          <th className="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Challenges</th>
+                                          <th className="text-center py-2 px-3 font-medium text-gray-600 dark:text-gray-400">Completed</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody>
+                                        {questCompletions.map(quest => (
+                                          <tr key={quest.questId} className="border-b border-gray-100 dark:border-gray-700/50">
+                                            <td className="py-2 px-3 text-gray-900 dark:text-white">
+                                              {quest.questTitle}
+                                            </td>
+                                            <td className="py-2 px-3 text-center">
+                                              <span className={`${getScoreBadgeColor(quest.score)} text-white px-2 py-0.5 rounded-full text-xs font-bold`}>
+                                                {quest.score}
+                                              </span>
+                                            </td>
+                                            <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">
+                                              {quest.attempts}
+                                            </td>
+                                            <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">
+                                              {quest.timeSpentMinutes} min
+                                            </td>
+                                            <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">
+                                              {quest.completedChallenges}/{quest.totalChallenges}
+                                            </td>
+                                            <td className="py-2 px-3 text-center text-gray-700 dark:text-gray-300">
+                                              {quest.completedAt ? new Date(quest.completedAt).toLocaleDateString() : "--"}
+                                            </td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
                           )}
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {student.completedQuests}
-                          </span>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <span className="font-semibold text-gray-900 dark:text-white">
-                            {student.totalXP.toLocaleString()}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                        </>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -402,16 +420,16 @@ export default function TeacherReportsPage() {
   );
 }
 
-function StatCard({ 
-  icon: Icon, 
-  label, 
-  value, 
+function StatCard({
+  icon: Icon,
+  label,
+  value,
   subtext,
   iconColor,
-  bgColor 
-}: { 
-  icon: any; 
-  label: string; 
+  bgColor
+}: {
+  icon: any;
+  label: string;
   value: string | number;
   subtext?: string;
   iconColor: string;
