@@ -37,10 +37,16 @@ class JwtAuthenticationFilter(
             
             if (jwt != null && jwtTokenProvider.validateToken(jwt)) {
                 val userId = jwtTokenProvider.getUserIdFromToken(jwt)
-                
+
                 // Load user from database
                 val user = userService.getUserById(userId)
-                
+
+                // Extract classId from token (present for students who logged in with a class code)
+                val classId = jwtTokenProvider.getClassIdFromToken(jwt)
+                if (classId != null) {
+                    request.setAttribute("classId", classId)
+                }
+
                 // Create authentication with ROLE_ prefix for Spring Security
                 val authorities = listOf(SimpleGrantedAuthority("ROLE_${user.role}"))
                 val authentication = UsernamePasswordAuthenticationToken(
@@ -49,11 +55,11 @@ class JwtAuthenticationFilter(
                     authorities
                 )
                 authentication.details = WebAuthenticationDetailsSource().buildDetails(request)
-                
+
                 // Set authentication in security context
                 SecurityContextHolder.getContext().authentication = authentication
-                
-                logger.debug("Set authentication for user: ${user.email}, role: ${user.role}")
+
+                logger.debug("Set authentication for user: ${user.email}, role: ${user.role}, classId: $classId")
             }
         } catch (ex: Exception) {
             logger.error("Could not set user authentication in security context", ex)

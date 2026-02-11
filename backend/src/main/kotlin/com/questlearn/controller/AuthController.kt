@@ -58,14 +58,15 @@ class AuthController(
             classService.addStudent(classEntity.id, student.uid)
         }
         
-        // Generate JWT token
+        // Generate JWT token with classId so quests are scoped to this class
         val token = jwtTokenProvider.generateToken(
             userId = student.uid,
             email = student.email,
-            role = student.role.name
+            role = student.role.name,
+            classId = classEntity.id
         )
-        
-        // Return token and user info
+
+        // Return token and user info (include classId for frontend)
         val response = AuthResponse(
             token = token,
             user = UserInfo(
@@ -73,7 +74,8 @@ class AuthController(
                 email = student.email,
                 displayName = student.displayName,
                 photoURL = student.photoURL,
-                role = student.role.name
+                role = student.role.name,
+                classId = classEntity.id
             )
         )
         

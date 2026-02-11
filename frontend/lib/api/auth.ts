@@ -13,6 +13,7 @@ interface AuthResponse {
     displayName: string;
     photoURL: string | null;
     role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+    classId?: string;
   };
 }
 
@@ -22,6 +23,7 @@ interface User {
   displayName: string;
   photoURL: string | null;
   role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+  classId?: string;
 }
 
 export const authApi = {
