@@ -59,3 +59,16 @@ data class StudentDto(
     val enrolledAt: Instant,
     val lastActive: Instant?
 )
+
+data class DashboardStatsResponse(
+    val classAverageScore: Int,
+    val classTotalXP: Int,
+    val classLevel: Int,
+    val classCurrentXP: Int,
+    val classXPToNextLevel: Int,
+    val overallAverageScore: Int,
+    val overallTotalXP: Int,
+    val overallLevel: Int,
+    val overallCurrentXP: Int,
+    val overallXPToNextLevel: Int
+)
