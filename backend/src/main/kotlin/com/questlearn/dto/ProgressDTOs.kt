@@ -1,5 +1,6 @@
 package com.questlearn.dto
 
+import com.questlearn.model.QuestCompletion
 import java.time.Instant
 
 data class InitializeProgressRequest(
@@ -58,4 +59,27 @@ data class StudentDto(
     val email: String,
     val enrolledAt: Instant,
     val lastActive: Instant?
+)
+
+data class ClassReportResponse(
+    val classId: String,
+    val className: String,
+    val classAverage: Double,
+    val totalStudents: Int,
+    val totalCompletedQuests: Int,
+    val totalXP: Long,
+    val students: List<StudentReportEntry>
+)
+
+data class StudentReportEntry(
+    val studentId: String,
+    val studentName: String,
+    val studentEmail: String,
+    val classAverageScore: Double,
+    val classCompletedQuests: Int,
+    val classTotalXP: Int,
+    val overallAverageScore: Double,
+    val overallCompletedQuests: Int,
+    val overallTotalXP: Int,
+    val classQuestCompletions: List<QuestCompletion>
 )
