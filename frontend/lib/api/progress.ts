@@ -94,10 +94,12 @@ export const progressApi = {
     }
   },
 
-  async getAllProgress(studentId: string): Promise<StudentProgress[]> {
+  async getAllProgress(studentId: string, classId?: string): Promise<StudentProgress[]> {
     try {
+      const params = classId ? { classId } : undefined;
       const response = await apiClient.get<ApiResponse<StudentProgress[]>>(
-        `/api/v1/progress/student/${studentId}`
+        `/api/v1/progress/student/${studentId}`,
+        { params }
       );
       const data = response.data.data; // Unwrap ApiResponse
       return Array.isArray(data) ? data : [];

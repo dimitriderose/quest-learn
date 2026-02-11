@@ -31,8 +31,12 @@ class ProgressService(
     /**
      * Get all progress for a student
      */
-    fun getAllStudentProgress(studentId: String): List<StudentProgress> {
-        return progressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
+    fun getAllStudentProgress(studentId: String, classId: String? = null): List<StudentProgress> {
+        return if (classId != null) {
+            progressRepository.findByStudentIdAndClassIdOrderByLastActivityAtDesc(studentId, classId)
+        } else {
+            progressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
+        }
     }
     
     /**

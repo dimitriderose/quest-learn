@@ -13,6 +13,9 @@ interface StudentProgressRepository : JpaRepository<StudentProgress, String> {
     
     // Find all progress for a student
     fun findByStudentIdOrderByLastActivityAtDesc(studentId: String): List<StudentProgress>
+
+    // Find all progress for a student in a specific class
+    fun findByStudentIdAndClassIdOrderByLastActivityAtDesc(studentId: String, classId: String): List<StudentProgress>
     
     // Find all progress for a curriculum
     fun findByCurriculumId(curriculumId: String): List<StudentProgress>

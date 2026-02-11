@@ -121,7 +121,7 @@ export default function StudentDashboard() {
 
         // Fetch all student progress
         if (user?.uid) {
-          const progressData = await progressApi.getAllProgress(user.uid);
+          const progressData = await progressApi.getAllProgress(user.uid, user.classId);
           console.log('📊 Dashboard loaded progress data:', progressData);
           console.log('👤 Student object will be:', {
             totalXP: progressData[0]?.totalXP,
