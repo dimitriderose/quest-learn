@@ -30,10 +30,11 @@ class ProgressController(
     
     @GetMapping("/student/{studentId}")
     fun getAllProgress(
-        @PathVariable studentId: String
+        @PathVariable studentId: String,
+        @RequestParam(required = false) classId: String?
     ): ApiResponse<List<StudentProgress>> {
         return try {
-            val progress = progressService.getAllStudentProgress(studentId)
+            val progress = progressService.getAllStudentProgress(studentId, classId)
             success(progress)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch progress")
@@ -49,18 +50,6 @@ class ProgressController(
             success(progress)
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch class progress")
-        }
-    }
-
-    @GetMapping("/class/{classId}/report")
-    fun getClassReport(
-        @PathVariable classId: String
-    ): ApiResponse<ClassReportResponse> {
-        return try {
-            val report = progressService.getClassReport(classId)
-            success(report)
-        } catch (e: Exception) {
-            error("REPORT_FAILED", e.message ?: "Failed to generate class report")
         }
     }
     
