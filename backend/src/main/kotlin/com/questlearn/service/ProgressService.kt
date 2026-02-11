@@ -361,7 +361,9 @@ class ProgressService(
             )
         }.sortedByDescending { it.classAverageScore }
 
+        // Only include students who have completed at least one quest in the class average
         val classAverage = students
+            .filter { it.classCompletedQuests > 0 }
             .map { it.classAverageScore }
             .takeIf { it.isNotEmpty() }
             ?.average() ?: 0.0

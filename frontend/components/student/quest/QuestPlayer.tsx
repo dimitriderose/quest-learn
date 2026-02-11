@@ -8,15 +8,17 @@ interface QuestPlayerProps {
   studentId: string;
   curriculumId: string;
   classId: string;
+  questTitle?: string;
   onComplete?: () => void;
 }
 
-export function QuestPlayer({ 
-  questId, 
-  studentId, 
+export function QuestPlayer({
+  questId,
+  studentId,
   curriculumId,
   classId,
-  onComplete 
+  questTitle: questTitleProp,
+  onComplete
 }: QuestPlayerProps) {
   const [questUrl, setQuestUrl] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
@@ -60,7 +62,7 @@ export function QuestPlayer({
           curriculumId,
           questId,
           classId,
-          questTitle: messageData.questTitle || 'Quest',
+          questTitle: questTitleProp || messageData.questTitle || 'Quest',
           questNumber: messageData.questNumber || 1,
           score: messageData.score || 0,
           attempts,
