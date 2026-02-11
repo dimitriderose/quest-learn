@@ -10,6 +10,7 @@ interface User {
   displayName: string;
   photoURL: string | null;
   role: 'TEACHER' | 'STUDENT' | 'ADMIN';
+  classId?: string;
 }
 
 interface AuthContextType {

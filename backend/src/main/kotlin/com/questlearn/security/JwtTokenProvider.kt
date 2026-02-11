@@ -31,17 +31,24 @@ class JwtTokenProvider(
     
     /**
      * Generate JWT token for a user
+     * @param classId optional class ID for students who logged in with a class code
      */
-    fun generateToken(userId: String, email: String, role: String): String {
+    fun generateToken(userId: String, email: String, role: String, classId: String? = null): String {
         val now = Date()
         val expiryDate = Date(now.time + jwtExpirationMs)
-        
-        return Jwts.builder()
+
+        val builder = Jwts.builder()
             .subject(userId)
             .claim("email", email)
             .claim("role", role)
             .issuedAt(now)
             .expiration(expiryDate)
+
+        if (classId != null) {
+            builder.claim("classId", classId)
+        }
+
+        return builder
             .signWith(key, Jwts.SIG.HS512)
             .compact()
     }
@@ -81,8 +88,21 @@ class JwtTokenProvider(
             .build()
             .parseSignedClaims(token)
             .payload
-            
+
         return claims["role"] as? String
+    }
+
+    /**
+     * Extract classId from JWT token (for students who logged in with a class code)
+     */
+    fun getClassIdFromToken(token: String): String? {
+        val claims = Jwts.parser()
+            .verifyWith(key)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+
+        return claims["classId"] as? String
     }
     
     /**
