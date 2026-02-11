@@ -22,6 +22,7 @@ export interface StudentProgress {
   completedQuests: number;
   totalQuests: number;
   totalXP: number;
+  currentLevel: number;
   startedAt: string;
   lastActivityAt: string;
   updatedAt: string;
@@ -70,6 +71,19 @@ export interface QuestCompletionRequest {
   challengeResults?: ChallengeResult[];
 }
 
+export interface DashboardStats {
+  classAverageScore: number;
+  classTotalXP: number;
+  classLevel: number;
+  classCurrentXP: number;
+  classXPToNextLevel: number;
+  overallAverageScore: number;
+  overallTotalXP: number;
+  overallLevel: number;
+  overallCurrentXP: number;
+  overallXPToNextLevel: number;
+}
+
 // Backend wraps responses in ApiResponse<T>
 interface ApiResponse<T> {
   success: boolean;
@@ -106,6 +120,20 @@ export const progressApi = {
     } catch (error) {
       console.error('Failed to fetch all progress:', error);
       return [];
+    }
+  },
+
+  async getDashboardStats(studentId: string, classId?: string): Promise<DashboardStats | null> {
+    try {
+      const params = classId ? { classId } : undefined;
+      const response = await apiClient.get<ApiResponse<DashboardStats>>(
+        `/api/v1/progress/student/${studentId}/dashboard-stats`,
+        { params }
+      );
+      return response.data.data;
+    } catch (error) {
+      console.error('Failed to fetch dashboard stats:', error);
+      return null;
     }
   },
 

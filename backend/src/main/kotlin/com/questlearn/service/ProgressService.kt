@@ -1,5 +1,6 @@
 package com.questlearn.service
 
+import com.questlearn.dto.DashboardStatsResponse
 import com.questlearn.model.*
 import com.questlearn.repository.StudentProgressRepository
 import com.questlearn.repository.StudentActionRepository
@@ -133,6 +134,29 @@ class ProgressService(
     }
     
     /**
+     * Calculate level from total XP.
+     * Threshold: level L requires totalXP >= (L+1)*100
+     * e.g., Level 2 at 200 XP, Level 3 at 300 XP, etc.
+     */
+    private fun calculateLevel(totalXP: Int): Int {
+        var level = 1
+        while (totalXP >= (level + 1) * 100) {
+            level++
+        }
+        return level
+    }
+
+    /**
+     * Calculate XP within the current level (for progress bar).
+     * Returns pair of (currentXP, xpToNextLevel).
+     */
+    private fun calculateXPWithinLevel(totalXP: Int, level: Int): Pair<Int, Int> {
+        val levelFloor = if (level <= 1) 0 else level * 100
+        val levelCeiling = (level + 1) * 100
+        return Pair(totalXP - levelFloor, levelCeiling - levelFloor)
+    }
+
+    /**
      * Calculate average score for a student in a curriculum
      * Uses completed quests only, not skipped challenges
      */
@@ -192,12 +216,14 @@ class ProgressService(
         
         @Suppress("UNCHECKED_CAST")
         val questCompletionsList = updates["questCompletions"] as? List<QuestCompletion> ?: existing.questCompletions
-        
+        val newTotalXP = updates["totalXP"] as? Int ?: existing.totalXP
+
         val updated = existing.copy(
             progressPercentage = updates["progressPercentage"] as? Double ?: existing.progressPercentage,
             completedQuests = updates["completedQuests"] as? Int ?: existing.completedQuests,
             status = updates["status"] as? ProgressStatus ?: existing.status,
-            totalXP = updates["totalXP"] as? Int ?: existing.totalXP,
+            totalXP = newTotalXP,
+            currentLevel = calculateLevel(newTotalXP),
             questCompletions = questCompletionsList,
             lastActivityAt = now,
             updatedAt = now
@@ -231,13 +257,17 @@ class ProgressService(
         
         // Calculate updated metrics
         val updatedMetrics = calculateMetrics(updatedCompletions)
-        
+
+        val newTotalXP = progress.totalXP + questCompletion.score
+        val newLevel = calculateLevel(newTotalXP)
+
         val updated = progress.copy(
             questCompletions = updatedCompletions,
             completedQuests = completedCount,
             progressPercentage = progressPercentage,
             status = newStatus,
-            totalXP = progress.totalXP + questCompletion.score,
+            totalXP = newTotalXP,
+            currentLevel = newLevel,
             metrics = updatedMetrics,
             lastActivityAt = Instant.now(),
             updatedAt = Instant.now()
@@ -279,6 +309,64 @@ class ProgressService(
         )
     }
     
+    /**
+     * Calculate aggregate average score across multiple progress records.
+     * Uses best score per quest, then averages across all quests.
+     */
+    private fun calculateAggregateAverageScore(progressList: List<StudentProgress>): Int {
+        val bestScores = mutableMapOf<String, Int>()
+        progressList.forEach { progress ->
+            progress.questCompletions.forEach { completion ->
+                val currentBest = bestScores[completion.questId] ?: 0
+                if (completion.score > currentBest) {
+                    bestScores[completion.questId] = completion.score
+                }
+            }
+        }
+        if (bestScores.isEmpty()) return 0
+        return Math.round(bestScores.values.average()).toInt()
+    }
+
+    /**
+     * Get dashboard stats for a student: class-level and overall aggregates.
+     */
+    fun getDashboardStats(studentId: String, classId: String?): DashboardStatsResponse {
+        // Class-filtered progress
+        val classProgress = if (classId != null) {
+            progressRepository.findByStudentIdAndClassIdOrderByLastActivityAtDesc(studentId, classId)
+        } else {
+            progressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
+        }
+
+        // Overall progress (all classes)
+        val overallProgress = progressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
+
+        // Class aggregates
+        val classTotalXP = classProgress.sumOf { it.totalXP }
+        val classLevel = calculateLevel(classTotalXP)
+        val (classCurrentXP, classXPToNextLevel) = calculateXPWithinLevel(classTotalXP, classLevel)
+        val classAverageScore = calculateAggregateAverageScore(classProgress)
+
+        // Overall aggregates
+        val overallTotalXP = overallProgress.sumOf { it.totalXP }
+        val overallLevel = calculateLevel(overallTotalXP)
+        val (overallCurrentXP, overallXPToNextLevel) = calculateXPWithinLevel(overallTotalXP, overallLevel)
+        val overallAverageScore = calculateAggregateAverageScore(overallProgress)
+
+        return DashboardStatsResponse(
+            classAverageScore = classAverageScore,
+            classTotalXP = classTotalXP,
+            classLevel = classLevel,
+            classCurrentXP = classCurrentXP,
+            classXPToNextLevel = classXPToNextLevel,
+            overallAverageScore = overallAverageScore,
+            overallTotalXP = overallTotalXP,
+            overallLevel = overallLevel,
+            overallCurrentXP = overallCurrentXP,
+            overallXPToNextLevel = overallXPToNextLevel
+        )
+    }
+
     /**
      * Log student action
      */

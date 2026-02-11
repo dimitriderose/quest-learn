@@ -6,6 +6,7 @@ import com.questlearn.model.QuestCompletion
 import com.questlearn.model.ChallengeResult
 import com.questlearn.service.ProgressService
 import com.questlearn.service.StudentStatsResponse
+import com.questlearn.dto.DashboardStatsResponse
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
 
@@ -66,6 +67,19 @@ class ProgressController(
         }
     }
     
+    @GetMapping("/student/{studentId}/dashboard-stats")
+    fun getDashboardStats(
+        @PathVariable studentId: String,
+        @RequestParam(required = false) classId: String?
+    ): ApiResponse<DashboardStatsResponse> {
+        return try {
+            val stats = progressService.getDashboardStats(studentId, classId)
+            success(stats)
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch dashboard stats")
+        }
+    }
+
     @PostMapping("/initialize")
     fun initializeProgress(
         @RequestBody request: InitializeProgressRequest
