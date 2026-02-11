@@ -1,5 +1,7 @@
 package com.questlearn.service
 
+import com.questlearn.dto.ClassReportResponse
+import com.questlearn.dto.StudentReportEntry
 import com.questlearn.model.*
 import com.questlearn.repository.StudentProgressRepository
 import com.questlearn.repository.StudentActionRepository
@@ -275,6 +277,106 @@ class ProgressService(
         )
     }
     
+    /**
+     * Aggregate average score across multiple progress records.
+     * Each progress record (curriculum) is weighted equally.
+     * Within each, takes best score per quest then averages.
+     */
+    private fun aggregateAverageScore(progressList: List<StudentProgress>): Double {
+        val curriculumAverages = progressList
+            .filter { it.questCompletions.isNotEmpty() }
+            .map { progress ->
+                val bestScores = mutableMapOf<String, Int>()
+                progress.questCompletions.forEach { completion ->
+                    val current = bestScores[completion.questId] ?: 0
+                    if (completion.score > current) {
+                        bestScores[completion.questId] = completion.score
+                    }
+                }
+                bestScores.values.average()
+            }
+
+        return if (curriculumAverages.isNotEmpty()) curriculumAverages.average() else 0.0
+    }
+
+    /**
+     * Count unique completed quests across multiple progress records.
+     */
+    private fun countCompletedQuests(progressList: List<StudentProgress>): Int {
+        return progressList.sumOf { progress ->
+            progress.questCompletions.map { it.questId }.distinct().size
+        }
+    }
+
+    /**
+     * Generate a class report with per-student class-scoped and overall metrics.
+     * Uses only 2 DB queries for progress data (class-scoped + batch all-student).
+     */
+    @Transactional(readOnly = true)
+    fun getClassReport(classId: String): ClassReportResponse {
+        val classEntity = classRepository.findById(classId)
+            .orElseThrow { IllegalArgumentException("Class not found: $classId") }
+
+        val studentIds = classEntity.studentIds
+        if (studentIds.isEmpty()) {
+            return ClassReportResponse(
+                classId = classId,
+                className = classEntity.name,
+                classAverage = 0.0,
+                totalStudents = 0,
+                totalCompletedQuests = 0,
+                totalXP = 0L,
+                students = emptyList()
+            )
+        }
+
+        // 2 DB queries for all progress data
+        val classProgress = progressRepository.findByClassIdOrderByLastActivityAtDesc(classId)
+        val allProgress = progressRepository.findByStudentIdIn(studentIds)
+
+        val classProgressByStudent = classProgress.groupBy { it.studentId }
+        val allProgressByStudent = allProgress.groupBy { it.studentId }
+
+        // Fetch user details for names/emails
+        val users = userRepository.findAllById(studentIds).associateBy { it.uid }
+
+        val students = studentIds.map { studentId ->
+            val user = users[studentId]
+            val studentClassProgress = classProgressByStudent[studentId] ?: emptyList()
+            val studentAllProgress = allProgressByStudent[studentId] ?: emptyList()
+
+            val classQuestCompletions = studentClassProgress.flatMap { it.questCompletions }
+
+            StudentReportEntry(
+                studentId = studentId,
+                studentName = user?.displayName ?: "Unknown Student",
+                studentEmail = user?.email ?: "",
+                classAverageScore = Math.round(aggregateAverageScore(studentClassProgress)).toDouble(),
+                classCompletedQuests = countCompletedQuests(studentClassProgress),
+                classTotalXP = studentClassProgress.sumOf { it.totalXP },
+                overallAverageScore = Math.round(aggregateAverageScore(studentAllProgress)).toDouble(),
+                overallCompletedQuests = countCompletedQuests(studentAllProgress),
+                overallTotalXP = studentAllProgress.sumOf { it.totalXP },
+                classQuestCompletions = classQuestCompletions
+            )
+        }.sortedByDescending { it.classAverageScore }
+
+        val classAverage = students
+            .map { it.classAverageScore }
+            .takeIf { it.isNotEmpty() }
+            ?.average() ?: 0.0
+
+        return ClassReportResponse(
+            classId = classId,
+            className = classEntity.name,
+            classAverage = Math.round(classAverage).toDouble(),
+            totalStudents = studentIds.size,
+            totalCompletedQuests = students.sumOf { it.classCompletedQuests },
+            totalXP = students.sumOf { it.classTotalXP.toLong() },
+            students = students
+        )
+    }
+
     /**
      * Log student action
      */

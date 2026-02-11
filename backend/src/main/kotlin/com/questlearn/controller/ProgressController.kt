@@ -51,6 +51,18 @@ class ProgressController(
             error("FETCH_FAILED", e.message ?: "Failed to fetch class progress")
         }
     }
+
+    @GetMapping("/class/{classId}/report")
+    fun getClassReport(
+        @PathVariable classId: String
+    ): ApiResponse<ClassReportResponse> {
+        return try {
+            val report = progressService.getClassReport(classId)
+            success(report)
+        } catch (e: Exception) {
+            error("REPORT_FAILED", e.message ?: "Failed to generate class report")
+        }
+    }
     
     @GetMapping("/student/{studentId}/curriculum/{curriculumId}/stats")
     fun getStudentStats(
