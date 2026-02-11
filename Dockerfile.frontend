@@ -16,6 +16,10 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy frontend source
 COPY frontend/ ./
 
+# Accept NEXT_PUBLIC env vars as build args (inlined at build time by Next.js)
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
 # Build Next.js app
 RUN npm run build
 

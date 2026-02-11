@@ -5,7 +5,10 @@ export async function GET(
   { params }: { params: { questId: string } }
 ) {
   const questId = params.questId;
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (!apiUrl) {
+    throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is not set.');
+  }
   
   try {
     // Get the auth token from the request cookies
