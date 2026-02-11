@@ -202,10 +202,9 @@ export default function TeacherReportsPage() {
 
   const selectedClassData = classes.find(c => c.id === selectedClass);
   
-  // Calculate class-wide statistics (only students who completed at least one quest)
-  const studentsWithQuests = studentsWithProgress.filter(s => s.completedQuests > 0);
-  const classAverage = studentsWithQuests.length > 0
-    ? Math.round(studentsWithQuests.reduce((sum, s) => sum + s.averageScore, 0) / studentsWithQuests.length)
+  // Calculate class-wide statistics
+  const classAverage = studentsWithProgress.length > 0
+    ? Math.round(studentsWithProgress.reduce((sum, s) => sum + s.averageScore, 0) / studentsWithProgress.length)
     : 0;
   const totalCompletedQuests = studentsWithProgress.reduce((sum, s) => sum + s.completedQuests, 0);
   const totalXP = studentsWithProgress.reduce((sum, s) => sum + s.totalXP, 0);
