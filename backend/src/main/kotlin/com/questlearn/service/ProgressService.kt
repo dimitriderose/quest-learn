@@ -340,12 +340,17 @@ class ProgressService(
         // Fetch user details for names/emails
         val users = userRepository.findAllById(studentIds).associateBy { it.uid }
 
+        // Batch-fetch real quest titles so reports show actual names
+        val allQuestIds = classProgress.flatMap { p -> p.questCompletions.map { it.questId } }.distinct()
+        val questTitles = questRepository.findAllById(allQuestIds).associate { it.id to it.title }
+
         val students = studentIds.map { studentId ->
             val user = users[studentId]
             val studentClassProgress = classProgressByStudent[studentId] ?: emptyList()
             val studentAllProgress = allProgressByStudent[studentId] ?: emptyList()
 
             val classQuestCompletions = studentClassProgress.flatMap { it.questCompletions }
+                .map { c -> c.copy(questTitle = questTitles[c.questId] ?: c.questTitle) }
 
             StudentReportEntry(
                 studentId = studentId,
@@ -361,7 +366,9 @@ class ProgressService(
             )
         }.sortedByDescending { it.classAverageScore }
 
+        // Only include students who have completed at least one quest in the class average
         val classAverage = students
+            .filter { it.classCompletedQuests > 0 }
             .map { it.classAverageScore }
             .takeIf { it.isNotEmpty() }
             ?.average() ?: 0.0

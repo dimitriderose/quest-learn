@@ -60,11 +60,12 @@ export default function QuestPage() {
 
   return (
     <div className="h-screen w-full">
-      <QuestPlayer 
+      <QuestPlayer
         questId={questId}
         studentId={studentId}
         curriculumId={questId}
         classId={classId}
+        questTitle={quest.title}
         onComplete={handleQuestComplete}
       />
     </div>

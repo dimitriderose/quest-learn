@@ -375,10 +375,12 @@ export default function TeacherReportsPage() {
                                         </tr>
                                       </thead>
                                       <tbody>
-                                        {questCompletions.map(quest => (
+                                        {questCompletions.map((quest, idx) => (
                                           <tr key={quest.questId} className="border-b border-gray-100 dark:border-gray-700/50">
                                             <td className="py-2 px-3 text-gray-900 dark:text-white">
-                                              {quest.questTitle}
+                                              {quest.questTitle && quest.questTitle !== 'Quest'
+                                                ? quest.questTitle
+                                                : `Quest ${idx + 1}`}
                                             </td>
                                             <td className="py-2 px-3 text-center">
                                               <span className={`${getScoreBadgeColor(quest.score)} text-white px-2 py-0.5 rounded-full text-xs font-bold`}>
