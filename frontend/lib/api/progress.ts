@@ -70,29 +70,6 @@ export interface QuestCompletionRequest {
   challengeResults?: ChallengeResult[];
 }
 
-export interface StudentReportEntry {
-  studentId: string;
-  studentName: string;
-  studentEmail: string;
-  classAverageScore: number;
-  classCompletedQuests: number;
-  classTotalXP: number;
-  overallAverageScore: number;
-  overallCompletedQuests: number;
-  overallTotalXP: number;
-  classQuestCompletions: QuestCompletion[];
-}
-
-export interface ClassReportResponse {
-  classId: string;
-  className: string;
-  classAverage: number;
-  totalStudents: number;
-  totalCompletedQuests: number;
-  totalXP: number;
-  students: StudentReportEntry[];
-}
-
 // Backend wraps responses in ApiResponse<T>
 interface ApiResponse<T> {
   success: boolean;
@@ -127,18 +104,6 @@ export const progressApi = {
     } catch (error) {
       console.error('Failed to fetch all progress:', error);
       return [];
-    }
-  },
-
-  async getClassReport(classId: string): Promise<ClassReportResponse | null> {
-    try {
-      const response = await apiClient.get<ApiResponse<ClassReportResponse>>(
-        `/api/v1/progress/class/${classId}/report`
-      );
-      return response.data.data;
-    } catch (error) {
-      console.error('Failed to fetch class report:', error);
-      return null;
     }
   },
 
