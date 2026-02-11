@@ -156,10 +156,7 @@ STANDARDS_API_URL=https://api.commonstandardsproject.com
 
 **Frontend** (`frontend/.env.local`):
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8080/api/v1
-NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8081
 ```
 
 #### 3. Start the backend

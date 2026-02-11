@@ -4,7 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://questlearn-production.up.railway.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+if (!API_BASE_URL) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is not set.');
+}
 
 function AuthCallbackContent() {
   const router = useRouter();
