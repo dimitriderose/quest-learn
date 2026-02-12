@@ -55,6 +55,7 @@ function convertToProjectFormat(
       draftStatus: isCompleted ? undefined : "In progress",
       deadline: quest.dueDate || undefined,
       playUrl: quest.playUrl,
+      classId: quest.classId,
     };
   });
 }

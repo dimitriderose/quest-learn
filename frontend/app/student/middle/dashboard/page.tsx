@@ -55,6 +55,7 @@ function convertToChallengeFormat(
       progress: isCompleted ? 100 : undefined,
       currentMastery: undefined,
       playUrl: quest.playUrl,
+      classId: quest.classId,
     };
   });
 }
