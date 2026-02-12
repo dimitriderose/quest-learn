@@ -14,6 +14,7 @@ interface AuthResponse {
     photoURL: string | null;
     role: 'TEACHER' | 'STUDENT' | 'ADMIN';
     classId?: string;
+    gradeLevel?: number;
   };
 }
 
@@ -24,6 +25,7 @@ interface User {
   photoURL: string | null;
   role: 'TEACHER' | 'STUDENT' | 'ADMIN';
   classId?: string;
+  gradeLevel?: number;
 }
 
 export const authApi = {

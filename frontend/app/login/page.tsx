@@ -2,23 +2,23 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { useAuth, getStudentDashboardPath } from "@/lib/contexts/AuthContext";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isTeacher, isStudent } = useAuth();
+  const { isAuthenticated, isTeacher, isStudent, user } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated) {
       if (isTeacher) {
         router.push("/teacher/dashboard");
       } else if (isStudent) {
-        router.push("/student/dashboard");
+        router.push(getStudentDashboardPath(user?.gradeLevel));
       }
     }
-  }, [isAuthenticated, isTeacher, isStudent, router]);
+  }, [isAuthenticated, isTeacher, isStudent, user?.gradeLevel, router]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 flex items-center justify-center p-4">

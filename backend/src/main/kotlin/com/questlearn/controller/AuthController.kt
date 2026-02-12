@@ -66,7 +66,8 @@ class AuthController(
             classId = classEntity.id
         )
 
-        // Return token and user info (include classId for frontend)
+        // Return token and user info (include classId and gradeLevel for frontend)
+        val gradeLevelInt = classEntity.gradeLevel.toIntOrNull()
         val response = AuthResponse(
             token = token,
             user = UserInfo(
@@ -75,7 +76,8 @@ class AuthController(
                 displayName = student.displayName,
                 photoURL = student.photoURL,
                 role = student.role.name,
-                classId = classEntity.id
+                classId = classEntity.id,
+                gradeLevel = gradeLevelInt
             )
         )
         

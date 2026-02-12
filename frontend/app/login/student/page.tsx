@@ -2,14 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { useAuth, getStudentDashboardPath } from "@/lib/contexts/AuthContext";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
 
 export default function StudentLoginPage() {
   const router = useRouter();
-  const { isAuthenticated, isStudent, login } = useAuth();
+  const { isAuthenticated, isStudent, login, user } = useAuth();
   const [classCode, setClassCode] = useState("");
   const [studentName, setStudentName] = useState("");
   const [error, setError] = useState("");
@@ -17,9 +17,9 @@ export default function StudentLoginPage() {
 
   useEffect(() => {
     if (isAuthenticated && isStudent) {
-      router.push("/student/dashboard");
+      router.push(getStudentDashboardPath(user?.gradeLevel));
     }
-  }, [isAuthenticated, isStudent, router]);
+  }, [isAuthenticated, isStudent, user?.gradeLevel, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

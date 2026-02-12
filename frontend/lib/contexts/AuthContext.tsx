@@ -11,6 +11,14 @@ interface User {
   photoURL: string | null;
   role: 'TEACHER' | 'STUDENT' | 'ADMIN';
   classId?: string;
+  gradeLevel?: number;
+}
+
+export function getStudentDashboardPath(gradeLevel?: number): string {
+  if (gradeLevel == null) return '/student/dashboard';
+  if (gradeLevel <= 5) return '/student/elementary/dashboard';
+  if (gradeLevel <= 8) return '/student/middle/dashboard';
+  return '/student/high/dashboard';
 }
 
 interface AuthContextType {
@@ -68,9 +76,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
 
-      // Redirect based on role
+      // Redirect based on role and grade level
       if (response.user.role === 'STUDENT') {
-        router.push('/student/dashboard');
+        router.push(getStudentDashboardPath(response.user.gradeLevel));
       } else {
         router.push('/teacher/dashboard');
       }
