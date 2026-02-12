@@ -8,10 +8,23 @@ import Link from "next/link";
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-landing-orange via-landing-blue to-landing-green dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      <ThemeToggle />
-      
+      {/* Navigation Bar */}
+      <nav className="max-w-6xl mx-auto px-8 py-6 flex items-center justify-between">
+        <Link href="/" className="font-fredoka text-2xl font-bold text-white">
+          QuestLearn
+        </Link>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <Link href="/login">
+            <Button variant="secondary" className="text-sm px-5 py-2">
+              Log In
+            </Button>
+          </Link>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <section className="max-w-6xl mx-auto px-8 py-24">
+      <section className="max-w-6xl mx-auto px-8 py-16">
         <div className="text-center space-y-8">
           <h1 className="font-merriweather text-7xl font-black text-white leading-tight">
             Transform Learning Into
