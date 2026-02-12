@@ -52,7 +52,7 @@ export function DashboardHeader() {
           </div>
 
           <div className="flex items-center gap-4">
-            <ThemeToggle />
+            <ThemeToggle variant="professional" />
             
             {user && (
               <div className="flex items-center gap-3">

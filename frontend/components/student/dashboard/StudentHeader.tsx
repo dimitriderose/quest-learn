@@ -48,7 +48,7 @@ export function StudentHeader({ student }: StudentHeaderProps) {
                 </div>
               </div>
               
-              <ThemeToggle />
+              <ThemeToggle variant="playful" />
               
               <button 
                 onClick={() => setShowProfileModal(true)}

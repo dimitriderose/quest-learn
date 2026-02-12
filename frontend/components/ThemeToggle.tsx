@@ -11,16 +11,19 @@ export function ThemeToggle({ variant = "default" }: ThemeToggleProps) {
   const { theme, toggleTheme } = useTheme();
 
   const styles = {
-    default: "fixed top-6 right-6 w-12 h-12 rounded-full border-2 border-landing-orange",
-    playful: "fixed top-8 right-8 w-15 h-15 rounded-full border-3 border-student-purple",
-    professional: "fixed top-6 right-6 w-11 h-11 rounded-full border border-teacher-border dark:border-teacher-border-dark",
+    default:
+      "w-10 h-10 rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800",
+    playful:
+      "w-10 h-10 rounded-full border-2 border-white/40 bg-white/20 hover:bg-white/30",
+    professional:
+      "w-10 h-10 rounded-full border border-teacher-border dark:border-teacher-border-dark bg-white dark:bg-gray-800",
   };
 
   return (
     <button
       onClick={toggleTheme}
-      className={`${styles[variant]} bg-white dark:bg-gray-800 flex items-center justify-center 
-        shadow-lg hover:scale-110 transition-transform z-50`}
+      className={`${styles[variant]} flex items-center justify-center
+        shadow-sm hover:scale-110 transition-transform`}
       aria-label="Toggle dark mode"
     >
       {theme === "light" ? (
