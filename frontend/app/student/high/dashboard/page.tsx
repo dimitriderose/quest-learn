@@ -137,10 +137,10 @@ export default function HighSchoolDashboard() {
 
         <div>
           <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Journalism Academy Projects
+            Your Projects
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Build your portfolio through real-world reporting
+            Complete projects to build your academic portfolio
           </p>
 
           {loading ? (

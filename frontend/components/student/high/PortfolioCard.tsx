@@ -27,7 +27,7 @@ export function PortfolioCard({ student, averageGrade, totalXP, completedQuests,
             Your Portfolio
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Building professional journalism credentials
+            Track your academic progress
           </p>
         </div>
         <Button variant="primary">View Portfolio</Button>
@@ -78,7 +78,7 @@ export function PortfolioCard({ student, averageGrade, totalXP, completedQuests,
             <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {remaining > 0
                 ? `Complete ${remaining} more portfolio piece${remaining !== 1 ? "s" : ""} to finish all assignments`
-                : "All assignments completed! Great journalism work!"}
+                : "All assignments completed! Great work!"}
             </div>
           </div>
         </div>
