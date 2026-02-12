@@ -10,9 +10,12 @@ interface Student {
 
 interface SkillProgressCardProps {
   student: Student;
+  mastery: number;
+  accuracy: number;
+  completedQuests: number;
 }
 
-export function SkillProgressCard({ student }: SkillProgressCardProps) {
+export function SkillProgressCard({ student, mastery, accuracy, completedQuests }: SkillProgressCardProps) {
   const progress = (student.currentXP / student.xpToNextLevel) * 100;
   const xpNeeded = student.xpToNextLevel - student.currentXP;
 
@@ -54,15 +57,15 @@ export function SkillProgressCard({ student }: SkillProgressCardProps) {
         <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Mastery</div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">87%</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{mastery}%</div>
           </div>
           <div>
             <div className="text-sm text-gray-600 dark:text-gray-400">Accuracy</div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">92%</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{accuracy}%</div>
           </div>
           <div>
-            <div className="text-sm text-gray-600 dark:text-gray-400">Streak</div>
-            <div className="text-2xl font-bold text-gray-900 dark:text-white">5</div>
+            <div className="text-sm text-gray-600 dark:text-gray-400">Quests</div>
+            <div className="text-2xl font-bold text-gray-900 dark:text-white">{completedQuests}</div>
           </div>
         </div>
       </div>

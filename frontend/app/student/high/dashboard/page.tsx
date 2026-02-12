@@ -1,105 +1,165 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import { HighSchoolHeader } from "@/components/student/high/HighSchoolHeader";
 import { PortfolioCard } from "@/components/student/high/PortfolioCard";
 import { ProjectGrid } from "@/components/student/high/ProjectGrid";
 import { ImpactMetrics } from "@/components/student/high/ImpactMetrics";
+import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
+import { progressApi, StudentProgress, DashboardStats } from "@/lib/api/progress";
 
-// Mock student data
-const mockStudent = {
-  name: "Taylor",
-  role: "Investigative Journalist",
-  portfolioPieces: 4,
-  articlesPublished: 3,
-  avgReadership: 247,
-  avatar: "📰",
-};
+function scoreToGrade(score: number): string {
+  if (score >= 93) return "A";
+  if (score >= 90) return "A-";
+  if (score >= 87) return "B+";
+  if (score >= 83) return "B";
+  if (score >= 80) return "B-";
+  if (score >= 77) return "C+";
+  if (score >= 73) return "C";
+  if (score >= 70) return "C-";
+  if (score >= 67) return "D+";
+  if (score >= 60) return "D";
+  return "F";
+}
 
-const mockProjects = [
-  {
-    id: "1",
-    number: 1,
-    title: "Journalism Fundamentals",
-    description: "Master the 5 W's and inverted pyramid structure",
-    type: "foundation",
-    status: "completed" as const,
-    grade: "A-",
-    feedback: "Strong lead writing, excellent source attribution",
-    artifactCount: 1,
-  },
-  {
-    id: "2",
-    number: 2,
-    title: "Interview Techniques",
-    description: "Conduct effective interviews and verify sources",
-    type: "skill",
-    status: "completed" as const,
-    grade: "A",
-    feedback: "Exceptional questioning strategy",
-    artifactCount: 2,
-  },
-  {
-    id: "3",
-    number: 3,
-    title: "Investigative Reporting",
-    description: "Uncover the truth behind local water quality issues",
-    type: "investigation",
-    status: "in-progress" as const,
-    progress: 70,
-    draftStatus: "Second revision",
-    deadline: "3 days",
-  },
-  {
-    id: "4",
-    number: 4,
-    title: "Data Journalism",
-    description: "Analyze statistical data and create visualizations",
-    type: "analysis",
-    status: "locked" as const,
-  },
-  {
-    id: "5",
-    number: 5,
-    title: "Editorial Writing",
-    description: "Craft persuasive opinion pieces backed by evidence",
-    type: "opinion",
-    status: "locked" as const,
-  },
-  {
-    id: "6",
-    number: 6,
-    title: "Capstone Investigation",
-    description: "Original investigative piece for publication",
-    type: "capstone",
-    status: "locked" as const,
-    isFinal: true,
-  },
-];
+function convertToProjectFormat(
+  quests: StudentQuestDto[],
+  progressData: StudentProgress[]
+) {
+  const completionMap = new Map<string, { score: number; questTitle: string }>();
+  for (const prog of progressData) {
+    for (const qc of prog.questCompletions) {
+      completionMap.set(qc.questId, {
+        score: qc.score,
+        questTitle: qc.questTitle,
+      });
+    }
+  }
+
+  return quests.map((quest, index) => {
+    const completion = completionMap.get(quest.questId);
+    const isCompleted = !!completion;
+
+    return {
+      id: quest.questId,
+      number: index + 1,
+      title: quest.title,
+      description: quest.description,
+      type: quest.subject.toLowerCase().replace(/\s+/g, "-"),
+      status: isCompleted ? ("completed" as const) : ("in-progress" as const),
+      grade: completion ? scoreToGrade(completion.score) : undefined,
+      feedback: undefined,
+      artifactCount: isCompleted ? 1 : undefined,
+      progress: isCompleted ? 100 : undefined,
+      draftStatus: isCompleted ? undefined : "In progress",
+      deadline: quest.dueDate || undefined,
+      playUrl: quest.playUrl,
+      classId: quest.classId,
+    };
+  });
+}
 
 export default function HighSchoolDashboard() {
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<any[]>([]);
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const completedCount = projects.filter((p) => p.status === "completed").length;
+
+  const student = {
+    name: user?.displayName || user?.email?.split("@")[0] || "Student",
+    role: "Student Researcher",
+    portfolioPieces: completedCount,
+    articlesPublished: completedCount,
+    avatar: "📰",
+  };
+
+  const averageGrade = dashboardStats && dashboardStats.classAverageScore > 0
+    ? scoreToGrade(dashboardStats.classAverageScore)
+    : "--";
+
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const questsPromise = getMyQuests();
+        const progressPromise = user?.uid
+          ? progressApi.getAllProgress(user.uid, user.classId)
+          : Promise.resolve([]);
+        const statsPromise = user?.uid
+          ? progressApi.getDashboardStats(user.uid, user.classId)
+          : Promise.resolve(null);
+
+        const [assignedQuests, progressData, stats] = await Promise.all([
+          questsPromise,
+          progressPromise,
+          statsPromise,
+        ]);
+
+        setProjects(convertToProjectFormat(assignedQuests, progressData));
+        setDashboardStats(stats);
+      } catch (error) {
+        console.error("Error loading data:", error);
+        setProjects([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [user?.uid]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <HighSchoolHeader student={mockStudent} />
-      
+      <HighSchoolHeader student={student} />
+
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           <div className="lg:col-span-3">
-            <PortfolioCard student={mockStudent} />
+            <PortfolioCard
+              student={student}
+              averageGrade={averageGrade}
+              totalXP={dashboardStats?.classTotalXP ?? 0}
+              completedQuests={completedCount}
+              totalQuests={projects.length}
+            />
           </div>
           <div>
-            <ImpactMetrics student={mockStudent} />
+            <ImpactMetrics
+              totalXP={dashboardStats?.classTotalXP ?? 0}
+              averageScore={dashboardStats?.classAverageScore ?? 0}
+              completedQuests={completedCount}
+              totalQuests={projects.length}
+            />
           </div>
         </div>
 
         <div>
           <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Journalism Academy Projects
+            Your Projects
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Build your portfolio through real-world reporting
+            Complete projects to build your academic portfolio
           </p>
-          
-          <ProjectGrid projects={mockProjects} />
+
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600 dark:text-gray-400">Loading your projects...</p>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700">
+              <p className="text-xl text-gray-900 dark:text-white mb-2">
+                No projects assigned yet!
+              </p>
+              <p className="text-gray-600 dark:text-gray-400">
+                Ask your teacher to assign you some projects.
+              </p>
+            </div>
+          ) : (
+            <ProjectGrid projects={projects} />
+          )}
         </div>
       </main>
     </div>

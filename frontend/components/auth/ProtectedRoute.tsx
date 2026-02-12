@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { useAuth, getStudentDashboardPath } from "@/lib/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,7 +22,7 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
         if (user?.role === "TEACHER") {
           router.push("/teacher/dashboard");
         } else if (user?.role === "STUDENT") {
-          router.push("/student/dashboard");
+          router.push(getStudentDashboardPath(user?.gradeLevel));
         } else {
           router.push("/login");
         }

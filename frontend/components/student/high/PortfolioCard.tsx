@@ -10,9 +10,15 @@ interface Student {
 
 interface PortfolioCardProps {
   student: Student;
+  averageGrade: string;
+  totalXP: number;
+  completedQuests: number;
+  totalQuests: number;
 }
 
-export function PortfolioCard({ student }: PortfolioCardProps) {
+export function PortfolioCard({ student, averageGrade, totalXP, completedQuests, totalQuests }: PortfolioCardProps) {
+  const remaining = totalQuests - completedQuests;
+
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-6">
@@ -21,7 +27,7 @@ export function PortfolioCard({ student }: PortfolioCardProps) {
             Your Portfolio
           </h3>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Building professional journalism credentials
+            Track your academic progress
           </p>
         </div>
         <Button variant="primary">View Portfolio</Button>
@@ -46,7 +52,7 @@ export function PortfolioCard({ student }: PortfolioCardProps) {
         </div>
         <div className="border-l-4 border-purple-500 pl-4">
           <div className="text-3xl font-bold text-gray-900 dark:text-white">
-            A-
+            {averageGrade}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
             Average Grade
@@ -54,10 +60,10 @@ export function PortfolioCard({ student }: PortfolioCardProps) {
         </div>
         <div className="border-l-4 border-orange-500 pl-4">
           <div className="text-3xl font-bold text-gray-900 dark:text-white">
-            247
+            {totalXP.toLocaleString()}
           </div>
           <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-            Avg Readers
+            Total XP
           </div>
         </div>
       </div>
@@ -70,7 +76,9 @@ export function PortfolioCard({ student }: PortfolioCardProps) {
               Next Milestone
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-              Complete 5 portfolio pieces to unlock Capstone Investigation
+              {remaining > 0
+                ? `Complete ${remaining} more portfolio piece${remaining !== 1 ? "s" : ""} to finish all assignments`
+                : "All assignments completed! Great work!"}
             </div>
           </div>
         </div>

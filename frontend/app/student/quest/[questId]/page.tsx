@@ -2,7 +2,7 @@
 
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/lib/contexts/AuthContext";
+import { useAuth, getStudentDashboardPath } from "@/lib/contexts/AuthContext";
 import { QuestPlayer } from "@/components/student/quest/QuestPlayer";
 import { questApi, QuestMetadata } from "@/lib/api/quests";
 
@@ -39,7 +39,7 @@ export default function QuestPage() {
   }, [questId, user, router]);
 
   const handleQuestComplete = () => {
-    router.push('/student/dashboard');
+    router.push(getStudentDashboardPath(user?.gradeLevel));
   };
 
   if (isLoading) {

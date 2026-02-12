@@ -17,6 +17,7 @@ interface Challenge {
   progress?: number;
   currentMastery?: number;
   isFinal?: boolean;
+  classId?: string;
 }
 
 interface ChallengeCardProps {
@@ -83,7 +84,7 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
           <div className="text-center text-sm text-gray-600 dark:text-gray-400">
             +{challenge.xpEarned} XP earned
           </div>
-          <Link href={`/student/middle/challenge/${challenge.id}`}>
+          <Link href={challenge.classId ? `/student/quest/${challenge.id}?classId=${challenge.classId}` : `/student/quest/${challenge.id}`}>
             <Button variant="secondary" className="w-full">
               Review
             </Button>
@@ -110,7 +111,7 @@ export function ChallengeCard({ challenge }: ChallengeCardProps) {
           <div className="text-sm text-gray-600 dark:text-gray-400">
             Current Mastery: {challenge.currentMastery}%
           </div>
-          <Link href={`/student/middle/challenge/${challenge.id}`}>
+          <Link href={challenge.classId ? `/student/quest/${challenge.id}?classId=${challenge.classId}` : `/student/quest/${challenge.id}`}>
             <Button variant="hero" className="w-full">
               Continue Challenge
             </Button>

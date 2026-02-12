@@ -18,6 +18,7 @@ interface Project {
   draftStatus?: string;
   deadline?: string;
   isFinal?: boolean;
+  classId?: string;
 }
 
 interface ProjectCardProps {
@@ -87,7 +88,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
           <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
             {project.artifactCount} artifact{project.artifactCount !== 1 ? "s" : ""} in portfolio
           </div>
-          <Link href={`/student/high/project/${project.id}`}>
+          <Link href={project.classId ? `/student/quest/${project.id}?classId=${project.classId}` : `/student/quest/${project.id}`}>
             <Button variant="secondary" className="w-full">
               View Project
             </Button>
@@ -119,7 +120,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
               Due in {project.deadline}
             </span>
           </div>
-          <Link href={`/student/high/project/${project.id}`}>
+          <Link href={project.classId ? `/student/quest/${project.id}?classId=${project.classId}` : `/student/quest/${project.id}`}>
             <Button variant="hero" className="w-full">
               Continue Project
             </Button>

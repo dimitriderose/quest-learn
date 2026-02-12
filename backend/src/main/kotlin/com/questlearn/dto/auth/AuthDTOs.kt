@@ -32,5 +32,6 @@ data class UserInfo(
     val displayName: String,
     val photoURL: String?,
     val role: String,
-    val classId: String? = null
+    val classId: String? = null,
+    val gradeLevel: Int? = null
 )
