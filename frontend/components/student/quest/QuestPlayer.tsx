@@ -23,8 +23,10 @@ export function QuestPlayer({
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
-    // FIXED: Use hardcoded backend URL for production
-    const apiUrl = 'https://questlearn-production.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!apiUrl) {
+      throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is not set.');
+    }
     const url = `${apiUrl}/api/v1/quests/${questId}/html`;
     setQuestUrl(url);
     setIsLoading(false);

@@ -83,7 +83,7 @@ app:
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
   
   oauth2:
-    authorized-redirect-uris: ${OAUTH2_REDIRECT_URIS:http://localhost:3000/auth/callback,https://questlearn.app/auth/callback}
+    authorized-redirect-uris: ${OAUTH2_REDIRECT_URIS:http://localhost:3000/auth/callback,https://quest-learn-frontend-production.up.railway.app/auth/callback}
     allowed-domains: ${OAUTH2_ALLOWED_DOMAINS:}
 
 logging:

@@ -54,8 +54,10 @@ export const authApi = {
    * Get Google OAuth URL for teachers
    */
   getGoogleAuthUrl: (): string => {
-    // FIXED: Use the backend URL directly
-    const backendUrl = 'https://questlearn-production.up.railway.app';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+    if (!backendUrl) {
+      throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is not set.');
+    }
     return `${backendUrl}/oauth2/authorization/google`;
   },
 };
