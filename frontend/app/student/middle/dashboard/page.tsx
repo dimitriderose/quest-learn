@@ -63,6 +63,7 @@ function convertToChallengeFormat(
 export default function MiddleSchoolDashboard() {
   const { user } = useAuth();
   const [challenges, setChallenges] = useState<any[]>([]);
+  const [allProgress, setAllProgress] = useState<StudentProgress[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,10 +72,29 @@ export default function MiddleSchoolDashboard() {
     level: dashboardStats?.classLevel ?? 1,
     currentXP: dashboardStats?.classCurrentXP ?? 0,
     xpToNextLevel: dashboardStats?.classXPToNextLevel ?? 200,
-    rank: 1,
-    classSize: 1,
     avatar: "🎯",
   };
+
+  const mastery = dashboardStats?.classAverageScore ?? 0;
+
+  const challengeTotals = allProgress.reduce(
+    (acc, prog) => {
+      for (const qc of prog.questCompletions) {
+        acc.completed += qc.completedChallenges;
+        acc.total += qc.totalChallenges;
+      }
+      return acc;
+    },
+    { completed: 0, total: 0 }
+  );
+  const accuracy = challengeTotals.total > 0
+    ? Math.round((challengeTotals.completed / challengeTotals.total) * 100)
+    : 0;
+
+  const completedQuests = allProgress.reduce(
+    (sum, prog) => sum + prog.questCompletions.length,
+    0
+  );
 
   useEffect(() => {
     async function loadData() {
@@ -94,6 +114,7 @@ export default function MiddleSchoolDashboard() {
         ]);
 
         setChallenges(convertToChallengeFormat(assignedQuests, progressData));
+        setAllProgress(progressData);
         setDashboardStats(stats);
       } catch (error) {
         console.error("Error loading data:", error);
@@ -113,10 +134,16 @@ export default function MiddleSchoolDashboard() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <div className="lg:col-span-2">
-            <SkillProgressCard student={student} />
+            <SkillProgressCard student={student} mastery={mastery} accuracy={accuracy} completedQuests={completedQuests} />
           </div>
           <div>
-            <LeaderboardCard student={student} />
+            <LeaderboardCard
+              student={student}
+              totalXP={dashboardStats?.classTotalXP ?? 0}
+              level={dashboardStats?.classLevel ?? 1}
+              averageScore={mastery}
+              completedQuests={completedQuests}
+            />
           </div>
         </div>
 

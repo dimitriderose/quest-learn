@@ -7,8 +7,6 @@ import { LogOut } from "lucide-react";
 interface Student {
   name: string;
   level: number;
-  rank: number;
-  classSize: number;
   avatar: string;
 }
 
@@ -32,7 +30,7 @@ export function MiddleSchoolHeader({ student }: MiddleSchoolHeaderProps) {
                 {student.name}
               </h1>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                Level {student.level} • Rank #{student.rank} of {student.classSize}
+                Level {student.level}
               </p>
             </div>
           </div>

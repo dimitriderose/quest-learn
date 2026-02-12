@@ -73,9 +73,12 @@ export default function HighSchoolDashboard() {
     role: "Student Researcher",
     portfolioPieces: completedCount,
     articlesPublished: completedCount,
-    avgReadership: 0,
     avatar: "📰",
   };
+
+  const averageGrade = dashboardStats && dashboardStats.classAverageScore > 0
+    ? scoreToGrade(dashboardStats.classAverageScore)
+    : "--";
 
   useEffect(() => {
     async function loadData() {
@@ -114,10 +117,21 @@ export default function HighSchoolDashboard() {
       <main className="max-w-7xl mx-auto px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
           <div className="lg:col-span-3">
-            <PortfolioCard student={student} />
+            <PortfolioCard
+              student={student}
+              averageGrade={averageGrade}
+              totalXP={dashboardStats?.classTotalXP ?? 0}
+              completedQuests={completedCount}
+              totalQuests={projects.length}
+            />
           </div>
           <div>
-            <ImpactMetrics student={student} />
+            <ImpactMetrics
+              totalXP={dashboardStats?.classTotalXP ?? 0}
+              averageScore={dashboardStats?.classAverageScore ?? 0}
+              completedQuests={completedCount}
+              totalQuests={projects.length}
+            />
           </div>
         </div>
 
