@@ -1,9 +1,8 @@
 package com.questlearn.service
 
-import com.questlearn.dto.StudentCurriculumDayDto
-import com.questlearn.dto.StudentCurriculumDto
-import com.questlearn.dto.StudentCurriculumView
-import com.questlearn.dto.StudentQuestDto
+import com.questlearn.dto.*
+import com.questlearn.model.CurriculumType
+import com.questlearn.model.LearningTrack
 import com.questlearn.model.ProgressStatus
 import com.questlearn.repository.*
 import org.springframework.stereotype.Service
@@ -17,7 +16,9 @@ class StudentCurriculumViewService(
     private val curriculumDayRepository: CurriculumDayRepository,
     private val questRepository: QuestRepository,
     private val classQuestRepository: ClassQuestRepository,
-    private val progressRepository: StudentProgressRepository
+    private val progressRepository: StudentProgressRepository,
+    private val studentCurriculumTrackRepository: StudentCurriculumTrackRepository,
+    private val studentTutorialRepository: StudentTutorialRepository
 ) {
 
     fun getStudentCurriculumView(
@@ -50,14 +51,35 @@ class StudentCurriculumViewService(
         // 4. Collect curriculum IDs from all classes
         val allCurriculumIds = myClasses.flatMap { it.assignedCurricula }.distinct()
 
-        // 5. Build curriculum views
+        // 5. Get student's tutorials for adaptive curricula
+        val allTutorials = studentTutorialRepository.findByStudentIdAndCurriculumIdAndCompleted(studentId, "", false)
+            .let { emptyList<com.questlearn.model.StudentTutorial>() } // Will be queried per curriculum below
+
+        // 6. Build curriculum views
         val curricula = allCurriculumIds.mapNotNull { curriculumId ->
             val curriculum = curriculumRepository.findById(curriculumId).orElse(null) ?: return@mapNotNull null
             val days = curriculumDayRepository.findByCurriculumIdOrderByDayNumberAsc(curriculumId)
+            val isAdaptive = curriculum.curriculumType == CurriculumType.ADAPTIVE
 
-            // Get all quest IDs across all days
-            val allDayQuestIds = days.flatMap { it.questIds }.distinct()
-            if (allDayQuestIds.isEmpty()) return@mapNotNull null
+            // For adaptive curricula, get the student's track
+            val trackRecord = if (isAdaptive) {
+                studentCurriculumTrackRepository.findByStudentIdAndCurriculumId(studentId, curriculumId)
+            } else null
+
+            val studentTrack = trackRecord?.currentTrack
+            val diagnosticCompleted = trackRecord?.diagnosticCompletedAt != null
+
+            // Get tutorials for this curriculum
+            val curriculumTutorials = if (isAdaptive) {
+                studentTutorialRepository.findByStudentIdAndCurriculumId(studentId, curriculumId)
+            } else emptyList()
+
+            // Get quest IDs for each day based on track
+            val allDayQuestIds = days.flatMap { day ->
+                getQuestIdsForDay(day, isAdaptive, studentTrack)
+            }.distinct()
+
+            if (allDayQuestIds.isEmpty() && !isAdaptive) return@mapNotNull null
 
             // Fetch quest details
             val questMap = if (allDayQuestIds.isNotEmpty()) {
@@ -66,7 +88,14 @@ class StudentCurriculumViewService(
                 emptyMap()
             }
 
-            // Determine which class this curriculum is assigned to (for class name)
+            // Also fetch tutorial quests
+            val tutorialQuestIds = curriculumTutorials.map { it.tutorialQuestId }
+            val tutorialQuestMap = if (tutorialQuestIds.isNotEmpty()) {
+                questRepository.findByIdIn(tutorialQuestIds).associateBy { it.id }
+            } else {
+                emptyMap()
+            }
+
             val owningClass = myClasses.find { it.assignedCurricula.contains(curriculumId) }
 
             // Build day views with progressive unlock
@@ -76,13 +105,26 @@ class StudentCurriculumViewService(
             val completedQuestsInCurriculum = allDayQuestIds.count { it in completedQuestIds }
 
             val dayDtos = days.map { day ->
-                val dayQuestIds = day.questIds
+                val dayQuestIds = getQuestIdsForDay(day, isAdaptive, studentTrack)
+
+                // For adaptive Day 1 (diagnostic), use standard quest IDs
                 val allDayQuestsCompleted = dayQuestIds.isNotEmpty() &&
                     dayQuestIds.all { it in completedQuestIds }
 
+                // Check if tutorials for this day are completed
+                val dayTutorials = curriculumTutorials.filter { it.dayNumber == day.dayNumber }
+                val allTutorialsCompleted = dayTutorials.isEmpty() || dayTutorials.all { it.completed }
+
+                // Day unlock: previous day quests AND tutorials must be complete
                 val dayStatus = when {
-                    allDayQuestsCompleted -> "completed"
-                    allPreviousDaysComplete -> "available"
+                    allDayQuestsCompleted && allTutorialsCompleted -> "completed"
+                    allPreviousDaysComplete -> {
+                        if (isAdaptive && day.dayNumber > 1 && studentTrack == null) {
+                            "locked" // Can't proceed without track assignment
+                        } else {
+                            "available"
+                        }
+                    }
                     else -> "locked"
                 }
 
@@ -114,8 +156,22 @@ class StudentCurriculumViewService(
                     emptyList()
                 }
 
+                // Build tutorial DTOs for this day
+                val tutorials = if (dayStatus != "locked") {
+                    dayTutorials.map { tutorial ->
+                        StudentTutorialDto(
+                            tutorialQuestId = tutorial.tutorialQuestId,
+                            forQuestId = tutorial.questId,
+                            completed = tutorial.completed,
+                            playUrl = "/student/quest/${tutorial.tutorialQuestId}"
+                        )
+                    }
+                } else {
+                    emptyList()
+                }
+
                 // Update tracking for next day's unlock
-                if (!allDayQuestsCompleted || dayQuestIds.isEmpty()) {
+                if (!allDayQuestsCompleted || dayQuestIds.isEmpty() || !allTutorialsCompleted) {
                     allPreviousDaysComplete = false
                 }
 
@@ -123,7 +179,9 @@ class StudentCurriculumViewService(
                     dayNumber = day.dayNumber,
                     title = day.title,
                     status = dayStatus,
-                    quests = quests
+                    quests = quests,
+                    isDiagnostic = day.isDiagnosticDay,
+                    tutorials = tutorials
                 )
             }
 
@@ -141,19 +199,20 @@ class StudentCurriculumViewService(
                 totalDays = curriculum.durationDays,
                 currentDay = currentDay,
                 progressPercentage = progressPercentage,
-                days = dayDtos
+                days = dayDtos,
+                isAdaptive = isAdaptive,
+                studentTrack = studentTrack?.name,
+                trackAssignedBy = trackRecord?.assignedBy?.name,
+                diagnosticCompleted = diagnosticCompleted
             )
         }
 
-        // 6. Collect standalone quests (assigned to class but NOT part of any curriculum day)
-        val curriculumQuestIds = curricula.flatMap { c ->
-            c.days.flatMap { d -> d.quests.map { it.questId } }
-        }.toSet()
-
-        // Also include locked day quests as "in curriculum"
+        // 7. Collect standalone quests
         val allCurriculaDayQuestIds = allCurriculumIds.flatMap { cId ->
             curriculumDayRepository.findByCurriculumIdOrderByDayNumberAsc(cId)
-                .flatMap { it.questIds }
+                .flatMap { day ->
+                    day.questIds + day.advancedQuestIds + day.gradeLevelQuestIds + day.foundationalQuestIds
+                }
         }.toSet()
 
         val standaloneQuests = allAssignments
@@ -186,5 +245,26 @@ class StudentCurriculumViewService(
             curricula = curricula,
             standaloneQuests = standaloneQuests
         )
+    }
+
+    /**
+     * Get the quest IDs for a day, taking into account adaptive track filtering.
+     */
+    private fun getQuestIdsForDay(
+        day: com.questlearn.model.CurriculumDay,
+        isAdaptive: Boolean,
+        studentTrack: LearningTrack?
+    ): List<String> {
+        if (!isAdaptive || day.isDiagnosticDay || day.dayNumber == 1) {
+            return day.questIds
+        }
+
+        // For adaptive days 2+, return quests for the student's track
+        return when (studentTrack) {
+            LearningTrack.ADVANCED -> day.advancedQuestIds
+            LearningTrack.GRADE_LEVEL -> day.gradeLevelQuestIds
+            LearningTrack.FOUNDATIONAL -> day.foundationalQuestIds
+            null -> emptyList() // Track not assigned yet
+        }
     }
 }

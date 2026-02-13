@@ -85,7 +85,7 @@ data class StudentProgress(
     // Learning track (automatic differentiation)
     @Enumerated(EnumType.STRING)
     @Column(name = "track", nullable = false, length = 20)
-    val track: LearningTrack = LearningTrack.STANDARD,
+    val track: LearningTrack = LearningTrack.GRADE_LEVEL,
     
     @Column(name = "track_assigned_at", nullable = false)
     val trackAssignedAt: Instant = Instant.now(),
@@ -169,9 +169,9 @@ enum class ProgressStatus {
 }
 
 enum class LearningTrack {
-    ENRICHMENT,
-    STANDARD,
-    SCAFFOLDED
+    ADVANCED,
+    GRADE_LEVEL,
+    FOUNDATIONAL
 }
 
 enum class TrackAssignedBy {

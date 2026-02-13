@@ -28,9 +28,10 @@ export interface CurriculumDay {
   title: string | null;
   description: string | null;
   questIds: string[];
-  enrichmentQuestIds: string[];
-  standardQuestIds: string[];
-  scaffoldedQuestIds: string[];
+  advancedQuestIds: string[];
+  gradeLevelQuestIds: string[];
+  foundationalQuestIds: string[];
+  isDiagnosticDay: boolean;
 }
 
 export interface QuestSummaryDto {

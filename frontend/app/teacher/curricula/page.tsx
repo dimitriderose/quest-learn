@@ -408,6 +408,11 @@ function CurriculumCard({
           <span className={`px-2 py-1 rounded text-xs font-semibold ${statusColors[curriculum.status] || statusColors.DRAFT}`}>
             {curriculum.status}
           </span>
+          {curriculum.curriculumType === "ADAPTIVE" && (
+            <span className="px-2 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 rounded text-xs font-semibold">
+              Adaptive
+            </span>
+          )}
           <span className="px-2 py-1 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 rounded text-xs font-semibold">
             <GraduationCap className="w-3 h-3 inline mr-1" />
             Grade {curriculum.gradeLevel}
@@ -460,6 +465,7 @@ function CreateCurriculumModal({
   const [gradeLevel, setGradeLevel] = useState("5");
   const [durationDays, setDurationDays] = useState(10);
   const [startDate, setStartDate] = useState("");
+  const [curriculumType, setCurriculumType] = useState<"STANDARD" | "ADAPTIVE">("STANDARD");
   const [submitting, setSubmitting] = useState(false);
 
   const subjects = ["Math", "Science", "ELA", "Social Studies", "History", "Art", "Music", "PE", "Other"];
@@ -480,6 +486,7 @@ function CreateCurriculumModal({
         subject,
         gradeLevel,
         durationDays,
+        curriculumType,
       };
       if (startDate) {
         data.startDate = startDate;
@@ -497,7 +504,7 @@ function CreateCurriculumModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl p-8 relative">
+      <Card className="w-full max-w-2xl p-8 relative max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
@@ -520,6 +527,50 @@ function CreateCurriculumModal({
         </div>
 
         <div className="space-y-4">
+          {/* Curriculum Type Toggle */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+              Curriculum Type
+            </label>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setCurriculumType("STANDARD")}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold transition-colors text-left ${
+                  curriculumType === "STANDARD"
+                    ? "bg-blue-500 text-white border-blue-500"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500"
+                }`}
+              >
+                <div className="font-bold">Standard</div>
+                <div className="text-xs mt-1 opacity-75">Same quests for all students</div>
+              </button>
+              <button
+                onClick={() => {
+                  setCurriculumType("ADAPTIVE");
+                  if (durationDays < 5) setDurationDays(10);
+                }}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 font-semibold transition-colors text-left ${
+                  curriculumType === "ADAPTIVE"
+                    ? "bg-purple-500 text-white border-purple-500"
+                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-purple-500"
+                }`}
+              >
+                <div className="font-bold">Adaptive</div>
+                <div className="text-xs mt-1 opacity-75">3 tracks based on diagnostic</div>
+              </button>
+            </div>
+            {curriculumType === "ADAPTIVE" && (
+              <div className="mt-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <p className="text-sm text-purple-800 dark:text-purple-300">
+                  <strong>How it works:</strong> Day 1 is a diagnostic assessment. Based on results,
+                  students are placed into Advanced, Grade Level, or Foundational tracks.
+                  Days 2+ have tailored quests per track. Students who struggle get
+                  auto-generated review tutorials.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Title */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
@@ -594,7 +645,7 @@ function CreateCurriculumModal({
                 type="number"
                 value={durationDays}
                 onChange={(e) => setDurationDays(Number(e.target.value))}
-                min={1}
+                min={curriculumType === "ADAPTIVE" ? 5 : 1}
                 className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

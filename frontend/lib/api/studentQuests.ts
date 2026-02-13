@@ -21,11 +21,20 @@ export interface StudentQuestsResponse {
   data: StudentQuestDto[];
 }
 
+export interface StudentTutorialDto {
+  tutorialQuestId: string;
+  forQuestId: string;
+  completed: boolean;
+  playUrl: string;
+}
+
 export interface StudentCurriculumDayDto {
   dayNumber: number;
   title: string | null;
   status: 'completed' | 'available' | 'locked';
   quests: StudentQuestDto[];
+  isDiagnostic?: boolean;
+  tutorials?: StudentTutorialDto[];
 }
 
 export interface StudentCurriculumDto {
@@ -37,6 +46,10 @@ export interface StudentCurriculumDto {
   currentDay: number;
   progressPercentage: number;
   days: StudentCurriculumDayDto[];
+  isAdaptive?: boolean;
+  studentTrack?: string | null;
+  trackAssignedBy?: string | null;
+  diagnosticCompleted?: boolean;
 }
 
 export interface StudentCurriculumView {

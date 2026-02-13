@@ -29,12 +29,27 @@ data class StudentCurriculumDto(
     val totalDays: Int,
     val currentDay: Int,
     val progressPercentage: Double,
-    val days: List<StudentCurriculumDayDto>
+    val days: List<StudentCurriculumDayDto>,
+    // Adaptive fields
+    val isAdaptive: Boolean = false,
+    val studentTrack: String? = null, // ADVANCED, GRADE_LEVEL, FOUNDATIONAL
+    val trackAssignedBy: String? = null, // AUTO, TEACHER
+    val diagnosticCompleted: Boolean = false
 )
 
 data class StudentCurriculumDayDto(
     val dayNumber: Int,
     val title: String?,
     val status: String,
-    val quests: List<StudentQuestDto>
+    val quests: List<StudentQuestDto>,
+    // Adaptive fields
+    val isDiagnostic: Boolean = false,
+    val tutorials: List<StudentTutorialDto> = emptyList()
+)
+
+data class StudentTutorialDto(
+    val tutorialQuestId: String,
+    val forQuestId: String,
+    val completed: Boolean,
+    val playUrl: String
 )

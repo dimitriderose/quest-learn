@@ -2,6 +2,8 @@ package com.questlearn.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.questlearn.dto.GenerateQuestRequest
+import com.questlearn.dto.GenerateTutorialRequest
+import com.questlearn.model.LearningTrack
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
@@ -23,9 +25,23 @@ class GeminiQuestGeneratorService(
     
     private val geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
     
-    // Load prompt template once at startup
+    // Load prompt templates once at startup
     private val promptTemplate: String by lazy {
         ClassPathResource("prompts/quest-generation-prompt.txt")
+            .inputStream
+            .readBytes()
+            .toString(StandardCharsets.UTF_8)
+    }
+
+    private val diagnosticPromptTemplate: String by lazy {
+        ClassPathResource("prompts/diagnostic-quest-prompt.txt")
+            .inputStream
+            .readBytes()
+            .toString(StandardCharsets.UTF_8)
+    }
+
+    private val tutorialPromptTemplate: String by lazy {
+        ClassPathResource("prompts/tutorial-generation-prompt.txt")
             .inputStream
             .readBytes()
             .toString(StandardCharsets.UTF_8)
@@ -48,6 +64,118 @@ class GeminiQuestGeneratorService(
         return questHtml
     }
     
+    /**
+     * Generate a diagnostic assessment quest spanning foundational through advanced difficulty.
+     */
+    fun generateDiagnosticQuest(request: GenerateQuestRequest): String {
+        val prompt = buildDiagnosticPrompt(request)
+        val geminiResponse = callGeminiAPI(prompt)
+        val questHtml = extractHtmlFromResponse(geminiResponse)
+
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated diagnostic HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+
+        return questHtml
+    }
+
+    /**
+     * Generate a track-specific quest with difficulty calibrated for the given learning track.
+     */
+    fun generateTrackQuest(request: GenerateQuestRequest, track: LearningTrack): String {
+        val trackDifficulty = when (track) {
+            LearningTrack.ADVANCED -> "advanced"
+            LearningTrack.GRADE_LEVEL -> "grade-level"
+            LearningTrack.FOUNDATIONAL -> "foundational"
+        }
+
+        val trackAdditions = when (track) {
+            LearningTrack.FOUNDATIONAL -> """
+TRACK-SPECIFIC ADDITIONS (FOUNDATIONAL):
+- Break concepts into smaller, more manageable steps
+- Provide more visual scaffolding and concrete examples
+- Use simpler language and shorter sentences
+- Include more worked examples before asking students to try
+- Add extra encouragement and positive reinforcement
+- Use manipulatives and visual models (fraction bars, number lines, diagrams)
+"""
+            LearningTrack.GRADE_LEVEL -> "" // Standard prompt, no additions
+            LearningTrack.ADVANCED -> """
+TRACK-SPECIFIC ADDITIONS (ADVANCED):
+- Include deeper analysis and real-world applications
+- Require multi-step reasoning and problem synthesis
+- Add extension challenges that go beyond grade level
+- Use more complex scenarios and authentic problems
+- Reduce scaffolding — expect students to make connections independently
+- Include open-ended or creative problem-solving elements
+"""
+        }
+
+        val modifiedRequest = request.copy(difficulty = trackDifficulty)
+        val prompt = buildQuestPrompt(modifiedRequest) + "\n\n" + trackAdditions
+        val geminiResponse = callGeminiAPI(prompt)
+        val questHtml = extractHtmlFromResponse(geminiResponse)
+
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated track quest HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+
+        return questHtml
+    }
+
+    /**
+     * Generate a personalized remediation tutorial for concepts a student got wrong.
+     */
+    fun generateTutorial(request: GenerateTutorialRequest): String {
+        val prompt = buildTutorialPrompt(request)
+        val geminiResponse = callGeminiAPI(prompt)
+        val questHtml = extractHtmlFromResponse(geminiResponse)
+
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated tutorial HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+
+        return questHtml
+    }
+
+    private fun buildDiagnosticPrompt(request: GenerateQuestRequest): String {
+        val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
+        val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
+        val questId = "diag_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        val totalChallenges = (8..10).random()
+
+        return diagnosticPromptTemplate
+            .replace("{{topic}}", request.topic)
+            .replace("{{subject}}", request.subject)
+            .replace("{{gradeLevel}}", request.gradeLevel.toString())
+            .replace("{{durationMinutes}}", request.durationMinutes.toString())
+            .replace("{{standards}}", request.standards.joinToString(", "))
+            .replace("{{questId}}", questId)
+            .replace("{{themeGuidance}}", themeGuidance)
+            .replace("{{mechanicGuidance}}", mechanicGuidance)
+            .replace("{{totalChallenges}}", totalChallenges.toString())
+    }
+
+    private fun buildTutorialPrompt(request: GenerateTutorialRequest): String {
+        val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
+        val questId = "tut_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        val wrongChallengesJson = try {
+            objectMapper.writeValueAsString(request.wrongChallenges)
+        } catch (e: Exception) {
+            "[]"
+        }
+
+        return tutorialPromptTemplate
+            .replace("{{topic}}", request.topic)
+            .replace("{{subject}}", request.subject)
+            .replace("{{gradeLevel}}", request.gradeLevel.toString())
+            .replace("{{track}}", request.track)
+            .replace("{{wrongChallenges}}", wrongChallengesJson)
+            .replace("{{learningStyle}}", request.learningStyle ?: "NONE")
+            .replace("{{questId}}", questId)
+            .replace("{{themeGuidance}}", themeGuidance)
+    }
+
     private fun buildQuestPrompt(request: GenerateQuestRequest): String {
         val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
         val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
@@ -163,6 +291,14 @@ Analyze the topic and select the most appropriate:
         }
     }
     
+    /**
+     * Public wrapper for calling Gemini API with a raw prompt.
+     * Used by AdaptivePathService for topic suggestions.
+     */
+    fun callGeminiAPIPublic(prompt: String): String {
+        return callGeminiAPI(prompt)
+    }
+
     private fun callGeminiAPI(prompt: String): String {
         val webClient = webClientBuilder
             .baseUrl(geminiApiUrl)

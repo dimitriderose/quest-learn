@@ -38,16 +38,19 @@ data class CurriculumDay(
     val questIds: List<String> = emptyList(),
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "enrichment_quest_ids", columnDefinition = "jsonb", nullable = false)
-    val enrichmentQuestIds: List<String> = emptyList(),
+    @Column(name = "advanced_quest_ids", columnDefinition = "jsonb", nullable = false)
+    val advancedQuestIds: List<String> = emptyList(),
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "standard_quest_ids", columnDefinition = "jsonb", nullable = false)
-    val standardQuestIds: List<String> = emptyList(),
+    @Column(name = "grade_level_quest_ids", columnDefinition = "jsonb", nullable = false)
+    val gradeLevelQuestIds: List<String> = emptyList(),
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "scaffolded_quest_ids", columnDefinition = "jsonb", nullable = false)
-    val scaffoldedQuestIds: List<String> = emptyList(),
+    @Column(name = "foundational_quest_ids", columnDefinition = "jsonb", nullable = false)
+    val foundationalQuestIds: List<String> = emptyList(),
+
+    @Column(name = "is_diagnostic_day", nullable = false)
+    val isDiagnosticDay: Boolean = false,
 
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),

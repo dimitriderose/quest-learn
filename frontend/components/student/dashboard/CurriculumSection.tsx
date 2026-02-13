@@ -8,6 +8,7 @@ import {
   StudentCurriculumDto,
   StudentCurriculumDayDto,
   StudentQuestDto,
+  StudentTutorialDto,
 } from "@/lib/api/studentQuests";
 
 type Variant = "elementary" | "middle" | "high";
@@ -128,7 +129,10 @@ function DaySection({
       : "";
 
   const statusIcon = isCompleted ? "✅" : isAvailable ? "📖" : "🔒";
-  const dayTitle = day.title
+  const isDiagnostic = day.isDiagnostic === true;
+  const dayTitle = isDiagnostic
+    ? `${config.dayLabel(day.dayNumber)}: Diagnostic Assessment`
+    : day.title
     ? `${config.dayLabel(day.dayNumber)}: ${day.title}`
     : config.dayLabel(day.dayNumber);
 
@@ -201,7 +205,7 @@ function DaySection({
         )}
       </button>
 
-      {expanded && !isLocked && day.quests.length > 0 && (
+      {expanded && !isLocked && (day.quests.length > 0 || (day.tutorials && day.tutorials.length > 0)) && (
         <div className="px-4 pb-4 space-y-3">
           {day.quests.map((quest) => (
             <QuestItem
@@ -212,6 +216,27 @@ function DaySection({
               onStart={() => handleStartQuest(quest)}
             />
           ))}
+
+          {/* Tutorial cards */}
+          {day.tutorials && day.tutorials.length > 0 && (
+            <div className="mt-2 space-y-2">
+              <p className={`text-xs font-semibold uppercase tracking-wide ${
+                variant === "elementary" ? "text-white/60" : "text-gray-500 dark:text-gray-400"
+              }`}>
+                Review Tutorials
+              </p>
+              {day.tutorials.map((tutorial) => (
+                <TutorialItem
+                  key={tutorial.tutorialQuestId}
+                  tutorial={tutorial}
+                  variant={variant}
+                  onStart={() => {
+                    router.push(`/student/quest/${tutorial.tutorialQuestId}`);
+                  }}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -322,6 +347,74 @@ function QuestItem({
   );
 }
 
+function TutorialItem({
+  tutorial,
+  variant,
+  onStart,
+}: {
+  tutorial: StudentTutorialDto;
+  variant: Variant;
+  onStart: () => void;
+}) {
+  if (tutorial.completed) {
+    return (
+      <div className={`rounded-lg p-3 border ${
+        variant === "elementary"
+          ? "bg-green-500/20 border-green-400/30"
+          : "bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700"
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="text-lg">✅</span>
+          <span className={`text-sm font-medium ${
+            variant === "elementary" ? "text-white/80" : "text-green-700 dark:text-green-400"
+          }`}>
+            Tutorial completed
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className={`rounded-lg p-3 border cursor-pointer transition-all hover:scale-[1.01] ${
+        variant === "elementary"
+          ? "bg-amber-500/20 border-amber-400/30"
+          : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700"
+      }`}
+      onClick={onStart}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="text-lg">📝</span>
+          <div>
+            <span className={`text-sm font-semibold ${
+              variant === "elementary" ? "text-white" : "text-amber-800 dark:text-amber-300"
+            }`}>
+              Review Tutorial
+            </span>
+            <p className={`text-xs ${
+              variant === "elementary" ? "text-white/60" : "text-amber-600 dark:text-amber-400"
+            }`}>
+              Complete this review before moving to the next day
+            </p>
+          </div>
+        </div>
+        <Button
+          variant={variant === "elementary" ? "hero" : "secondary"}
+          className="shrink-0 text-sm px-3 py-1.5"
+          onClick={(e) => {
+            e.stopPropagation();
+            onStart();
+          }}
+        >
+          Start Review
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function CurriculumSection({ curriculum, variant }: CurriculumSectionProps) {
   const config = variantConfig[variant];
   const progressPercent = curriculum.progressPercentage;
@@ -347,6 +440,19 @@ export function CurriculumSection({ curriculum, variant }: CurriculumSectionProp
               <span className="text-white/60 text-sm">
                 {curriculum.totalDays} {variant === "high" ? "modules" : "days"}
               </span>
+              {curriculum.isAdaptive && curriculum.studentTrack && (
+                <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                  curriculum.studentTrack === "ADVANCED"
+                    ? "bg-purple-200/30 text-purple-100"
+                    : curriculum.studentTrack === "FOUNDATIONAL"
+                    ? "bg-orange-200/30 text-orange-100"
+                    : "bg-blue-200/30 text-blue-100"
+                }`}>
+                  {curriculum.studentTrack === "ADVANCED" ? "Advanced" :
+                   curriculum.studentTrack === "FOUNDATIONAL" ? "Foundational" :
+                   "Grade Level"} Track
+                </span>
+              )}
             </div>
           </div>
           <div className="text-right">

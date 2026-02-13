@@ -2,11 +2,8 @@ package com.questlearn.service
 
 import com.questlearn.dto.DashboardStatsResponse
 import com.questlearn.model.*
-import com.questlearn.repository.StudentProgressRepository
-import com.questlearn.repository.StudentActionRepository
-import com.questlearn.repository.UserRepository
-import com.questlearn.repository.QuestRepository
-import com.questlearn.repository.ClassRepository
+import com.questlearn.repository.*
+import org.springframework.context.annotation.Lazy
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,7 +16,10 @@ class ProgressService(
     private val actionRepository: StudentActionRepository,
     private val userRepository: UserRepository,
     private val questRepository: QuestRepository,
-    private val classRepository: ClassRepository
+    private val classRepository: ClassRepository,
+    private val curriculumDayRepository: CurriculumDayRepository,
+    private val curriculumRepository: CurriculumRepository,
+    @Lazy private val adaptivePathService: AdaptivePathService
 ) {
     
     /**
@@ -273,9 +273,49 @@ class ProgressService(
             updatedAt = Instant.now()
         )
         
-        return progressRepository.save(updated)
+        val savedProgress = progressRepository.save(updated)
+
+        // Adaptive path hook: check if this quest is part of an adaptive curriculum
+        try {
+            val quest = questRepository.findById(questCompletion.questId).orElse(null)
+            if (quest != null) {
+                // Find curriculum days containing this quest
+                val curriculumDays = curriculumDayRepository.findAll().filter { day ->
+                    questCompletion.questId in day.questIds ||
+                        questCompletion.questId in day.advancedQuestIds ||
+                        questCompletion.questId in day.gradeLevelQuestIds ||
+                        questCompletion.questId in day.foundationalQuestIds
+                }
+
+                for (day in curriculumDays) {
+                    val curriculum = curriculumRepository.findById(day.curriculumId).orElse(null)
+                    if (curriculum?.curriculumType?.name == "ADAPTIVE") {
+                        if (quest.isDiagnostic) {
+                            // Auto-assess after diagnostic completion
+                            adaptivePathService.assessStudentAndAssignTrack(
+                                studentId, day.curriculumId, classId,
+                                quest.id, questCompletion.score
+                            )
+                        } else if (quest.targetTrack != null) {
+                            // Re-evaluate track after completing a track quest
+                            adaptivePathService.reevaluateTrack(studentId, day.curriculumId)
+                            // Generate tutorial if student scored poorly (async)
+                            adaptivePathService.generateTutorialIfNeeded(
+                                studentId, day.curriculumId, quest.id,
+                                questCompletion.score, questCompletion.challengeResults, classId
+                            )
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Adaptive hooks are best-effort — don't fail the completion
+            println("WARNING: Adaptive hook failed: ${e.message}")
+        }
+
+        return savedProgress
     }
-    
+
     /**
      * Get student statistics for a curriculum
      */

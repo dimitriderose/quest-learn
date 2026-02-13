@@ -4,10 +4,12 @@ data class GenerateQuestRequest(
     val topic: String,
     val subject: String,
     val gradeLevel: Int,
-    val difficulty: String, // "enrichment", "standard", "scaffolded"
+    val difficulty: String, // "advanced", "grade-level", "foundational"
     val durationMinutes: Int,
     val standards: List<String> = emptyList(),
-    val curriculumId: String? = null
+    val curriculumId: String? = null,
+    val isDiagnostic: Boolean = false,
+    val targetTrack: String? = null // ADVANCED, GRADE_LEVEL, FOUNDATIONAL
 )
 
 data class GeneratedQuestResponse(
