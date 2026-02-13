@@ -205,7 +205,8 @@ export default function CurriculumDetailPage({
       alert(`3 track-specific quests generated for Day ${dayNumber}!`);
     } catch (err: any) {
       console.error("Failed to generate day quests:", err);
-      alert(err.message || "Failed to generate quests for this day");
+      const msg = err.response?.data?.message || err.message || "Failed to generate quests for this day";
+      alert(msg);
     } finally {
       setGeneratingDayQuests(null);
     }

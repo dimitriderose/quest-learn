@@ -4,6 +4,7 @@ import com.questlearn.dto.*
 import com.questlearn.model.LearningTrack
 import com.questlearn.model.User
 import com.questlearn.service.AdaptivePathService
+import org.slf4j.LoggerFactory
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*
 class AdaptivePathController(
     private val adaptivePathService: AdaptivePathService
 ) {
+    private val logger = LoggerFactory.getLogger(AdaptivePathController::class.java)
 
     /**
      * Generate a diagnostic quest for Day 1 of an adaptive curriculum.
@@ -34,6 +36,7 @@ class AdaptivePathController(
                 )
             ))
         } catch (e: Exception) {
+            logger.error("Failed to generate diagnostic: ${e.message}", e)
             ResponseEntity.badRequest().body(mapOf(
                 "success" to false,
                 "message" to (e.message ?: "Failed to generate diagnostic")
@@ -109,6 +112,7 @@ class AdaptivePathController(
                 "data" to GenerateTrackQuestsResponse(dayNumber = dayNumber, quests = questResponses)
             ))
         } catch (e: Exception) {
+            logger.error("Failed to generate day quests for day $dayNumber: ${e.message}", e)
             ResponseEntity.badRequest().body(mapOf(
                 "success" to false,
                 "message" to (e.message ?: "Failed to generate day quests")

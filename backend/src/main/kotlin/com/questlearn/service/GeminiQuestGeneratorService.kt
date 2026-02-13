@@ -113,14 +113,28 @@ TRACK-SPECIFIC ADDITIONS (ADVANCED):
 
         val modifiedRequest = request.copy(difficulty = trackDifficulty)
         val prompt = buildQuestPrompt(modifiedRequest) + "\n\n" + trackAdditions
-        val geminiResponse = callGeminiAPI(prompt)
-        val questHtml = extractHtmlFromResponse(geminiResponse)
 
-        if (!questHtml.trim().endsWith("</html>")) {
-            throw RuntimeException("Generated track quest HTML is incomplete (truncated at ${questHtml.length} chars)")
+        // Retry up to 2 times if HTML is truncated
+        var lastError: Exception? = null
+        for (attempt in 1..2) {
+            try {
+                val geminiResponse = callGeminiAPI(prompt)
+                val questHtml = extractHtmlFromResponse(geminiResponse)
+
+                if (!questHtml.trim().endsWith("</html>")) {
+                    throw RuntimeException("Generated track quest HTML is incomplete (truncated at ${questHtml.length} chars, attempt $attempt)")
+                }
+
+                return questHtml
+            } catch (e: Exception) {
+                lastError = e
+                if (attempt < 2) {
+                    Thread.sleep(2000) // Brief pause before retry
+                }
+            }
         }
 
-        return questHtml
+        throw lastError ?: RuntimeException("Failed to generate track quest after retries")
     }
 
     /**
