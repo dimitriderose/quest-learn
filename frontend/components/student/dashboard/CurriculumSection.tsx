@@ -415,6 +415,32 @@ function TutorialItem({
   );
 }
 
+function getTrackDisplayName(track: string, variant: Variant): string {
+  if (variant === "elementary") {
+    switch (track) {
+      case "ADVANCED": return "Star Explorer";
+      case "GRADE_LEVEL": return "Learning Path";
+      case "FOUNDATIONAL": return "Growing Path";
+      default: return track;
+    }
+  }
+  if (variant === "middle") {
+    switch (track) {
+      case "ADVANCED": return "Advanced Track";
+      case "GRADE_LEVEL": return "Grade Level Track";
+      case "FOUNDATIONAL": return "Foundational Track";
+      default: return track;
+    }
+  }
+  // high
+  switch (track) {
+    case "ADVANCED": return "Advanced Path";
+    case "GRADE_LEVEL": return "Grade Level Path";
+    case "FOUNDATIONAL": return "Foundational Path";
+    default: return track;
+  }
+}
+
 export function CurriculumSection({ curriculum, variant }: CurriculumSectionProps) {
   const config = variantConfig[variant];
   const progressPercent = curriculum.progressPercentage;
@@ -448,9 +474,7 @@ export function CurriculumSection({ curriculum, variant }: CurriculumSectionProp
                     ? "bg-orange-200/30 text-orange-100"
                     : "bg-blue-200/30 text-blue-100"
                 }`}>
-                  {curriculum.studentTrack === "ADVANCED" ? "Advanced" :
-                   curriculum.studentTrack === "FOUNDATIONAL" ? "Foundational" :
-                   "Grade Level"} Track
+                  {getTrackDisplayName(curriculum.studentTrack, variant)}
                 </span>
               )}
             </div>
@@ -480,6 +504,32 @@ export function CurriculumSection({ curriculum, variant }: CurriculumSectionProp
           </span>
         </div>
       </div>
+
+      {/* Adaptive state messages */}
+      {curriculum.isAdaptive && !curriculum.diagnosticCompleted && (
+        <div className={`px-6 py-3 text-center text-sm font-medium ${
+          variant === "elementary"
+            ? "bg-purple-500/20 text-purple-200"
+            : "bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300"
+        }`}>
+          {variant === "elementary"
+            ? "Complete the Diagnostic Assessment to start your adventure!"
+            : variant === "middle"
+            ? "Complete the diagnostic assessment to get placed on your learning path."
+            : "Complete the diagnostic to receive your personalized learning track."}
+        </div>
+      )}
+      {curriculum.isAdaptive && curriculum.diagnosticCompleted && !curriculum.studentTrack && (
+        <div className={`px-6 py-3 text-center text-sm font-medium ${
+          variant === "elementary"
+            ? "bg-amber-500/20 text-amber-200"
+            : "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300"
+        }`}>
+          {variant === "elementary"
+            ? "Your teacher is setting up your adventure path..."
+            : "Your teacher is reviewing results and assigning tracks..."}
+        </div>
+      )}
 
       {/* Day Timeline */}
       <div

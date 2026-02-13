@@ -80,7 +80,10 @@ class CurriculumController(
             val days = curriculumDayService.getDaysForCurriculum(id)
 
             val allQuestIds = (curriculum.questIds +
-                days.flatMap { it.questIds }).distinct()
+                days.flatMap { it.questIds } +
+                days.flatMap { it.advancedQuestIds } +
+                days.flatMap { it.gradeLevelQuestIds } +
+                days.flatMap { it.foundationalQuestIds }).distinct()
 
             val quests = if (allQuestIds.isNotEmpty()) {
                 questService.getQuestsByIds(allQuestIds).map { quest ->

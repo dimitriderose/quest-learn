@@ -222,8 +222,13 @@ export default function CurriculumDetailPage({
       // Step 2: Generate quests for each day that doesn't have quests yet
       const daysToGenerate = suggestions.filter((s) => {
         const day = dayMap.get(s.dayNumber);
-        // Skip Day 1 (diagnostic) and days that already have quests
-        return s.dayNumber > 1 && (!day || day.questIds.length === 0);
+        // Skip Day 1 (diagnostic) and days that already have track quests
+        const hasTrackQuests = day && (
+          day.advancedQuestIds.length > 0 ||
+          day.gradeLevelQuestIds.length > 0 ||
+          day.foundationalQuestIds.length > 0
+        );
+        return s.dayNumber > 1 && (!day || (day.questIds.length === 0 && !hasTrackQuests));
       });
 
       for (let i = 0; i < daysToGenerate.length; i++) {
@@ -363,6 +368,15 @@ export default function CurriculumDetailPage({
   if (detail) {
     for (const day of detail.days) {
       for (const qid of day.questIds) {
+        scheduledQuestIds.add(qid);
+      }
+      for (const qid of day.advancedQuestIds) {
+        scheduledQuestIds.add(qid);
+      }
+      for (const qid of day.gradeLevelQuestIds) {
+        scheduledQuestIds.add(qid);
+      }
+      for (const qid of day.foundationalQuestIds) {
         scheduledQuestIds.add(qid);
       }
     }
@@ -897,6 +911,19 @@ export default function CurriculumDetailPage({
                     .map((qid) => questMap.get(qid))
                     .filter(Boolean) as QuestSummaryDto[];
 
+                  // Track-specific quests for adaptive curricula
+                  const advancedQuests = (day?.advancedQuestIds || [])
+                    .map((qid) => questMap.get(qid))
+                    .filter(Boolean) as QuestSummaryDto[];
+                  const gradeLevelQuests = (day?.gradeLevelQuestIds || [])
+                    .map((qid) => questMap.get(qid))
+                    .filter(Boolean) as QuestSummaryDto[];
+                  const foundationalQuests = (day?.foundationalQuestIds || [])
+                    .map((qid) => questMap.get(qid))
+                    .filter(Boolean) as QuestSummaryDto[];
+                  const hasTrackQuests = advancedQuests.length > 0 || gradeLevelQuests.length > 0 || foundationalQuests.length > 0;
+                  const totalQuestCount = dayQuests.length + advancedQuests.length + gradeLevelQuests.length + foundationalQuests.length;
+
                   return (
                     <Card key={dayNumber} className="p-0 overflow-hidden">
                       {/* Day header */}
@@ -923,19 +950,20 @@ export default function CurriculumDetailPage({
                             )}
                           </div>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {dayQuests.length}{" "}
-                            {dayQuests.length === 1 ? "quest" : "quests"}
+                            {totalQuestCount}{" "}
+                            {totalQuestCount === 1 ? "quest" : "quests"}
                           </span>
                         </div>
                       </div>
 
                       {/* Quest list for this day */}
                       <div className="px-6 py-4">
-                        {dayQuests.length === 0 ? (
+                        {/* General quests (diagnostic on Day 1, or standard quests) */}
+                        {dayQuests.length === 0 && !hasTrackQuests ? (
                           <p className="text-sm text-gray-400 dark:text-gray-500 italic py-2">
                             No quests scheduled
                           </p>
-                        ) : (
+                        ) : dayQuests.length > 0 && (
                           <div className="space-y-3 mb-4">
                             {dayQuests.map((quest) => (
                               <div
@@ -980,8 +1008,17 @@ export default function CurriculumDetailPage({
                           </div>
                         )}
 
+                        {/* Track-specific quests for adaptive curricula (3 lanes) */}
+                        {isAdaptive && hasTrackQuests && (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                            <TrackLane label="Advanced" quests={advancedQuests} />
+                            <TrackLane label="Grade Level" quests={gradeLevelQuests} />
+                            <TrackLane label="Foundational" quests={foundationalQuests} />
+                          </div>
+                        )}
+
                         {/* Adaptive: Generate Track Quests for this day */}
-                        {isAdaptive && dayNumber > 1 && !day?.isDiagnosticDay && (
+                        {isAdaptive && dayNumber > 1 && !day?.isDiagnosticDay && !hasTrackQuests && (
                           <div className="mt-3 p-3 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50/50 dark:bg-purple-900/10">
                             <div className="flex items-center gap-3">
                               <input
@@ -1012,18 +1049,6 @@ export default function CurriculumDetailPage({
                                 )}
                               </Button>
                             </div>
-                            {dayQuests.length > 0 && (
-                              <div className="mt-2 flex flex-wrap gap-1">
-                                {dayQuests.map((q) => {
-                                  const trackMatch = q.title.match(/\[(ADVANCED|GRADE.LEVEL|FOUNDATIONAL)\]/i);
-                                  return trackMatch ? (
-                                    <span key={q.id} className="text-xs text-purple-600 dark:text-purple-400">
-                                      {trackMatch[1].replace("_", " ")}
-                                    </span>
-                                  ) : null;
-                                })}
-                              </div>
-                            )}
                           </div>
                         )}
 
@@ -1280,4 +1305,54 @@ function formatTrackName(track: string): string {
     case "FOUNDATIONAL": return "Foundational";
     default: return track;
   }
+}
+
+const trackLaneStyles: Record<string, { container: string; badge: string }> = {
+  Advanced: {
+    container: "p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10",
+    badge: "px-2 py-0.5 rounded text-xs font-semibold bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400",
+  },
+  "Grade Level": {
+    container: "p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/10",
+    badge: "px-2 py-0.5 rounded text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400",
+  },
+  Foundational: {
+    container: "p-3 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-900/10",
+    badge: "px-2 py-0.5 rounded text-xs font-semibold bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400",
+  },
+};
+
+function TrackLane({ label, quests }: { label: string; quests: QuestSummaryDto[] }) {
+  const styles = trackLaneStyles[label] || trackLaneStyles["Grade Level"];
+  return (
+    <div className={styles.container}>
+      <div className="flex items-center gap-2 mb-2">
+        <span className={styles.badge}>{label}</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400">
+          {quests.length} {quests.length === 1 ? "quest" : "quests"}
+        </span>
+      </div>
+      {quests.length === 0 ? (
+        <p className="text-xs text-gray-400 italic">No quests</p>
+      ) : (
+        <div className="space-y-2">
+          {quests.map((quest) => (
+            <div
+              key={quest.id}
+              className="p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700"
+            >
+              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {quest.title}
+              </p>
+              {quest.topic && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  {quest.topic}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
