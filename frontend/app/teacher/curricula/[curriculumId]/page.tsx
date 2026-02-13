@@ -86,6 +86,8 @@ export default function CurriculumDetailPage({
   const [dayTopics, setDayTopics] = useState<Record<number, string>>({});
   const [showTracksPanel, setShowTracksPanel] = useState(false);
   const [overridingTrack, setOverridingTrack] = useState<string | null>(null);
+  const [autoGenerating, setAutoGenerating] = useState(false);
+  const [autoGenProgress, setAutoGenProgress] = useState("");
 
   const loadData = useCallback(async () => {
     try {
@@ -206,6 +208,50 @@ export default function CurriculumDetailPage({
       alert(err.message || "Failed to generate quests for this day");
     } finally {
       setGeneratingDayQuests(null);
+    }
+  };
+
+  const handleAutoGenerateAllDays = async () => {
+    if (!detail) return;
+    setAutoGenerating(true);
+    try {
+      // Step 1: Get AI-suggested topics
+      setAutoGenProgress("Getting AI topic suggestions...");
+      const suggestions = await adaptiveApi.suggestTopics(curriculumId);
+
+      // Step 2: Generate quests for each day that doesn't have quests yet
+      const daysToGenerate = suggestions.filter((s) => {
+        const day = dayMap.get(s.dayNumber);
+        // Skip Day 1 (diagnostic) and days that already have quests
+        return s.dayNumber > 1 && (!day || day.questIds.length === 0);
+      });
+
+      for (let i = 0; i < daysToGenerate.length; i++) {
+        const suggestion = daysToGenerate[i];
+        setAutoGenProgress(
+          `Generating Day ${suggestion.dayNumber} quests (${i + 1}/${daysToGenerate.length}): ${suggestion.suggestedTopic}...`
+        );
+        try {
+          await adaptiveApi.generateDayQuests(curriculumId, suggestion.dayNumber, {
+            topic: suggestion.suggestedTopic,
+            subject: detail.curriculum.subject,
+            gradeLevel: detail.curriculum.gradeLevel ? parseInt(detail.curriculum.gradeLevel) : undefined,
+          });
+        } catch (err) {
+          console.error(`Failed to generate Day ${suggestion.dayNumber}:`, err);
+          // Continue with remaining days even if one fails
+        }
+      }
+
+      setAutoGenProgress("Done! Refreshing...");
+      await loadData();
+      alert(`Auto-generated quests for ${daysToGenerate.length} days!`);
+    } catch (err: any) {
+      console.error("Failed to auto-generate:", err);
+      alert(err.message || "Failed to auto-generate course plan");
+    } finally {
+      setAutoGenerating(false);
+      setAutoGenProgress("");
     }
   };
 
@@ -703,6 +749,50 @@ export default function CurriculumDetailPage({
                   );
                 })()}
               </Card>
+
+              {/* Auto-Generate Course Plan */}
+              {tracksData && tracksData.summary.unassignedCount === 0 && (
+                <Card className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        Auto-Generate Course Plan
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        AI will suggest topics and generate 3 track-specific quests for each remaining day
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="primary"
+                      onClick={handleAutoGenerateAllDays}
+                      disabled={autoGenerating}
+                      className="flex items-center gap-2"
+                    >
+                      {autoGenerating ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-4 h-4" />
+                          Generate All Remaining Days
+                        </>
+                      )}
+                    </Button>
+                    {autoGenProgress && (
+                      <span className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                        {autoGenProgress}
+                      </span>
+                    )}
+                  </div>
+                </Card>
+              )}
 
               {/* Track Distribution Panel */}
               {tracksData && (
