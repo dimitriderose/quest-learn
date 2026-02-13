@@ -1,13 +1,11 @@
 package com.questlearn.controller
 
-import com.questlearn.dto.ApiResponse
-import com.questlearn.dto.StudentQuestDto
-import com.questlearn.dto.success
-import com.questlearn.dto.error
+import com.questlearn.dto.*
 import com.questlearn.model.User
 import com.questlearn.repository.ClassQuestRepository
 import com.questlearn.repository.ClassRepository
 import com.questlearn.repository.QuestRepository
+import com.questlearn.service.StudentCurriculumViewService
 import jakarta.servlet.http.HttpServletRequest
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
@@ -17,7 +15,8 @@ import org.springframework.web.bind.annotation.*
 class StudentQuestController(
     private val classRepository: ClassRepository,
     private val classQuestRepository: ClassQuestRepository,
-    private val questRepository: QuestRepository
+    private val questRepository: QuestRepository,
+    private val studentCurriculumViewService: StudentCurriculumViewService
 ) {
 
     /**
@@ -88,6 +87,30 @@ class StudentQuestController(
 
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch assigned quests")
+        }
+    }
+
+    /**
+     * Get quests grouped by curriculum with day-by-day structure and progressive unlock.
+     * GET /api/v1/students/me/curricula
+     */
+    @GetMapping("/me/curricula")
+    fun getMyCurricula(
+        authentication: Authentication,
+        request: HttpServletRequest
+    ): ApiResponse<StudentCurriculumView> {
+        return try {
+            val user = authentication.principal as User
+            val activeClassId = request.getAttribute("classId") as? String
+
+            val view = studentCurriculumViewService.getStudentCurriculumView(
+                studentId = user.uid,
+                activeClassId = activeClassId
+            )
+
+            success(view)
+        } catch (e: Exception) {
+            error("FETCH_FAILED", e.message ?: "Failed to fetch curricula")
         }
     }
 }

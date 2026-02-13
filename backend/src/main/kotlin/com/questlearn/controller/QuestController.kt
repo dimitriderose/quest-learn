@@ -5,6 +5,7 @@ import com.questlearn.dto.GeneratedQuestResponse
 import com.questlearn.dto.QuestMetadata
 import com.questlearn.model.Quest
 import com.questlearn.model.User
+import com.questlearn.repository.ClassQuestRepository
 import com.questlearn.service.GeminiQuestGeneratorService
 import com.questlearn.service.QuestService
 import org.springframework.http.HttpStatus
@@ -20,7 +21,8 @@ import java.util.UUID
 @CrossOrigin(origins = ["http://localhost:3000", "http://localhost:5173"])
 class QuestController(
     private val questService: QuestService,
-    private val geminiService: GeminiQuestGeneratorService
+    private val geminiService: GeminiQuestGeneratorService,
+    private val classQuestRepository: ClassQuestRepository
 ) {
     
     @PostMapping("/generate")
@@ -169,6 +171,36 @@ class QuestController(
         return ResponseEntity.ok(metadata)
     }
     
+    @DeleteMapping("/{id}")
+    fun deleteQuest(
+        @PathVariable id: String,
+        authentication: Authentication?
+    ): ResponseEntity<Map<String, Any>> {
+        try {
+            val quest = questService.getQuest(id)
+                ?: return ResponseEntity.notFound().build()
+
+            // Only creator can delete (if authenticated)
+            if (authentication != null) {
+                val user = authentication.principal as User
+                if (quest.createdBy != null && quest.createdBy != user.uid) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(mapOf("success" to false, "message" to "You can only delete your own quests"))
+                }
+            }
+
+            // Clean up class_quests referencing this quest
+            classQuestRepository.deleteByQuestId(id)
+
+            questService.deleteQuest(id)
+
+            return ResponseEntity.ok(mapOf("success" to true, "message" to "Quest deleted successfully"))
+        } catch (e: Exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("success" to false, "message" to (e.message ?: "Failed to delete quest")))
+        }
+    }
+
     private fun extractTitle(html: String): String? {
         val titleRegex = """<title>(.*?)</title>""".toRegex()
         return titleRegex.find(html)?.groupValues?.get(1)?.trim()

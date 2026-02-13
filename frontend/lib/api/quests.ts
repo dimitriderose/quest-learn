@@ -110,10 +110,17 @@ export const questApi = {
 
   /**
    * Assign a quest to a class
-   * (Backend endpoint may need to be implemented)
    */
   assign: async (data: AssignQuestRequest): Promise<void> => {
     await apiClient.post(`/api/v1/classes/${data.classId}/quests`, data);
+  },
+
+  /**
+   * Delete a quest
+   * DELETE /api/v1/quests/{id}
+   */
+  delete: async (questId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/quests/${questId}`);
   },
 };
 
@@ -126,3 +133,4 @@ export const getQuestHtml = questApi.getHtml;
 export const generateQuest = questApi.generate;
 export const listQuests = questApi.list;
 export const assignQuest = questApi.assign;
+export const deleteQuest = questApi.delete;

@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository
 interface QuestRepository : JpaRepository<Quest, String> {
     fun findByCurriculumIdOrderByQuestNumberAsc(curriculumId: String): List<Quest>
     fun findByCurriculumId(curriculumId: String): List<Quest>
+    fun findByCreatedBy(teacherId: String): List<Quest>
+    fun findByIdIn(ids: List<String>): List<Quest>
 }
