@@ -238,7 +238,12 @@ class AdaptivePathService(
 
         val result = mutableMapOf<LearningTrack, Quest>()
 
-        for (track in LearningTrack.entries) {
+        for ((index, track) in LearningTrack.entries.withIndex()) {
+            // Pace API calls to avoid Gemini 429 rate limiting
+            if (index > 0) {
+                Thread.sleep(3000)
+            }
+
             val request = GenerateQuestRequest(
                 topic = topic,
                 subject = effectiveSubject,

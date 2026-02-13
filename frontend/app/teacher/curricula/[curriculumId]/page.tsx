@@ -232,6 +232,9 @@ export default function CurriculumDetailPage({
         return s.dayNumber > 1 && (!day || (day.questIds.length === 0 && !hasTrackQuests));
       });
 
+      let successCount = 0;
+      let failedDays: number[] = [];
+
       for (let i = 0; i < daysToGenerate.length; i++) {
         const suggestion = daysToGenerate[i];
         setAutoGenProgress(
@@ -243,15 +246,31 @@ export default function CurriculumDetailPage({
             subject: detail.curriculum.subject,
             gradeLevel: detail.curriculum.gradeLevel ? parseInt(detail.curriculum.gradeLevel) : undefined,
           });
-        } catch (err) {
+          successCount++;
+        } catch (err: any) {
           console.error(`Failed to generate Day ${suggestion.dayNumber}:`, err);
-          // Continue with remaining days even if one fails
+          failedDays.push(suggestion.dayNumber);
+          // If rate limited, wait extra before next attempt
+          const msg = err.response?.data?.message || err.message || "";
+          if (msg.includes("429") || msg.includes("rate") || msg.includes("Too Many")) {
+            setAutoGenProgress(
+              `Rate limited — waiting 30s before retrying... (${i + 1}/${daysToGenerate.length})`
+            );
+            await new Promise((r) => setTimeout(r, 30000));
+          }
         }
       }
 
       setAutoGenProgress("Done! Refreshing...");
       await loadData();
-      alert(`Auto-generated quests for ${daysToGenerate.length} days!`);
+      if (failedDays.length > 0) {
+        alert(
+          `Generated quests for ${successCount} of ${daysToGenerate.length} days.\n` +
+          `Days ${failedDays.join(", ")} failed — you can retry them individually or run auto-generate again.`
+        );
+      } else {
+        alert(`Auto-generated quests for ${daysToGenerate.length} days!`);
+      }
     } catch (err: any) {
       console.error("Failed to auto-generate:", err);
       alert(err.message || "Failed to auto-generate course plan");

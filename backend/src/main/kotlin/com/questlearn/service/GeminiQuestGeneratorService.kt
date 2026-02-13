@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.questlearn.dto.GenerateQuestRequest
 import com.questlearn.dto.GenerateTutorialRequest
 import com.questlearn.model.LearningTrack
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.nio.charset.StandardCharsets
@@ -19,7 +21,8 @@ class GeminiQuestGeneratorService(
     private val webClientBuilder: WebClient.Builder,
     private val objectMapper: ObjectMapper
 ) {
-    
+    private val logger = LoggerFactory.getLogger(GeminiQuestGeneratorService::class.java)
+
     @Value("\${questlearn.gemini.api-key}")
     private lateinit var geminiApiKey: String
     
@@ -314,11 +317,14 @@ Analyze the topic and select the most appropriate:
     }
 
     private fun callGeminiAPI(prompt: String): String {
+        val maxRetries = 4
+        val baseDelayMs = 5000L // 5s, 10s, 20s, 40s backoff
+
         val webClient = webClientBuilder
             .baseUrl(geminiApiUrl)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()
-        
+
         val requestBody = mapOf(
             "contents" to listOf(
                 mapOf(
@@ -335,15 +341,44 @@ Analyze the topic and select the most appropriate:
                 "maxOutputTokens" to 64000
             )
         )
-        
-        val response = webClient.post()
-            .uri { it.queryParam("key", geminiApiKey).build() }
-            .bodyValue(requestBody)
-            .retrieve()
-            .bodyToMono<Map<String, Any>>()
-            .block() ?: throw RuntimeException("Failed to call Gemini API")
-        
-        return extractTextFromResponse(response)
+
+        var lastException: Exception? = null
+
+        for (attempt in 1..maxRetries) {
+            try {
+                val response = webClient.post()
+                    .uri { it.queryParam("key", geminiApiKey).build() }
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono<Map<String, Any>>()
+                    .block() ?: throw RuntimeException("Failed to call Gemini API")
+
+                return extractTextFromResponse(response)
+            } catch (e: WebClientResponseException.TooManyRequests) {
+                lastException = e
+                if (attempt < maxRetries) {
+                    val delay = baseDelayMs * (1L shl (attempt - 1)) // exponential: 5s, 10s, 20s
+                    logger.warn("Gemini API rate limited (429). Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
+                    Thread.sleep(delay)
+                } else {
+                    logger.error("Gemini API rate limited (429). All $maxRetries retries exhausted.")
+                }
+            } catch (e: WebClientResponseException) {
+                // Other HTTP errors (500, 503, etc.) - retry with backoff
+                lastException = e
+                if (attempt < maxRetries && e.statusCode.is5xxServerError) {
+                    val delay = baseDelayMs * (1L shl (attempt - 1))
+                    logger.warn("Gemini API error ${e.statusCode}. Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
+                    Thread.sleep(delay)
+                } else {
+                    throw e
+                }
+            } catch (e: Exception) {
+                throw e // Non-HTTP errors propagate immediately
+            }
+        }
+
+        throw lastException ?: RuntimeException("Gemini API call failed after $maxRetries retries")
     }
     
     @Suppress("UNCHECKED_CAST")
