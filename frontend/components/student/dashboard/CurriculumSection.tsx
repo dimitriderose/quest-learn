@@ -443,7 +443,7 @@ function TutorialItem({
             <p className={`text-xs ${
               variant === "elementary" ? "text-white/60" : "text-amber-600 dark:text-amber-400"
             }`}>
-              Complete this review before moving to the next day
+              Score 70% or higher to move to the next day
             </p>
           </div>
         </div>

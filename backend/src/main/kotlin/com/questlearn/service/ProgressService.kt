@@ -19,6 +19,7 @@ class ProgressService(
     private val classRepository: ClassRepository,
     private val curriculumDayRepository: CurriculumDayRepository,
     private val curriculumRepository: CurriculumRepository,
+    private val studentTutorialRepository: StudentTutorialRepository,
     @Lazy private val adaptivePathService: AdaptivePathService
 ) {
     
@@ -279,6 +280,19 @@ class ProgressService(
         try {
             val quest = questRepository.findById(questCompletion.questId).orElse(null)
             if (quest != null) {
+                // If this is a tutorial quest, mark the StudentTutorial as completed if score >= 70
+                if (quest.isTutorial && quest.tutorialForQuestId != null) {
+                    val tutorialRecord = studentTutorialRepository.findByStudentIdAndQuestId(
+                        studentId, quest.tutorialForQuestId
+                    )
+                    if (tutorialRecord != null && !tutorialRecord.completed && questCompletion.score >= 70) {
+                        studentTutorialRepository.save(tutorialRecord.copy(
+                            completed = true,
+                            completedAt = Instant.now()
+                        ))
+                    }
+                }
+
                 // Find curriculum days containing this quest
                 val curriculumDays = curriculumDayRepository.findAll().filter { day ->
                     questCompletion.questId in day.questIds ||
