@@ -227,11 +227,13 @@ function DaySection({
               </p>
               {day.tutorials.map((tutorial) => (
                 <TutorialItem
-                  key={tutorial.tutorialQuestId}
+                  key={tutorial.tutorialQuestId ?? `generating-${tutorial.forQuestId}`}
                   tutorial={tutorial}
                   variant={variant}
                   onStart={() => {
-                    router.push(`/student/quest/${tutorial.tutorialQuestId}`);
+                    if (tutorial.playUrl) {
+                      router.push(tutorial.playUrl);
+                    }
                   }}
                 />
               ))}
@@ -369,6 +371,51 @@ function TutorialItem({
             variant === "elementary" ? "text-white/80" : "text-green-700 dark:text-green-400"
           }`}>
             Tutorial completed
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (tutorial.status === "GENERATING") {
+    return (
+      <div className={`rounded-lg p-3 border ${
+        variant === "elementary"
+          ? "bg-blue-500/20 border-blue-400/30"
+          : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700"
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="text-lg animate-spin">⏳</span>
+          <div>
+            <span className={`text-sm font-semibold ${
+              variant === "elementary" ? "text-white" : "text-blue-800 dark:text-blue-300"
+            }`}>
+              Creating your review tutorial...
+            </span>
+            <p className={`text-xs ${
+              variant === "elementary" ? "text-white/60" : "text-blue-600 dark:text-blue-400"
+            }`}>
+              This usually takes about a minute. Refresh the page to check.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (tutorial.status === "FAILED") {
+    return (
+      <div className={`rounded-lg p-3 border ${
+        variant === "elementary"
+          ? "bg-red-500/20 border-red-400/30"
+          : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700"
+      }`}>
+        <div className="flex items-center gap-3">
+          <span className="text-lg">⚠️</span>
+          <span className={`text-sm font-medium ${
+            variant === "elementary" ? "text-white/80" : "text-red-700 dark:text-red-400"
+          }`}>
+            Tutorial generation failed. It will be retried automatically.
           </span>
         </div>
       </div>

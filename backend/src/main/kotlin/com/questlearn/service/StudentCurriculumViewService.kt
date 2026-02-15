@@ -163,7 +163,8 @@ class StudentCurriculumViewService(
                             tutorialQuestId = tutorial.tutorialQuestId,
                             forQuestId = tutorial.questId,
                             completed = tutorial.completed,
-                            playUrl = "/student/quest/${tutorial.tutorialQuestId}"
+                            status = tutorial.status,
+                            playUrl = tutorial.tutorialQuestId?.let { "/student/quest/$it" }
                         )
                     }
                 } else {

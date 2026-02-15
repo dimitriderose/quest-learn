@@ -48,8 +48,9 @@ data class StudentCurriculumDayDto(
 )
 
 data class StudentTutorialDto(
-    val tutorialQuestId: String,
+    val tutorialQuestId: String?,
     val forQuestId: String,
     val completed: Boolean,
-    val playUrl: String
+    val status: String,
+    val playUrl: String?
 )

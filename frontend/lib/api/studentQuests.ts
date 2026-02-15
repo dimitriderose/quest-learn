@@ -22,10 +22,11 @@ export interface StudentQuestsResponse {
 }
 
 export interface StudentTutorialDto {
-  tutorialQuestId: string;
+  tutorialQuestId: string | null;
   forQuestId: string;
   completed: boolean;
-  playUrl: string;
+  status: 'GENERATING' | 'READY' | 'FAILED';
+  playUrl: string | null;
 }
 
 export interface StudentCurriculumDayDto {

@@ -476,6 +476,25 @@ class AdaptivePathService(
                 )
             }
 
+            // Create a placeholder StudentTutorial immediately so the frontend can show a loading state
+            val tutorialRecordId = "${studentId}_${questId}_${dayNumber}"
+            val existingTutorial = studentTutorialRepository.findById(tutorialRecordId).orElse(null)
+            if (existingTutorial != null && existingTutorial.status == "READY") return // Already generated
+
+            val pendingTutorial = existingTutorial?.copy(status = "GENERATING") ?: StudentTutorial(
+                id = tutorialRecordId,
+                studentId = studentId,
+                curriculumId = curriculumId,
+                dayNumber = dayNumber,
+                questId = questId,
+                tutorialQuestId = null,
+                scoreOnQuest = score,
+                wrongChallengeIds = wrongChallenges.map { it.challengeId },
+                status = "GENERATING",
+                createdAt = Instant.now()
+            )
+            studentTutorialRepository.save(pendingTutorial)
+
             // Get student's preferred learning style from prior completions
             val allProgress = studentProgressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
             val learningStyle = allProgress
@@ -521,21 +540,22 @@ class AdaptivePathService(
 
             val savedTutorial = questRepository.save(tutorialQuest)
 
-            val studentTutorial = StudentTutorial(
-                id = "${studentId}_${savedTutorial.id}",
-                studentId = studentId,
-                curriculumId = curriculumId,
-                dayNumber = dayNumber,
-                questId = questId,
+            // Update the placeholder record with the generated tutorial quest ID and READY status
+            val readyTutorial = pendingTutorial.copy(
                 tutorialQuestId = savedTutorial.id,
-                scoreOnQuest = score,
-                wrongChallengeIds = wrongChallenges.map { it.challengeId },
-                createdAt = Instant.now()
+                status = "READY"
             )
-
-            studentTutorialRepository.save(studentTutorial)
+            studentTutorialRepository.save(readyTutorial)
         } catch (e: Exception) {
             logger.warn("Failed to generate tutorial for student $studentId, quest $questId: ${e.message}")
+            // Mark as FAILED so the frontend doesn't show a perpetual loading state
+            try {
+                studentTutorialRepository.findByStudentIdAndQuestId(studentId, questId)?.let { record ->
+                    if (record.status == "GENERATING") {
+                        studentTutorialRepository.save(record.copy(status = "FAILED"))
+                    }
+                }
+            } catch (ignored: Exception) {}
             if (!fromRetryQueue) {
                 try {
                     geminiRetryQueueService.enqueue(

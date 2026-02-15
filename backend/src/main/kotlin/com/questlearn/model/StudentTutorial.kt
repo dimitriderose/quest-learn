@@ -34,11 +34,14 @@ data class StudentTutorial(
     @Column(name = "quest_id", nullable = false, length = 50)
     val questId: String = "",
 
-    @Column(name = "tutorial_quest_id", nullable = false, length = 50)
-    val tutorialQuestId: String = "",
+    @Column(name = "tutorial_quest_id", length = 50)
+    val tutorialQuestId: String? = null,
 
     @Column(name = "score_on_quest", nullable = false)
     val scoreOnQuest: Int = 0,
+
+    @Column(name = "status", nullable = false, length = 20)
+    val status: String = "READY",
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "wrong_challenge_ids", columnDefinition = "jsonb", nullable = false)
