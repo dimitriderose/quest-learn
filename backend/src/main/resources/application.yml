@@ -25,6 +25,20 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
   
+  mail:
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_USERNAME:}
+    password: ${SMTP_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+        transport:
+          protocol: smtp
+
   security:
     oauth2:
       client:
@@ -66,6 +80,11 @@ questlearn:
   
   cors:
     allowed-origins: ${ALLOWED_ORIGINS:http://localhost:3000}
+
+  notifications:
+    from-email: ${NOTIFICATION_FROM_EMAIL:noreply@questlearn.app}
+    from-name: ${NOTIFICATION_FROM_NAME:QuestLearn}
+    frontend-url: ${FRONTEND_URL:http://localhost:3000}
 
 common-standards:
   api:

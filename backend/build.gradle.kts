@@ -28,6 +28,9 @@ dependencies {
     
     // WebFlux for reactive WebClient (needed for Gemini API)
     implementation("org.springframework.boot:spring-boot-starter-webflux")
+
+    // Mail for email notifications
+    implementation("org.springframework.boot:spring-boot-starter-mail")
     
     // OAuth2 Client for Google Sign-In
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")

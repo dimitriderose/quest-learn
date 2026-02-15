@@ -69,15 +69,21 @@ class JwtAuthenticationFilter(
     }
     
     /**
-     * Extract JWT token from Authorization header
-     * Expected format: "Bearer <token>"
+     * Extract JWT token from Authorization header or query parameter.
+     * Header format: "Bearer <token>"
+     * Query parameter: ?token=<token> (used for SSE endpoints where EventSource can't set headers)
      */
     private fun getJwtFromRequest(request: HttpServletRequest): String? {
         val bearerToken = request.getHeader("Authorization")
-        return if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            bearerToken.substring(7)
-        } else {
-            null
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7)
         }
+
+        val tokenParam = request.getParameter("token")
+        if (StringUtils.hasText(tokenParam)) {
+            return tokenParam
+        }
+
+        return null
     }
 }
