@@ -3,6 +3,8 @@ package com.questlearn.service
 import com.questlearn.dto.*
 import com.questlearn.model.*
 import com.questlearn.repository.*
+import org.slf4j.LoggerFactory
+import org.springframework.context.annotation.Lazy
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -20,8 +22,10 @@ class AdaptivePathService(
     private val studentTutorialRepository: StudentTutorialRepository,
     private val studentProgressRepository: StudentProgressRepository,
     private val userRepository: UserRepository,
-    private val geminiService: GeminiQuestGeneratorService
+    private val geminiService: GeminiQuestGeneratorService,
+    @Lazy private val geminiRetryQueueService: GeminiRetryQueueService
 ) {
+    private val logger = LoggerFactory.getLogger(AdaptivePathService::class.java)
 
     /**
      * Initialize an adaptive curriculum: mark Day 1 as diagnostic.
@@ -431,7 +435,8 @@ class AdaptivePathService(
         questId: String,
         score: Int,
         challengeResults: List<ChallengeResult>,
-        classId: String
+        classId: String,
+        fromRetryQueue: Boolean = false
     ) {
         try {
             val trackRecord = studentCurriculumTrackRepository.findByStudentIdAndCurriculumId(studentId, curriculumId)
@@ -531,8 +536,36 @@ class AdaptivePathService(
 
             studentTutorialRepository.save(studentTutorial)
         } catch (e: Exception) {
-            // Tutorial generation is best-effort — log but don't fail
-            println("WARNING: Failed to generate tutorial for student $studentId, quest $questId: ${e.message}")
+            logger.warn("Failed to generate tutorial for student $studentId, quest $questId: ${e.message}")
+            if (!fromRetryQueue) {
+                try {
+                    geminiRetryQueueService.enqueue(
+                        requestType = "TUTORIAL",
+                        payload = mapOf(
+                            "studentId" to studentId,
+                            "curriculumId" to curriculumId,
+                            "questId" to questId,
+                            "score" to score,
+                            "challengeResults" to challengeResults.map { cr ->
+                                mapOf(
+                                    "challengeId" to cr.challengeId,
+                                    "correct" to cr.correct,
+                                    "wasSkipped" to cr.wasSkipped,
+                                    "attempts" to cr.attempts,
+                                    "hintsUsed" to cr.hintsUsed,
+                                    "timeSpentSeconds" to cr.timeSpentSeconds
+                                )
+                            },
+                            "classId" to classId
+                        )
+                    )
+                } catch (queueError: Exception) {
+                    logger.error("Failed to enqueue tutorial retry for student $studentId: ${queueError.message}")
+                }
+            } else {
+                // Re-throw so the retry queue service can handle backoff
+                throw e
+            }
         }
     }
 
