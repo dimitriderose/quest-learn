@@ -451,9 +451,8 @@ class AdaptivePathService(
 
             if (score >= threshold) return
 
-            // Get wrong challenges
+            // Get wrong challenges (may be empty if quest HTML didn't report individual results)
             val wrongChallenges = challengeResults.filter { !it.correct && !it.wasSkipped }
-            if (wrongChallenges.isEmpty()) return
 
             // Find the quest for context
             val quest = questRepository.findById(questId).orElse(null) ?: return
