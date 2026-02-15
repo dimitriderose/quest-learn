@@ -89,7 +89,7 @@ class StudentCurriculumViewService(
             }
 
             // Also fetch tutorial quests
-            val tutorialQuestIds = curriculumTutorials.map { it.tutorialQuestId }
+            val tutorialQuestIds = curriculumTutorials.mapNotNull { it.tutorialQuestId }
             val tutorialQuestMap = if (tutorialQuestIds.isNotEmpty()) {
                 questRepository.findByIdIn(tutorialQuestIds).associateBy { it.id }
             } else {
