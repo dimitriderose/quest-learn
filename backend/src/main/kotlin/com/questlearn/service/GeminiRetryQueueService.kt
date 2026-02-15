@@ -5,6 +5,7 @@ import com.fasterxml.jackson.module.kotlin.convertValue
 import com.questlearn.model.ChallengeResult
 import com.questlearn.model.GeminiRequestQueue
 import com.questlearn.repository.GeminiRequestQueueRepository
+import jakarta.annotation.PostConstruct
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Service
@@ -25,6 +26,28 @@ class GeminiRetryQueueService(
     // Gemini RPD (requests per day) resets at midnight Pacific time
     // Total span: ~58 hours across 7 attempts
     private val backoffMinutes = listOf(1L, 5L, 30L, 120L, 480L, 1440L, 1440L)
+
+    /**
+     * On startup, reset any items stuck in PROCESSING status back to PENDING.
+     * This handles the edge case where the service crashed mid-execution.
+     */
+    @PostConstruct
+    fun recoverStuckItems() {
+        val stuckItems = queueRepository.findByStatusIn(listOf("PROCESSING"))
+        if (stuckItems.isEmpty()) return
+
+        logger.warn("Found ${stuckItems.size} stuck PROCESSING items on startup, resetting to PENDING")
+        for (item in stuckItems) {
+            val recovered = item.copy(
+                status = "PENDING",
+                nextRetryAt = Instant.now().plusSeconds(60),
+                lastError = (item.lastError?.let { "$it | " } ?: "") + "Recovered from stuck PROCESSING state on service restart",
+                updatedAt = Instant.now()
+            )
+            queueRepository.save(recovered)
+            logger.info("Reset stuck item ${item.id} (${item.requestType}) back to PENDING")
+        }
+    }
 
     /**
      * Enqueue a failed Gemini request for later retry.
