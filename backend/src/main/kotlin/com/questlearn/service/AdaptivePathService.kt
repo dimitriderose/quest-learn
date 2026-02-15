@@ -23,7 +23,8 @@ class AdaptivePathService(
     private val studentProgressRepository: StudentProgressRepository,
     private val userRepository: UserRepository,
     private val geminiService: GeminiQuestGeneratorService,
-    @Lazy private val geminiRetryQueueService: GeminiRetryQueueService
+    @Lazy private val geminiRetryQueueService: GeminiRetryQueueService,
+    private val alertService: AlertService
 ) {
     private val logger = LoggerFactory.getLogger(AdaptivePathService::class.java)
 
@@ -546,6 +547,35 @@ class AdaptivePathService(
                 status = "READY"
             )
             studentTutorialRepository.save(readyTutorial)
+
+            // Alert teacher that a tutorial was generated (attempt 1)
+            try {
+                val topic = quest.topic ?: curriculum.title
+                val track = trackRecord.currentTrack.name
+                val studentName = userRepository.findById(studentId).orElse(null)?.displayName ?: "Student"
+                val teacherId = curriculum.teacherId
+
+                alertService.createAlert(Alert(
+                    studentId = studentId,
+                    studentName = studentName,
+                    teacherId = teacherId,
+                    classId = classId,
+                    curriculumId = curriculumId,
+                    type = AlertType.STRUGGLING,
+                    severity = AlertSeverity.MEDIUM,
+                    message = "$studentName is reviewing $topic — scored ${score}% on the quest",
+                    details = mapOf(
+                        "event" to "tutorial_started",
+                        "questScore" to score,
+                        "topic" to topic,
+                        "track" to track,
+                        "tutorialAttempt" to 1,
+                        "tutorialQuestId" to savedTutorial.id
+                    )
+                ))
+            } catch (alertError: Exception) {
+                logger.warn("Failed to create tutorial alert: ${alertError.message}")
+            }
         } catch (e: Exception) {
             logger.warn("Failed to generate tutorial for student $studentId, quest $questId: ${e.message}")
             // Mark as FAILED so the frontend doesn't show a perpetual loading state
@@ -585,6 +615,201 @@ class AdaptivePathService(
                 // Re-throw so the retry queue service can handle backoff
                 throw e
             }
+        }
+    }
+
+    /**
+     * Handle tutorial completion: decide whether to retry or mark complete.
+     * Called when a student completes a tutorial (TUTORIAL_COMPLETE event).
+     *
+     * - If score >= 50 OR attemptNumber == 2: mark tutorial complete, done.
+     * - If score < 50 AND attemptNumber == 1: generate a retry tutorial at lower depth.
+     */
+    @Async
+    fun handleTutorialCompletion(
+        studentId: String,
+        tutorialQuestId: String,
+        score: Int,
+        challengeResults: List<ChallengeResult>,
+        classId: String
+    ) {
+        try {
+            // Find the StudentTutorial record by the tutorial quest ID
+            val tutorialRecord = studentTutorialRepository.findByTutorialQuestId(tutorialQuestId)
+                ?: run {
+                    logger.warn("No StudentTutorial found for tutorialQuestId=$tutorialQuestId")
+                    return
+                }
+
+            val curriculum = curriculumRepository.findById(tutorialRecord.curriculumId).orElse(null) ?: return
+            val originalQuest = questRepository.findById(tutorialRecord.questId).orElse(null) ?: return
+            val topic = originalQuest.topic ?: curriculum.title
+            val studentName = userRepository.findById(studentId).orElse(null)?.displayName ?: "Student"
+            val teacherId = curriculum.teacherId
+
+            // Mark the current tutorial as completed
+            val completedTutorial = tutorialRecord.copy(
+                completed = true,
+                completedAt = Instant.now()
+            )
+            studentTutorialRepository.save(completedTutorial)
+
+            // If score >= 50 OR this is already attempt 2: done, no retry
+            if (score >= 50 || tutorialRecord.attemptNumber >= 2) {
+                // If attempt 2 and still low score, alert teacher with CRITICAL severity
+                if (tutorialRecord.attemptNumber >= 2 && score < 50) {
+                    try {
+                        // Look up attempt 1 tutorial for context
+                        val parentTutorial = tutorialRecord.parentTutorialId?.let {
+                            studentTutorialRepository.findById(it).orElse(null)
+                        }
+                        val tutorial1Score = parentTutorial?.scoreOnQuest // This is the original quest score
+                        alertService.createAlert(Alert(
+                            studentId = studentId,
+                            studentName = studentName,
+                            teacherId = teacherId,
+                            classId = classId,
+                            curriculumId = tutorialRecord.curriculumId,
+                            type = AlertType.NEEDS_HELP,
+                            severity = AlertSeverity.CRITICAL,
+                            message = "$studentName needs help with $topic — scored ${score}% after two tutorial attempts",
+                            details = mapOf(
+                                "event" to "tutorial_exhausted",
+                                "questScore" to tutorialRecord.scoreOnQuest,
+                                "tutorial2Score" to score,
+                                "topic" to topic,
+                                "conceptsStillMissed" to challengeResults.filter { !it.correct }.map { it.challengeId }
+                            )
+                        ))
+                    } catch (alertError: Exception) {
+                        logger.warn("Failed to create tutorial exhausted alert: ${alertError.message}")
+                    }
+                }
+                logger.info("Tutorial complete for student $studentId, quest ${tutorialRecord.questId}: score=$score, attempt=${tutorialRecord.attemptNumber}")
+                return
+            }
+
+            // Attempt 1 with score < 50: generate retry tutorial at lower depth
+            logger.info("Tutorial attempt 1 failed for student $studentId (score=$score). Generating retry at lower depth.")
+
+            // Alert teacher about retry
+            try {
+                alertService.createAlert(Alert(
+                    studentId = studentId,
+                    studentName = studentName,
+                    teacherId = teacherId,
+                    classId = classId,
+                    curriculumId = tutorialRecord.curriculumId,
+                    type = AlertType.STRUGGLING,
+                    severity = AlertSeverity.HIGH,
+                    message = "$studentName scored ${score}% on tutorial review — a simpler retry is being generated",
+                    details = mapOf(
+                        "event" to "tutorial_retry",
+                        "tutorialScore" to score,
+                        "topic" to topic,
+                        "conceptsMissed" to challengeResults.filter { !it.correct }.map { it.challengeId },
+                        "tutorialAttempt" to 2
+                    )
+                ))
+            } catch (alertError: Exception) {
+                logger.warn("Failed to create tutorial retry alert: ${alertError.message}")
+            }
+
+            // Determine the lower track depth for retry
+            val trackRecord = studentCurriculumTrackRepository.findByStudentIdAndCurriculumId(studentId, tutorialRecord.curriculumId)
+            val currentTrack = trackRecord?.currentTrack ?: LearningTrack.GRADE_LEVEL
+            val retryTrack = when (currentTrack) {
+                LearningTrack.ADVANCED -> LearningTrack.GRADE_LEVEL
+                LearningTrack.GRADE_LEVEL -> LearningTrack.FOUNDATIONAL
+                LearningTrack.FOUNDATIONAL -> LearningTrack.FOUNDATIONAL // Stay, but prompt adds prerequisite coverage
+            }
+
+            // Build wrong challenges from the tutorial's practice results
+            val wrongChallengeDetails = challengeResults.filter { !it.correct }.map { cr ->
+                WrongChallengeDetail(
+                    challengeId = cr.challengeId,
+                    questionText = "Practice problem ${cr.challengeId}",
+                    studentAnswer = null,
+                    correctAnswer = "",
+                    explanation = null
+                )
+            }
+
+            // Get student's preferred learning style
+            val allProgress = studentProgressRepository.findByStudentIdOrderByLastActivityAtDesc(studentId)
+            val learningStyle = allProgress
+                .flatMap { it.questCompletions }
+                .mapNotNull { it.learningStyleChosen?.name }
+                .groupBy { it }
+                .maxByOrNull { it.value.size }
+                ?.key
+
+            // Create retry tutorial record (attempt 2) as GENERATING
+            val retryRecordId = "${studentId}_${tutorialRecord.questId}_${tutorialRecord.dayNumber}_retry"
+            val retryTutorialRecord = StudentTutorial(
+                id = retryRecordId,
+                studentId = studentId,
+                curriculumId = tutorialRecord.curriculumId,
+                dayNumber = tutorialRecord.dayNumber,
+                questId = tutorialRecord.questId,
+                tutorialQuestId = null,
+                scoreOnQuest = tutorialRecord.scoreOnQuest,
+                wrongChallengeIds = challengeResults.filter { !it.correct }.map { it.challengeId },
+                status = "GENERATING",
+                attemptNumber = 2,
+                parentTutorialId = tutorialRecord.id,
+                createdAt = Instant.now()
+            )
+            studentTutorialRepository.save(retryTutorialRecord)
+
+            // Generate retry tutorial via Gemini
+            val tutorialRequest = GenerateTutorialRequest(
+                topic = topic,
+                subject = originalQuest.subject ?: curriculum.subject,
+                gradeLevel = originalQuest.gradeLevel?.toIntOrNull() ?: 5,
+                track = retryTrack.name,
+                wrongChallenges = wrongChallengeDetails,
+                learningStyle = learningStyle,
+                tutorialAttempt = 2
+            )
+
+            val tutorialHtml = geminiService.generateTutorial(tutorialRequest)
+            val tutorialTitle = extractTitle(tutorialHtml) ?: "Review (Retry): $topic"
+
+            val retryQuest = Quest(
+                id = UUID.randomUUID().toString(),
+                curriculumId = tutorialRecord.curriculumId,
+                questNumber = tutorialRecord.dayNumber,
+                title = tutorialTitle,
+                description = "Retry review tutorial — breaking concepts down differently",
+                learningObjective = "Review and reinforce understanding with a different approach",
+                standards = emptyList(),
+                totalChallenges = 1,
+                xpReward = 15,
+                estimatedMinutes = 10,
+                htmlContent = tutorialHtml,
+                topic = originalQuest.topic,
+                gradeLevel = originalQuest.gradeLevel,
+                subject = originalQuest.subject,
+                createdBy = curriculum.teacherId,
+                isTutorial = true,
+                tutorialForQuestId = tutorialRecord.questId,
+                createdAt = Instant.now(),
+                updatedAt = Instant.now()
+            )
+
+            val savedRetryQuest = questRepository.save(retryQuest)
+
+            // Update retry record with generated quest ID
+            val readyRetry = retryTutorialRecord.copy(
+                tutorialQuestId = savedRetryQuest.id,
+                status = "READY"
+            )
+            studentTutorialRepository.save(readyRetry)
+
+            logger.info("Retry tutorial generated for student $studentId: questId=${savedRetryQuest.id}, track=${retryTrack.name}")
+        } catch (e: Exception) {
+            logger.error("Failed to handle tutorial completion for student $studentId, tutorialQuestId=$tutorialQuestId: ${e.message}", e)
         }
     }
 

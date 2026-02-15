@@ -107,7 +107,8 @@ data class GenerateTutorialRequest(
     val gradeLevel: Int,
     val track: String,
     val wrongChallenges: List<WrongChallengeDetail>,
-    val learningStyle: String? = null
+    val learningStyle: String? = null,
+    val tutorialAttempt: Int = 1
 )
 
 data class WrongChallengeDetail(

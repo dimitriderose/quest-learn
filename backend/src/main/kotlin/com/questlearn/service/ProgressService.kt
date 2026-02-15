@@ -301,6 +301,14 @@ class ProgressService(
                         questCompletion.questId in day.foundationalQuestIds
                 }
 
+                // Handle tutorial completion separately — tutorials aren't in day quest lists
+                if (quest.isTutorial) {
+                    adaptivePathService.handleTutorialCompletion(
+                        studentId, quest.id,
+                        questCompletion.score, questCompletion.challengeResults, classId
+                    )
+                }
+
                 for (day in curriculumDays) {
                     val curriculum = curriculumRepository.findById(day.curriculumId).orElse(null)
                     if (curriculum?.curriculumType?.name == "ADAPTIVE") {

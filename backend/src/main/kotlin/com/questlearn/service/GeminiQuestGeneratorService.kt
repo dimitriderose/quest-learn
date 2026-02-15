@@ -189,6 +189,7 @@ TRACK-SPECIFIC ADDITIONS (ADVANCED):
             .replace("{{track}}", request.track)
             .replace("{{wrongChallenges}}", wrongChallengesJson)
             .replace("{{learningStyle}}", request.learningStyle ?: "NONE")
+            .replace("{{tutorialAttempt}}", request.tutorialAttempt.toString())
             .replace("{{questId}}", questId)
             .replace("{{themeGuidance}}", themeGuidance)
     }

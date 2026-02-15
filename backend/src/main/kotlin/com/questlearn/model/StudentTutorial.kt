@@ -47,6 +47,12 @@ data class StudentTutorial(
     @Column(name = "wrong_challenge_ids", columnDefinition = "jsonb", nullable = false)
     val wrongChallengeIds: List<String> = emptyList(),
 
+    @Column(name = "attempt_number", nullable = false)
+    val attemptNumber: Int = 1,
+
+    @Column(name = "parent_tutorial_id", length = 100)
+    val parentTutorialId: String? = null,
+
     @Column(name = "completed", nullable = false)
     val completed: Boolean = false,
 

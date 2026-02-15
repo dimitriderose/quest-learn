@@ -11,5 +11,6 @@ interface StudentTutorialRepository : JpaRepository<StudentTutorial, String> {
     fun findByStudentIdAndCurriculumIdAndCompleted(studentId: String, curriculumId: String, completed: Boolean): List<StudentTutorial>
     fun findByStudentIdAndQuestId(studentId: String, questId: String): StudentTutorial?
     fun findByCurriculumId(curriculumId: String): List<StudentTutorial>
+    fun findByTutorialQuestId(tutorialQuestId: String): StudentTutorial?
     fun deleteByCurriculumId(curriculumId: String)
 }
