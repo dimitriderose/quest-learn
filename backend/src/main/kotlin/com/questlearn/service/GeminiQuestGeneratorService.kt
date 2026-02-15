@@ -357,11 +357,14 @@ Analyze the topic and select the most appropriate:
             } catch (e: WebClientResponseException.TooManyRequests) {
                 lastException = e
                 if (attempt < maxRetries) {
-                    val delay = baseDelayMs * (1L shl (attempt - 1)) // exponential: 5s, 10s, 20s
-                    logger.warn("Gemini API rate limited (429). Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
+                    // Respect Retry-After header from Gemini if present, otherwise use exponential backoff
+                    val retryAfterHeader = e.headers.getFirst("Retry-After")
+                    val retryAfterMs = retryAfterHeader?.toLongOrNull()?.times(1000)
+                    val delay = retryAfterMs ?: (baseDelayMs * (1L shl (attempt - 1))) // fallback: 5s, 10s, 20s
+                    logger.warn("Gemini API rate limited (429). Retry-After header: ${retryAfterHeader ?: "none"}. Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
                     Thread.sleep(delay)
                 } else {
-                    logger.error("Gemini API rate limited (429). All $maxRetries retries exhausted.")
+                    logger.error("Gemini API rate limited (429). All $maxRetries retries exhausted. Retry-After: ${e.headers.getFirst("Retry-After") ?: "none"}")
                 }
             } catch (e: WebClientResponseException) {
                 // Other HTTP errors (500, 503, etc.) - retry with backoff

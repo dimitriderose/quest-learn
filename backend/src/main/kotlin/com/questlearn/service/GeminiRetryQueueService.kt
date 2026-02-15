@@ -21,8 +21,10 @@ class GeminiRetryQueueService(
 ) {
     private val logger = LoggerFactory.getLogger(GeminiRetryQueueService::class.java)
 
-    // Backoff schedule in minutes: 1, 5, 15, 30, 60, 120
-    private val backoffMinutes = listOf(1L, 5L, 15L, 30L, 60L, 120L)
+    // Backoff schedule in minutes — spans 24+ hours to survive daily quota resets
+    // Gemini RPD (requests per day) resets at midnight Pacific time
+    // Total span: ~58 hours across 7 attempts
+    private val backoffMinutes = listOf(1L, 5L, 30L, 120L, 480L, 1440L, 1440L)
 
     /**
      * Enqueue a failed Gemini request for later retry.
@@ -34,7 +36,7 @@ class GeminiRetryQueueService(
             status = "PENDING",
             payload = payload.filterValues { it != null }.mapValues { it.value!! },
             attempts = 0,
-            maxAttempts = 6,
+            maxAttempts = 7,
             nextRetryAt = Instant.now().plusSeconds(60), // first retry in 1 minute
             createdAt = Instant.now(),
             updatedAt = Instant.now()

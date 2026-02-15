@@ -36,7 +36,7 @@ data class GeminiRequestQueue(
     val attempts: Int = 0,
 
     @Column(name = "max_attempts", nullable = false)
-    val maxAttempts: Int = 6,
+    val maxAttempts: Int = 7,
 
     @Column(name = "next_retry_at", nullable = false)
     val nextRetryAt: Instant = Instant.now(),

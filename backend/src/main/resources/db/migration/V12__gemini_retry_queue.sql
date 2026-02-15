@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS gemini_request_queue (
     status VARCHAR(20) NOT NULL DEFAULT 'PENDING',  -- PENDING, PROCESSING, COMPLETED, FAILED
     payload JSONB NOT NULL,                         -- Serialized request context
     attempts INTEGER NOT NULL DEFAULT 0,
-    max_attempts INTEGER NOT NULL DEFAULT 6,
+    max_attempts INTEGER NOT NULL DEFAULT 7,
     next_retry_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     last_error TEXT,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
