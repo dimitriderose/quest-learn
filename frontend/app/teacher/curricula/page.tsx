@@ -84,29 +84,25 @@ export default function TeacherCurriculaPage() {
     if (!currentUser) return;
     setCurriculaLoading(true);
     try {
-      // Try enriched endpoint first for stats overlay
-      const enriched = await reportsApi.getEnrichedCurricula(currentUser.uid);
-      if (enriched.length > 0 && enriched[0].curriculum) {
-        setCurricula(enriched.map(e => e.curriculum));
-        const statsMap: Record<string, CurriculumStats> = {};
-        enriched.forEach(e => {
-          if (e.stats) statsMap[e.curriculum.id] = e.stats;
-        });
-        setCurriculaStats(statsMap);
-      } else {
-        // Fallback to non-enriched
-        const data = await listCurricula({ teacherId: currentUser.uid });
-        setCurricula(data);
+      // Always load curricula with the reliable endpoint first
+      const data = await listCurricula({ teacherId: currentUser.uid });
+      setCurricula(data);
+
+      // Then try to load enriched stats as a non-blocking overlay
+      try {
+        const enriched = await reportsApi.getEnrichedCurricula(currentUser.uid);
+        if (enriched.length > 0 && enriched[0].curriculum) {
+          const statsMap: Record<string, CurriculumStats> = {};
+          enriched.forEach(e => {
+            if (e.stats) statsMap[e.curriculum.id] = e.stats;
+          });
+          setCurriculaStats(statsMap);
+        }
+      } catch (statsError) {
+        console.error("Failed to load curriculum stats:", statsError);
       }
     } catch (error) {
       console.error("Failed to load curricula:", error);
-      // Fallback
-      try {
-        const data = await listCurricula({ teacherId: currentUser.uid });
-        setCurricula(data);
-      } catch (e) {
-        console.error("Failed to load curricula fallback:", e);
-      }
     } finally {
       setCurriculaLoading(false);
     }
@@ -121,12 +117,15 @@ export default function TeacherCurriculaPage() {
       if (selectedSubject !== "all") filters.subject = selectedSubject;
       if (selectedGrade !== "all") filters.gradeLevel = selectedGrade;
 
-      const [questsData, classesData] = await Promise.all([
+      // Load quests and classes independently so one failure doesn't block the other
+      const [questsResult, classesResult] = await Promise.allSettled([
         questApi.list(filters),
         classApi.getAll(),
       ]);
-      setQuests(questsData);
-      setClasses(classesData);
+      if (questsResult.status === "fulfilled") setQuests(questsResult.value);
+      else console.error("Failed to load quests:", questsResult.reason);
+      if (classesResult.status === "fulfilled") setClasses(classesResult.value);
+      else console.error("Failed to load classes:", classesResult.reason);
     } catch (error) {
       console.error("Failed to load quest data:", error);
     } finally {
