@@ -2,12 +2,16 @@ package com.questlearn.service
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.questlearn.dto.GenerateQuestRequest
+import com.questlearn.dto.GenerateTutorialRequest
+import com.questlearn.model.LearningTrack
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.WebClientResponseException
 import org.springframework.web.reactive.function.client.bodyToMono
 import reactor.core.publisher.Mono
 import java.nio.charset.StandardCharsets
@@ -17,15 +21,30 @@ class GeminiQuestGeneratorService(
     private val webClientBuilder: WebClient.Builder,
     private val objectMapper: ObjectMapper
 ) {
-    
+    private val logger = LoggerFactory.getLogger(GeminiQuestGeneratorService::class.java)
+
     @Value("\${questlearn.gemini.api-key}")
     private lateinit var geminiApiKey: String
     
     private val geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent"
     
-    // Load prompt template once at startup
+    // Load prompt templates once at startup
     private val promptTemplate: String by lazy {
         ClassPathResource("prompts/quest-generation-prompt.txt")
+            .inputStream
+            .readBytes()
+            .toString(StandardCharsets.UTF_8)
+    }
+
+    private val diagnosticPromptTemplate: String by lazy {
+        ClassPathResource("prompts/diagnostic-quest-prompt.txt")
+            .inputStream
+            .readBytes()
+            .toString(StandardCharsets.UTF_8)
+    }
+
+    private val tutorialPromptTemplate: String by lazy {
+        ClassPathResource("prompts/tutorial-generation-prompt.txt")
             .inputStream
             .readBytes()
             .toString(StandardCharsets.UTF_8)
@@ -48,6 +67,133 @@ class GeminiQuestGeneratorService(
         return questHtml
     }
     
+    /**
+     * Generate a diagnostic assessment quest spanning foundational through advanced difficulty.
+     */
+    fun generateDiagnosticQuest(request: GenerateQuestRequest): String {
+        val prompt = buildDiagnosticPrompt(request)
+        val geminiResponse = callGeminiAPI(prompt)
+        val questHtml = extractHtmlFromResponse(geminiResponse)
+
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated diagnostic HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+
+        return questHtml
+    }
+
+    /**
+     * Generate a track-specific quest with difficulty calibrated for the given learning track.
+     */
+    fun generateTrackQuest(request: GenerateQuestRequest, track: LearningTrack): String {
+        val trackDifficulty = when (track) {
+            LearningTrack.ADVANCED -> "advanced"
+            LearningTrack.GRADE_LEVEL -> "grade-level"
+            LearningTrack.FOUNDATIONAL -> "foundational"
+        }
+
+        val trackAdditions = when (track) {
+            LearningTrack.FOUNDATIONAL -> """
+TRACK-SPECIFIC ADDITIONS (FOUNDATIONAL):
+- Break concepts into smaller, more manageable steps
+- Provide more visual scaffolding and concrete examples
+- Use simpler language and shorter sentences
+- Include more worked examples before asking students to try
+- Add extra encouragement and positive reinforcement
+- Use manipulatives and visual models (fraction bars, number lines, diagrams)
+"""
+            LearningTrack.GRADE_LEVEL -> "" // Standard prompt, no additions
+            LearningTrack.ADVANCED -> """
+TRACK-SPECIFIC ADDITIONS (ADVANCED):
+- Include deeper analysis and real-world applications
+- Require multi-step reasoning and problem synthesis
+- Add extension challenges that go beyond grade level
+- Use more complex scenarios and authentic problems
+- Reduce scaffolding — expect students to make connections independently
+- Include open-ended or creative problem-solving elements
+"""
+        }
+
+        val modifiedRequest = request.copy(difficulty = trackDifficulty)
+        val prompt = buildQuestPrompt(modifiedRequest) + "\n\n" + trackAdditions
+
+        // Retry up to 2 times if HTML is truncated
+        var lastError: Exception? = null
+        for (attempt in 1..2) {
+            try {
+                val geminiResponse = callGeminiAPI(prompt)
+                val questHtml = extractHtmlFromResponse(geminiResponse)
+
+                if (!questHtml.trim().endsWith("</html>")) {
+                    throw RuntimeException("Generated track quest HTML is incomplete (truncated at ${questHtml.length} chars, attempt $attempt)")
+                }
+
+                return questHtml
+            } catch (e: Exception) {
+                lastError = e
+                if (attempt < 2) {
+                    Thread.sleep(2000) // Brief pause before retry
+                }
+            }
+        }
+
+        throw lastError ?: RuntimeException("Failed to generate track quest after retries")
+    }
+
+    /**
+     * Generate a personalized remediation tutorial for concepts a student got wrong.
+     */
+    fun generateTutorial(request: GenerateTutorialRequest): String {
+        val prompt = buildTutorialPrompt(request)
+        val geminiResponse = callGeminiAPI(prompt)
+        val questHtml = extractHtmlFromResponse(geminiResponse)
+
+        if (!questHtml.trim().endsWith("</html>")) {
+            throw RuntimeException("Generated tutorial HTML is incomplete (truncated at ${questHtml.length} chars)")
+        }
+
+        return questHtml
+    }
+
+    private fun buildDiagnosticPrompt(request: GenerateQuestRequest): String {
+        val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
+        val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
+        val questId = "diag_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        val totalChallenges = (8..10).random()
+
+        return diagnosticPromptTemplate
+            .replace("{{topic}}", request.topic)
+            .replace("{{subject}}", request.subject)
+            .replace("{{gradeLevel}}", request.gradeLevel.toString())
+            .replace("{{durationMinutes}}", request.durationMinutes.toString())
+            .replace("{{standards}}", request.standards.joinToString(", "))
+            .replace("{{questId}}", questId)
+            .replace("{{themeGuidance}}", themeGuidance)
+            .replace("{{mechanicGuidance}}", mechanicGuidance)
+            .replace("{{totalChallenges}}", totalChallenges.toString())
+    }
+
+    private fun buildTutorialPrompt(request: GenerateTutorialRequest): String {
+        val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
+        val questId = "tut_${request.topic.lowercase().replace(Regex("[^a-z0-9]+"), "_").take(20)}_${System.currentTimeMillis().toString().takeLast(6)}"
+        val wrongChallengesJson = try {
+            objectMapper.writeValueAsString(request.wrongChallenges)
+        } catch (e: Exception) {
+            "[]"
+        }
+
+        return tutorialPromptTemplate
+            .replace("{{topic}}", request.topic)
+            .replace("{{subject}}", request.subject)
+            .replace("{{gradeLevel}}", request.gradeLevel.toString())
+            .replace("{{track}}", request.track)
+            .replace("{{wrongChallenges}}", wrongChallengesJson)
+            .replace("{{learningStyle}}", request.learningStyle ?: "NONE")
+            .replace("{{tutorialAttempt}}", request.tutorialAttempt.toString())
+            .replace("{{questId}}", questId)
+            .replace("{{themeGuidance}}", themeGuidance)
+    }
+
     private fun buildQuestPrompt(request: GenerateQuestRequest): String {
         val themeGuidance = getThemeGuidance(request.gradeLevel, request.topic, request.subject)
         val mechanicGuidance = getMechanicGuidance(request.subject, request.topic)
@@ -163,12 +309,23 @@ Analyze the topic and select the most appropriate:
         }
     }
     
+    /**
+     * Public wrapper for calling Gemini API with a raw prompt.
+     * Used by AdaptivePathService for topic suggestions.
+     */
+    fun callGeminiAPIPublic(prompt: String): String {
+        return callGeminiAPI(prompt)
+    }
+
     private fun callGeminiAPI(prompt: String): String {
+        val maxRetries = 4
+        val baseDelayMs = 5000L // 5s, 10s, 20s, 40s backoff
+
         val webClient = webClientBuilder
             .baseUrl(geminiApiUrl)
             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
             .build()
-        
+
         val requestBody = mapOf(
             "contents" to listOf(
                 mapOf(
@@ -185,15 +342,47 @@ Analyze the topic and select the most appropriate:
                 "maxOutputTokens" to 64000
             )
         )
-        
-        val response = webClient.post()
-            .uri { it.queryParam("key", geminiApiKey).build() }
-            .bodyValue(requestBody)
-            .retrieve()
-            .bodyToMono<Map<String, Any>>()
-            .block() ?: throw RuntimeException("Failed to call Gemini API")
-        
-        return extractTextFromResponse(response)
+
+        var lastException: Exception? = null
+
+        for (attempt in 1..maxRetries) {
+            try {
+                val response = webClient.post()
+                    .uri { it.queryParam("key", geminiApiKey).build() }
+                    .bodyValue(requestBody)
+                    .retrieve()
+                    .bodyToMono<Map<String, Any>>()
+                    .block() ?: throw RuntimeException("Failed to call Gemini API")
+
+                return extractTextFromResponse(response)
+            } catch (e: WebClientResponseException.TooManyRequests) {
+                lastException = e
+                if (attempt < maxRetries) {
+                    // Respect Retry-After header from Gemini if present, otherwise use exponential backoff
+                    val retryAfterHeader = e.headers.getFirst("Retry-After")
+                    val retryAfterMs = retryAfterHeader?.toLongOrNull()?.times(1000)
+                    val delay = retryAfterMs ?: (baseDelayMs * (1L shl (attempt - 1))) // fallback: 5s, 10s, 20s
+                    logger.warn("Gemini API rate limited (429). Retry-After header: ${retryAfterHeader ?: "none"}. Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
+                    Thread.sleep(delay)
+                } else {
+                    logger.error("Gemini API rate limited (429). All $maxRetries retries exhausted. Retry-After: ${e.headers.getFirst("Retry-After") ?: "none"}")
+                }
+            } catch (e: WebClientResponseException) {
+                // Other HTTP errors (500, 503, etc.) - retry with backoff
+                lastException = e
+                if (attempt < maxRetries && e.statusCode.is5xxServerError) {
+                    val delay = baseDelayMs * (1L shl (attempt - 1))
+                    logger.warn("Gemini API error ${e.statusCode}. Retrying in ${delay}ms (attempt $attempt/$maxRetries)")
+                    Thread.sleep(delay)
+                } else {
+                    throw e
+                }
+            } catch (e: Exception) {
+                throw e // Non-HTTP errors propagate immediately
+            }
+        }
+
+        throw lastException ?: RuntimeException("Gemini API call failed after $maxRetries retries")
     }
     
     @Suppress("UNCHECKED_CAST")

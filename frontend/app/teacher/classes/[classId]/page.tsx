@@ -6,14 +6,16 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { ArrowLeft, Copy, UserPlus, Mail, Calendar, Activity, X } from "lucide-react";
+import { ArrowLeft, Copy, UserPlus, Mail, Calendar, Activity, X, BookOpen, TrendingUp } from "lucide-react";
 import { classApi, ClassDetailsDto } from "@/lib/api/classes";
+import { reportsApi, EnrichedClassDetails } from "@/lib/api/reports";
 import Link from "next/link";
 
 export default function ClassDetailsPage() {
   const params = useParams();
   const classId = params.classId as string;
   const [classDetails, setClassDetails] = useState<ClassDetailsDto | null>(null);
+  const [enrichedDetails, setEnrichedDetails] = useState<EnrichedClassDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -24,6 +26,14 @@ export default function ClassDetailsPage() {
     try {
       const data = await classApi.getDetails(classId);
       setClassDetails(data);
+
+      // Also load enriched data for curriculum assignments + student progress
+      try {
+        const enriched = await reportsApi.getEnrichedClassDetails(classId);
+        setEnrichedDetails(enriched);
+      } catch (e) {
+        console.error('Failed to load enriched class details:', e);
+      }
     } catch (err: any) {
       console.error('Failed to load class details:', err);
       setError(err.response?.data?.message || 'Failed to load class details');
@@ -109,6 +119,35 @@ export default function ClassDetailsPage() {
               </div>
             </div>
           </Card>
+          {/* Assigned Curricula Section */}
+          {enrichedDetails?.assignedCurricula && enrichedDetails.assignedCurricula.length > 0 && (
+            <div className="mb-8">
+              <h2 className="font-merriweather text-xl font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                <BookOpen className="w-5 h-5" />
+                Assigned Curricula ({enrichedDetails.assignedCurricula.length})
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {enrichedDetails.assignedCurricula.map((curr) => (
+                  <Card key={curr.curriculumId} className="p-4">
+                    <Link href={`/teacher/curricula/${curr.curriculumId}`} className="block">
+                      <h3 className="font-semibold text-gray-900 dark:text-white mb-1">{curr.title}</h3>
+                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full">{curr.subject}</span>
+                      <div className="mt-3">
+                        <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+                          <span>{curr.studentCount} {curr.studentCount === 1 ? 'student' : 'students'}</span>
+                          <span>{curr.averageProgress}% avg progress</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div className="bg-blue-500 h-2 rounded-full transition-all" style={{ width: `${curr.averageProgress}%` }} />
+                        </div>
+                      </div>
+                    </Link>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="font-merriweather text-2xl font-bold text-gray-900 dark:text-white">Students ({classDetails.students?.length || 0})</h2>
@@ -136,6 +175,24 @@ export default function ClassDetailsPage() {
                           <div className="flex items-center gap-1"><Calendar className="w-3 h-3" /><span>Joined {new Date(student.enrolledAt).toLocaleDateString()}</span></div>
                           {student.lastActive && (<div className="flex items-center gap-1"><Activity className="w-3 h-3" /><span>Active {new Date(student.lastActive).toLocaleDateString()}</span></div>)}
                         </div>
+                        {/* Mini curriculum progress bars */}
+                        {enrichedDetails?.studentProgress && (() => {
+                          const sp = enrichedDetails.studentProgress.find(s => s.studentId === student.uid);
+                          if (!sp || sp.curricula.length === 0) return null;
+                          return (
+                            <div className="mt-3 space-y-1.5">
+                              {sp.curricula.map(c => (
+                                <div key={c.curriculumId} className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-28 shrink-0" title={c.curriculumTitle}>{c.curriculumTitle}</span>
+                                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(Math.max(c.progressPercentage || 0, 0), 100)}%` }} />
+                                  </div>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 w-12 shrink-0 text-right">{Math.round(c.averageScore || 0)}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   </Card>

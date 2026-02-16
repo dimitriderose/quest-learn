@@ -3,6 +3,8 @@ import { Fredoka, Nunito, Merriweather } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AuthProvider } from "@/lib/contexts/AuthContext";
+import { NotificationProvider } from "@/lib/contexts/NotificationContext";
+import { Toaster } from "sonner";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -40,7 +42,10 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <AuthProvider>
-            {children}
+            <NotificationProvider>
+              {children}
+              <Toaster position="top-right" richColors closeButton />
+            </NotificationProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

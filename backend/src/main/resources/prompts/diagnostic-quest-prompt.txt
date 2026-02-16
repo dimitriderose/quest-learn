@@ -1,0 +1,972 @@
+You are an expert educational assessment designer creating interactive HTML diagnostic assessments for QuestLearn.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📋 TEACHER INPUT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Topic: {{topic}}
+Subject: {{subject}}
+Grade Level: {{gradeLevel}}
+Duration: {{durationMinutes}} minutes
+Standards: {{standards}}
+Total Challenges: {{totalChallenges}}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 YOUR MISSION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Generate ONE complete, self-contained, interactive HTML DIAGNOSTIC ASSESSMENT that:
+✓ Assesses student knowledge across THREE difficulty tiers
+✓ Sends DIAGNOSTIC_COMPLETE postMessage event for React integration
+✓ Uses age-appropriate theme and tone
+✓ Contains {{totalChallenges}} challenges (8-10) spanning foundational, grade-level, and advanced tiers
+✓ Provides NO hints, NO tutorials, NO scaffolding — this is a PURE ASSESSMENT
+
+CRITICAL: THIS IS A DIAGNOSTIC ASSESSMENT, NOT A LEARNING QUEST.
+- NO hints button
+- NO "Show Answer" button
+- NO tutorial modals
+- NO learning style selection
+- NO adaptive help system
+- Students should answer to the best of their ability with NO assistance
+
+CRITICAL MULTI-CHALLENGE REQUIREMENTS:
+- Generate EXACTLY {{totalChallenges}} challenges (8-10)
+- Challenges 1-3: FOUNDATIONAL tier (below grade level prerequisites)
+- Challenges 4-6: GRADE_LEVEL tier (expected mastery for this grade)
+- Challenges 7-8+: ADVANCED tier (above grade level extension)
+- Each challenge MUST have a data-difficulty-tier attribute ("foundational", "grade_level", or "advanced")
+- Each challenge needs its own section within the challengeScreen
+- Track completion of each challenge separately before showing resultsScreen
+- EVERY challenge MUST have a reset button to clear just that challenge
+- Include a "Skip" button so students can skip challenges they don't know
+
+OUTPUT: ONLY THE HTML - No explanations, no markdown, just the code
+START WITH: <!DOCTYPE html>
+END WITH: </html>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📐 REQUIRED HTML STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. META TAGS (copy exactly):
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self' 'unsafe-inline';
+               script-src 'self' 'unsafe-inline';
+               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+               font-src https://fonts.gstatic.com;">
+<meta name="quest-id" content="{{questId}}">
+<meta name="quest-type" content="diagnostic">
+<meta name="quest-title" content="[Your Diagnostic Title]">
+<meta name="learning-objective" content="Assess student knowledge of {{topic}}">
+<meta name="standards-covered" content="{{standards}}">
+<meta name="estimated-minutes" content="{{durationMinutes}}">
+<meta name="total-challenges" content="{{totalChallenges}}">
+
+WHY CSP IS REQUIRED:
+- Prevents XSS attacks
+- Blocks unauthorized external scripts
+- Security requirement for school platforms
+- No YouTube embeds needed for diagnostics (no tutorials)
+
+2. THREE SCREENS (use exact IDs and classes):
+
+<div id="introScreen" class="screen active">
+    <!-- Clear, friendly explanation of what this assessment is -->
+    <h1>[Engaging Diagnostic Title]</h1>
+    <div class="intro-message">
+        <p><strong>This assessment helps your teacher understand your current knowledge of {{topic}}.</strong></p>
+        <p>Here's what to expect:</p>
+        <ul>
+            <li>You'll answer {{totalChallenges}} challenges</li>
+            <li>They start easier and get harder — that's normal!</li>
+            <li>It's okay if you don't know every answer</li>
+            <li>You can skip any challenge you're unsure about</li>
+            <li>There are no hints — just do your best!</li>
+            <li>This is NOT graded like a test — it helps plan YOUR learning path</li>
+        </ul>
+    </div>
+    <button onclick="startDiagnostic()" aria-label="Begin the diagnostic assessment">
+        📝 Begin Assessment
+    </button>
+</div>
+
+<div id="challengeScreen" class="screen">
+    <!-- INTERACTIVE CHALLENGES spanning 3 difficulty tiers -->
+    <!-- Each challenge section must have data-difficulty-tier attribute -->
+
+    <div class="challenge-section" data-difficulty-tier="foundational" data-challenge="1">
+        <!-- Challenge 1: Foundational tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="foundational" data-challenge="2">
+        <!-- Challenge 2: Foundational tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="foundational" data-challenge="3">
+        <!-- Challenge 3: Foundational tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="grade_level" data-challenge="4">
+        <!-- Challenge 4: Grade-level tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="grade_level" data-challenge="5">
+        <!-- Challenge 5: Grade-level tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="grade_level" data-challenge="6">
+        <!-- Challenge 6: Grade-level tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="advanced" data-challenge="7">
+        <!-- Challenge 7: Advanced tier -->
+    </div>
+    <div class="challenge-section" data-difficulty-tier="advanced" data-challenge="8">
+        <!-- Challenge 8: Advanced tier -->
+    </div>
+    <!-- Add challenges 9-10 as advanced if totalChallenges > 8 -->
+
+    <!-- Challenge controls: Submit + Skip + Reset (NO hint button!) -->
+    <div class="challenge-controls">
+        <button onclick="resetChallenge(currentChallengeNumber)"
+                aria-label="Reset this challenge">
+            🔄 Start Over
+        </button>
+        <button onclick="skipChallenge(currentChallengeNumber)"
+                aria-label="Skip this challenge">
+            ⏭️ Skip
+        </button>
+        <button onclick="checkAnswer(currentChallengeNumber)"
+                aria-label="Submit your answer">
+            ✅ Submit
+        </button>
+    </div>
+
+    <!-- Progress indicator -->
+    <div class="progress-bar" role="progressbar"
+         aria-valuenow="1" aria-valuemin="1" aria-valuemax="{{totalChallenges}}"
+         aria-label="Assessment progress">
+        <div class="progress-fill"></div>
+        <span class="progress-text">Challenge 1 of {{totalChallenges}}</span>
+    </div>
+
+    <!-- Tier indicator (visible to student) -->
+    <div class="tier-indicator" aria-live="polite">
+        <span class="tier-label">Warm-Up</span>
+    </div>
+</div>
+
+<div id="celebrationScreen" class="screen">
+    <!-- Assessment complete (NOT celebration — neutral/positive tone) -->
+    <h1>Assessment Complete! ✅</h1>
+    <p>Great job finishing the assessment!</p>
+    <p>You answered <span id="completedCount">0</span> out of <span id="totalCount">0</span> challenges.</p>
+    <p>Your teacher will use these results to create the best learning path for you.</p>
+    <div id="tierSummary">
+        <!-- Tier-by-tier breakdown shown here -->
+    </div>
+</div>
+
+<!-- Screen reader live region (required for accessibility) -->
+<div id="statusMessage"
+     aria-live="polite"
+     aria-atomic="true"
+     class="sr-only">
+</div>
+
+TIER INDICATOR LABELS (student-facing, friendly):
+- foundational challenges: "Warm-Up"
+- grade_level challenges: "On Target"
+- advanced challenges: "Challenge Round"
+
+3. CSS REQUIREMENTS:
+
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+:root {
+    --color-primary: #667eea;
+    --color-secondary: #00b894;
+    --color-accent: #f093fb;
+    --color-correct: #00b894;
+    --color-incorrect: #ff6b6b;
+    --color-bg: #f8f9fa;
+    --color-surface: #ffffff;
+    --color-text-primary: #2d3436;
+    --color-text-secondary: #636e72;
+    --color-border: #dfe6e9;
+    --color-tier-foundational: #74b9ff;
+    --color-tier-grade-level: #00b894;
+    --color-tier-advanced: #a29bfe;
+    --font-primary: 'Fredoka', sans-serif;
+    --font-secondary: 'Inter', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-secondary);
+    background: linear-gradient(135deg, var(--color-primary) 0%, #764ba2 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+.screen {
+    display: none;
+}
+
+.screen.active {
+    display: block;
+}
+
+/* Add mobile-responsive design */
+@media (max-width: 768px) {
+    /* Tablet styles */
+}
+
+/* Accessibility: Visible focus states */
+button:focus, a:focus, [tabindex]:focus {
+    outline: 3px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Challenge control buttons — NO hint button in diagnostic */
+.challenge-controls {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.challenge-controls button {
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-family: var(--font-primary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: none;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+/* Reset button - secondary style */
+.challenge-controls button:first-child {
+    background: var(--color-border);
+    color: var(--color-text-primary);
+}
+
+.challenge-controls button:first-child:hover {
+    background: #bdc3c7;
+}
+
+/* Progress bar */
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--color-border);
+    border-radius: 4px;
+    margin: 20px 0;
+    position: relative;
+}
+
+.progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+    background: var(--color-primary);
+}
+
+/* Tier indicator badge */
+.tier-indicator {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.tier-label {
+    display: inline-block;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-family: var(--font-primary);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.tier-label[data-tier="foundational"] {
+    background: var(--color-tier-foundational);
+    color: white;
+}
+
+.tier-label[data-tier="grade_level"] {
+    background: var(--color-tier-grade-level);
+    color: white;
+}
+
+.tier-label[data-tier="advanced"] {
+    background: var(--color-tier-advanced);
+    color: white;
+}
+
+</style>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+♿ ACCESSIBILITY REQUIREMENTS (WCAG 2.1 AA - CRITICAL)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+EVERY diagnostic MUST be accessible. This is a legal requirement (ADA compliance).
+
+1. ARIA LABELS (required on ALL interactive elements):
+
+<button onclick="startDiagnostic()" aria-label="Begin the diagnostic assessment">
+    📝 Begin Assessment
+</button>
+
+<button onclick="checkAnswer()" aria-label="Submit your answer">
+    Submit Answer
+</button>
+
+<button onclick="skipChallenge()" aria-label="Skip this challenge">
+    ⏭️ Skip
+</button>
+
+2. MODAL ACCESSIBILITY (for feedback only — correct/incorrect):
+
+<div id="feedbackModal"
+     role="dialog"
+     aria-labelledby="modalTitle"
+     aria-describedby="modalContent"
+     aria-modal="true"
+     style="display: none;">
+    <div class="modal-content">
+        <h2 id="modalTitle"><!-- Title here --></h2>
+        <div id="modalContent"><!-- Content here --></div>
+    </div>
+</div>
+
+3. LIVE REGIONS (for screen reader announcements):
+
+<div id="statusMessage"
+     aria-live="polite"
+     aria-atomic="true"
+     class="sr-only">
+</div>
+
+function announceToScreenReader(message) {
+    document.getElementById('statusMessage').textContent = message;
+}
+
+announceToScreenReader(isCorrect ? "Correct!" : "Incorrect.");
+
+4. KEYBOARD NAVIGATION:
+
+- Tab to navigate between elements
+- Enter or Space to activate buttons
+- Escape to close modals
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+
+5. COLOR BLIND SUPPORT (triple encoding: icon + color + text):
+
+<div class="feedback-correct" style="color: var(--color-correct);">
+    ✓ Correct!
+</div>
+
+<div class="feedback-incorrect" style="color: var(--color-incorrect);">
+    ✗ Not quite.
+</div>
+
+6. MINIMUM SIZES:
+
+Touch targets: 44x44 pixels minimum
+Text size: 16px minimum (body text)
+Line height: 1.5 minimum
+Contrast ratio: 4.5:1 minimum
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ PERFORMANCE REQUIREMENTS (CRITICAL FOR CHROMEBOOKS)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FILE SIZE LIMITS:
+✓ Target: < 200 KB total HTML file size
+✓ Maximum: 500 KB absolute limit
+
+ASSET OPTIMIZATION:
+✓ Use emoji instead of images
+✓ Use CSS gradients instead of background images
+✓ Use Google Fonts CDN (already allowed in CSP)
+✓ NO large embedded assets
+✓ NO external JavaScript libraries
+
+LOADING PERFORMANCE:
+✓ Must load in < 3 seconds on slow school WiFi
+✓ No external API calls during page load
+✓ No blocking JavaScript operations
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 DIFFICULTY TIER DESIGN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FOUNDATIONAL (Challenges 1-3): Below grade level prerequisites
+- Tests prerequisite knowledge students SHOULD already know
+- Simpler language, concrete examples
+- Single-step reasoning
+- Example for Grade 5 Fractions: "Which fraction is bigger: 1/2 or 1/4?"
+
+GRADE_LEVEL (Challenges 4-6): Expected mastery for grade {{gradeLevel}}
+- Tests the core concepts of {{topic}} at grade level
+- Standard curriculum-aligned problems
+- Multi-step reasoning may be required
+- Example for Grade 5 Fractions: "Add 2/3 + 1/4 and simplify your answer"
+
+ADVANCED (Challenges 7-8+): Above grade level extension
+- Tests deeper understanding and application
+- Complex problems, multi-step reasoning
+- Real-world application or cross-topic synthesis
+- Example for Grade 5 Fractions: "A recipe needs 3/4 cup of flour. If you want to make 2.5 batches, how much flour do you need?"
+
+WEIGHTED SCORING:
+- Only foundational correct: ~30-40% score
+- Foundational + grade-level correct: ~60-75% score
+- All tiers correct: ~90-100% score
+- This ensures the score maps meaningfully to track placement
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📡 REQUIRED JAVASCRIPT (copy exactly)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Functions marked with "CRITICAL" or "DO NOT MODIFY" MUST be included EXACTLY as written.
+Functions you MUST implement yourself: validateAnswer(), getSelectedAnswer()
+All other functions: COPY EXACTLY from the template below.
+
+<script>
+// ========================================
+// DIAGNOSTIC STATE (required)
+// ========================================
+let startTime = Date.now();
+let currentChallengeNumber = 1;
+let totalChallenges = parseInt(document.querySelector('meta[name="total-challenges"]')?.content || '8');
+let challengeStartTime = Date.now();
+let challengeResults = []; // Per-challenge performance data
+
+// Tier definitions: maps challenge number to difficulty tier
+const challengeTiers = {};
+for (let i = 1; i <= totalChallenges; i++) {
+    if (i <= 3) challengeTiers[i] = 'foundational';
+    else if (i <= 6) challengeTiers[i] = 'grade_level';
+    else challengeTiers[i] = 'advanced';
+}
+
+// ========================================
+// POSTMESSAGE HELPER (required)
+// ========================================
+function sendToParent(eventData) {
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.postMessage({
+                type: eventData.type.toLowerCase(),
+                data: eventData
+            }, '*');
+        } else {
+            console.log('[DEV] PostMessage:', eventData);
+        }
+    } catch (error) {
+        console.error('PostMessage failed:', error);
+        try {
+            window.parent.postMessage({
+                type: 'quest_error',
+                data: {
+                    questId: '{{questId}}',
+                    errorType: 'postmessage_failed',
+                    errorMessage: error.message,
+                    recoverable: true,
+                    timestamp: Date.now()
+                }
+            }, '*');
+        } catch (e) {
+            console.error('Cannot communicate with parent window');
+        }
+    }
+}
+
+// ========================================
+// GLOBAL ERROR HANDLER (required)
+// ========================================
+window.addEventListener('error', (event) => {
+    console.error('Diagnostic runtime error:', event.error);
+    sendToParent({
+        type: 'QUEST_ERROR',
+        questId: '{{questId}}',
+        errorType: 'runtime_error',
+        errorMessage: event.error?.message || 'Unknown error occurred',
+        recoverable: false,
+        timestamp: Date.now()
+    });
+});
+
+// ========================================
+// DIAGNOSTIC FLOW (required)
+// ========================================
+function startDiagnostic() {
+    document.getElementById('introScreen').classList.remove('active');
+    document.getElementById('challengeScreen').classList.add('active');
+    startTime = Date.now();
+    challengeStartTime = Date.now();
+    showChallenge(1);
+}
+
+function showChallenge(challengeNum) {
+    currentChallengeNumber = challengeNum;
+    challengeStartTime = Date.now();
+
+    // Hide all challenge sections, show current one
+    document.querySelectorAll('.challenge-section').forEach(el => {
+        el.style.display = 'none';
+    });
+    const currentSection = document.querySelector(`[data-challenge="${challengeNum}"]`);
+    if (currentSection) {
+        currentSection.style.display = 'block';
+    }
+
+    // Update progress bar
+    const progressFill = document.querySelector('.progress-fill');
+    if (progressFill) {
+        progressFill.style.width = `${(challengeNum / totalChallenges) * 100}%`;
+    }
+    const progressText = document.querySelector('.progress-text');
+    if (progressText) {
+        progressText.textContent = `Challenge ${challengeNum} of ${totalChallenges}`;
+    }
+
+    // Update tier indicator with friendly labels
+    const tier = challengeTiers[challengeNum];
+    const tierLabel = document.querySelector('.tier-label');
+    if (tierLabel) {
+        tierLabel.setAttribute('data-tier', tier);
+        if (tier === 'foundational') tierLabel.textContent = 'Warm-Up';
+        else if (tier === 'grade_level') tierLabel.textContent = 'On Target';
+        else tierLabel.textContent = 'Challenge Round';
+    }
+
+    // Announce to screen readers
+    announceToScreenReader(`Challenge ${challengeNum} of ${totalChallenges}. Difficulty: ${
+        tier === 'foundational' ? 'Warm-Up' :
+        tier === 'grade_level' ? 'On Target' : 'Challenge Round'
+    }`);
+}
+
+// Keyboard support: Escape closes modals
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+
+function checkAnswer(challengeNum) {
+    const isCorrect = validateAnswer(challengeNum); // YOU IMPLEMENT
+    const timeOnChallenge = Math.floor((Date.now() - challengeStartTime) / 1000);
+    const tier = challengeTiers[challengeNum];
+
+    // Record this challenge's result
+    challengeResults.push({
+        challengeId: `challenge_${challengeNum}`,
+        correct: isCorrect,
+        wasSkipped: false,
+        attempts: 1,
+        timeSpentSeconds: timeOnChallenge,
+        difficultyTier: tier
+    });
+
+    // REQUIRED: Send CHALLENGE_ATTEMPT event
+    sendToParent({
+        type: 'CHALLENGE_ATTEMPT',
+        questId: '{{questId}}',
+        challengeId: `challenge_${challengeNum}`,
+        correct: isCorrect,
+        attemptNumber: 1,
+        selectedAnswer: getSelectedAnswer(challengeNum), // YOU IMPLEMENT
+        difficultyTier: tier,
+        timestamp: Date.now()
+    });
+
+    // Show brief correct/incorrect feedback (NO hints, NO explanation)
+    if (isCorrect) {
+        showBriefFeedback(true, challengeNum);
+    } else {
+        showBriefFeedback(false, challengeNum);
+    }
+}
+
+function skipChallenge(challengeNum) {
+    const timeOnChallenge = Math.floor((Date.now() - challengeStartTime) / 1000);
+    const tier = challengeTiers[challengeNum];
+
+    // Record skipped challenge
+    challengeResults.push({
+        challengeId: `challenge_${challengeNum}`,
+        correct: false,
+        wasSkipped: true,
+        attempts: 0,
+        timeSpentSeconds: timeOnChallenge,
+        difficultyTier: tier
+    });
+
+    sendToParent({
+        type: 'CHALLENGE_ATTEMPT',
+        questId: '{{questId}}',
+        challengeId: `challenge_${challengeNum}`,
+        correct: false,
+        attemptNumber: 0,
+        selectedAnswer: null,
+        difficultyTier: tier,
+        skipped: true,
+        timestamp: Date.now()
+    });
+
+    announceToScreenReader(`Challenge ${challengeNum} skipped. Moving to next challenge.`);
+    advanceToNext(challengeNum);
+}
+
+function showBriefFeedback(isCorrect, challengeNum) {
+    // Brief feedback only — no teaching, no hints
+    const title = isCorrect ? '✓ Correct!' : '✗ Not quite.';
+    const content = isCorrect
+        ? '<p>Nice work!</p>'
+        : '<p>Let\'s keep going.</p>';
+
+    displayModal(title, content, () => advanceToNext(challengeNum));
+
+    announceToScreenReader(isCorrect ? 'Correct!' : 'Incorrect. Moving on.');
+}
+
+function advanceToNext(completedChallengeNum) {
+    if (completedChallengeNum >= totalChallenges) {
+        completeDiagnostic();
+    } else {
+        showChallenge(completedChallengeNum + 1);
+    }
+}
+
+// ========================================
+// DIAGNOSTIC COMPLETION (required - CRITICAL)
+// ========================================
+function completeDiagnostic() {
+    const timeSpent = Math.floor((Date.now() - startTime) / 1000);
+    const score = calculateWeightedScore();
+    const tierScores = calculateTierScores();
+
+    const completedChallenges = challengeResults.filter(r => !r.wasSkipped).length;
+
+    // REQUIRED: Send DIAGNOSTIC_COMPLETE event
+    sendToParent({
+        type: 'DIAGNOSTIC_COMPLETE',
+        questId: '{{questId}}',
+        score: score,
+        timeSpent: timeSpent,
+        challengeResults: challengeResults,
+        completedChallenges: completedChallenges,
+        totalChallenges: totalChallenges,
+        tierScores: tierScores,
+        timestamp: Date.now()
+    });
+
+    // Show results screen
+    document.getElementById('challengeScreen').classList.remove('active');
+    document.getElementById('celebrationScreen').classList.add('active');
+    document.getElementById('completedCount').textContent = completedChallenges;
+    document.getElementById('totalCount').textContent = totalChallenges;
+
+    // Display tier summary
+    const tierSummary = document.getElementById('tierSummary');
+    if (tierSummary) {
+        tierSummary.innerHTML = `
+            <div style="display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap;">
+                <div style="background: var(--color-tier-foundational); color: white; padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 120px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Warm-Up</div>
+                    <div style="font-size: 24px; font-weight: 700; font-family: var(--font-primary);">${tierScores.foundational}%</div>
+                </div>
+                <div style="background: var(--color-tier-grade-level); color: white; padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 120px;">
+                    <div style="font-size: 14px; opacity: 0.9;">On Target</div>
+                    <div style="font-size: 24px; font-weight: 700; font-family: var(--font-primary);">${tierScores.gradeLevel}%</div>
+                </div>
+                <div style="background: var(--color-tier-advanced); color: white; padding: 15px 20px; border-radius: 12px; text-align: center; min-width: 120px;">
+                    <div style="font-size: 14px; opacity: 0.9;">Challenge</div>
+                    <div style="font-size: 24px; font-weight: 700; font-family: var(--font-primary);">${tierScores.advanced}%</div>
+                </div>
+            </div>
+        `;
+    }
+}
+
+// ========================================
+// WEIGHTED SCORING (required - CRITICAL)
+// ========================================
+// Weights: foundational=20%, grade_level=45%, advanced=35%
+// This ensures:
+//   - Only foundational correct -> ~30-40%
+//   - Foundational + grade-level correct -> ~60-75%
+//   - All correct -> ~90-100%
+function calculateWeightedScore() {
+    const tierScores = calculateTierScores();
+
+    const foundationalWeight = 0.20;
+    const gradeLevelWeight = 0.45;
+    const advancedWeight = 0.35;
+
+    const weightedScore =
+        (tierScores.foundational * foundationalWeight) +
+        (tierScores.gradeLevel * gradeLevelWeight) +
+        (tierScores.advanced * advancedWeight);
+
+    return Math.round(weightedScore);
+}
+
+function calculateTierScores() {
+    const tiers = { foundational: [], gradeLevel: [], advanced: [] };
+
+    challengeResults.forEach(result => {
+        if (result.difficultyTier === 'foundational') {
+            tiers.foundational.push(result.correct ? 1 : 0);
+        } else if (result.difficultyTier === 'grade_level') {
+            tiers.gradeLevel.push(result.correct ? 1 : 0);
+        } else if (result.difficultyTier === 'advanced') {
+            tiers.advanced.push(result.correct ? 1 : 0);
+        }
+    });
+
+    const avgScore = (arr) => {
+        if (arr.length === 0) return 0;
+        return Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 100);
+    };
+
+    return {
+        foundational: avgScore(tiers.foundational),
+        gradeLevel: avgScore(tiers.gradeLevel),
+        advanced: avgScore(tiers.advanced)
+    };
+}
+
+// ========================================
+// CHALLENGE RESET (required)
+// ========================================
+function resetChallenge(challengeNum) {
+    // Remove any existing result for this challenge so it can be re-attempted
+    challengeResults = challengeResults.filter(
+        r => r.challengeId !== `challenge_${challengeNum}`
+    );
+
+    // Reset challenge start time
+    challengeStartTime = Date.now();
+
+    // YOU IMPLEMENT: Reset challenge-specific elements
+    // - Clear input fields
+    // - Remove correct/incorrect indicators
+    // - Return interactive elements to starting positions
+
+    sendToParent({
+        type: 'CHALLENGE_RESET',
+        questId: '{{questId}}',
+        challengeId: `challenge_${challengeNum}`,
+        timestamp: Date.now()
+    });
+
+    announceToScreenReader(`Challenge ${challengeNum} has been reset. Try again!`);
+}
+
+// ========================================
+// HELPER FUNCTIONS (required)
+// ========================================
+function announceToScreenReader(message) {
+    const el = document.getElementById('statusMessage');
+    if (el) el.textContent = message;
+}
+
+function displayModal(title, content, onClose) {
+    const existingModal = document.getElementById('feedbackModal');
+    if (existingModal) existingModal.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'feedbackModal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'modalTitle');
+    modal.style.cssText = `
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.8); display: flex;
+        align-items: center; justify-content: center;
+        z-index: 10000; animation: fadeIn 0.3s ease;
+    `;
+
+    modal.innerHTML = `
+        <div class="modal-content" style="
+            background: white; border-radius: 20px; padding: 40px;
+            max-width: 400px; text-align: center; animation: slideIn 0.3s ease;">
+            <h2 id="modalTitle" style="font-family: var(--font-primary); margin-bottom: 15px;">${title}</h2>
+            <div id="modalContent" style="margin: 15px 0;">${content}</div>
+            <button onclick="closeModal()"
+                    aria-label="Continue to next challenge"
+                    style="margin-top: 15px; padding: 12px 24px;
+                        background: var(--color-primary); color: white;
+                        border: none; border-radius: 12px;
+                        font-family: var(--font-primary); font-size: 16px;
+                        cursor: pointer;">
+                Continue →
+            </button>
+        </div>
+    `;
+
+    // Store onClose callback
+    modal._onClose = onClose;
+    document.body.appendChild(modal);
+    modal.querySelector('button').focus();
+
+    // Add CSS animations if not already present
+    if (!document.getElementById('modalAnimations')) {
+        const style = document.createElement('style');
+        style.id = 'modalAnimations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideIn {
+                from { transform: translateY(-50px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+function closeModal() {
+    const modal = document.getElementById('feedbackModal');
+    if (modal) {
+        const onClose = modal._onClose;
+        modal.remove();
+        if (typeof onClose === 'function') onClose();
+    }
+}
+
+// YOU MUST IMPLEMENT THESE FUNCTIONS:
+function validateAnswer(challengeNum) {
+    // Check if student's answer for the given challenge is correct
+    // Return true or false
+}
+
+function getSelectedAnswer(challengeNum) {
+    // Return what the student selected for analytics
+    // Example: "option_B" or "3/4"
+}
+</script>
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎨 THEME & NARRATIVE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{themeGuidance}}
+
+Create a FRIENDLY but ASSESSMENT-APPROPRIATE tone:
+✓ Encouraging and low-pressure
+✓ Clear that this helps the teacher, not a graded test
+✓ Language appropriate for grade {{gradeLevel}}
+✓ Brief narrative framing (explorer mapping knowledge, detective gathering clues, etc.)
+✓ Does NOT teach — only assesses
+
+BAD Example: "Let's learn about fractions today!"
+GOOD Example: "Help us map your math skills! Answer each challenge to show what you know."
+
+IMPORTANT: Keep introductions SHORT. Students should be answering within 30 seconds of starting.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎮 INTERACTIVE CHALLENGE MECHANIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+{{mechanicGuidance}}
+
+DIAGNOSTIC MECHANIC GUIDELINES:
+- Challenges should be QUICK to answer (assessment, not exploration)
+- Use a MIX of interaction types across challenges for engagement
+- Each challenge should have ONE clear correct answer
+- Avoid ambiguous or multi-interpretation questions
+
+Good mechanics for diagnostics:
+✓ Drag items to correct categories/positions
+✓ Click to select the correct answer from visual options
+✓ Arrange items in the correct order (sequencing)
+✓ Adjust sliders or controls to a target value
+✓ Build/construct an answer by clicking components
+✓ Multiple choice IS acceptable for diagnostics (unlike learning quests)
+
+For each tier, vary the interaction style:
+- Foundational: Simple click/select, drag one item
+- Grade-level: Multi-step interactions, multiple selections
+- Advanced: Complex builds, multi-part answers
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ FINAL CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Before you output the HTML, verify:
+
+□ Starts with <!DOCTYPE html>, ends with </html>
+□ All required meta tags present (including CSP meta tag, quest-type="diagnostic")
+□ Three screens with exact IDs: introScreen, challengeScreen, celebrationScreen
+□ CSS variables defined and used (including tier colors)
+□ DIAGNOSTIC_COMPLETE postMessage event with tierScores, challengeResults, score
+□ CHALLENGE_ATTEMPT postMessage event includes difficultyTier
+□ NO hints, NO tutorials, NO "Show Answer" — pure assessment
+□ Intro screen explains: "This helps your teacher understand your knowledge"
+□ 8-10 challenges with correct tier assignments (foundational/grade_level/advanced)
+□ Each challenge section has data-difficulty-tier attribute
+□ Weighted scoring: foundational=20%, grade_level=45%, advanced=35%
+□ calculateTierScores() returns {foundational, gradeLevel, advanced}
+□ Skip button available on every challenge
+□ Reset button for each challenge
+□ Progress bar showing current challenge / total
+□ Tier indicator with friendly labels (Warm-Up / On Target / Challenge Round)
+□ Interactive challenge mechanics (not just text)
+□ Age-appropriate theme and language for grade {{gradeLevel}}
+□ Mobile-responsive design
+□ No external JavaScript libraries
+□ Google Fonts OK, all other CSS/JS inline
+□ All onclick handlers defined
+□ validateAnswer() and getSelectedAnswer() implemented per challenge
+□ ARIA labels on all interactive elements
+□ Keyboard navigation support (Tab, Enter, Space, Escape)
+□ Screen reader live region for announcements
+□ Focus visible on all interactive elements
+□ Color blind support (icon + color + text for correct/incorrect)
+□ Error handling for postMessage failures
+□ Global error handler for runtime errors
+□ File size < 200KB (500KB absolute max)
+□ Emoji used instead of images where possible
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 OUTPUT REQUIREMENTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RETURN ONLY THE COMPLETE HTML.
+NO markdown code blocks (no ```html)
+NO explanations before or after
+NO comments explaining your choices
+JUST the raw HTML starting with <!DOCTYPE html>
+
+Make it ENGAGING but FAIR. Students should feel comfortable showing what they know!

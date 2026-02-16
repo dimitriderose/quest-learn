@@ -13,6 +13,7 @@ interface Student {
   totalXP?: number;
   completedQuests?: number;
   averageScore?: number;
+  tutorialStatus?: string | null;
 }
 
 interface StudentCardProps {
@@ -55,7 +56,31 @@ export function StudentCard({ student, onClick }: StudentCardProps) {
           <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 truncate">
             {student.currentQuest}
           </p>
-          
+
+          {/* Tutorial Status Badge */}
+          {student.tutorialStatus && (
+            <div className="mt-2">
+              {(student.tutorialStatus === "pending" || student.tutorialStatus === "generating") && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  Tutorial in Progress
+                </span>
+              )}
+              {student.tutorialStatus === "failed" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  Tutorial Failed
+                </span>
+              )}
+              {student.tutorialStatus === "exhausted" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                  Needs Intervention
+                </span>
+              )}
+            </div>
+          )}
+
           {/* XP and Quests Completed */}
           {(student.totalXP !== undefined || student.completedQuests !== undefined) && (
             <div className="mt-2 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">

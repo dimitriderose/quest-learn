@@ -1,20 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { DashboardHeader } from "@/components/teacher/dashboard/DashboardHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/contexts/AuthContext";
-import { 
-  User, 
-  Bell, 
-  Shield, 
+import { notificationPreferencesApi } from "@/lib/api/notificationPreferences";
+import { toast } from "sonner";
+import {
+  User,
+  Bell,
+  Shield,
   Palette,
   Mail,
   Globe,
   Save,
-  Trash2
+  Trash2,
+  Loader2
 } from "lucide-react";
 
 export default function TeacherSettingsPage() {
@@ -23,6 +26,21 @@ export default function TeacherSettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [weeklyReports, setWeeklyReports] = useState(true);
   const [studentUpdates, setStudentUpdates] = useState(false);
+  const [prefsLoading, setPrefsLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    notificationPreferencesApi.get(user.uid).then((prefs) => {
+      setEmailNotifications(prefs.emailEnabled);
+      setWeeklyReports(prefs.weeklyDigestEnabled);
+      setStudentUpdates(prefs.studentAchievementUpdates);
+    }).catch((e) => {
+      console.error('Failed to load notification preferences:', e);
+    }).finally(() => {
+      setPrefsLoading(false);
+    });
+  }, [user]);
 
   const tabs = [
     { id: "profile", label: "Profile", icon: User },
@@ -33,6 +51,24 @@ export default function TeacherSettingsPage() {
 
   const handleSave = () => {
     alert('Settings saved! (Backend integration pending)');
+  };
+
+  const handleSaveNotifications = async () => {
+    if (!user) return;
+    setSaving(true);
+    try {
+      await notificationPreferencesApi.update(user.uid, {
+        emailEnabled: emailNotifications,
+        weeklyDigestEnabled: weeklyReports,
+        studentAchievementUpdates: studentUpdates,
+      });
+      toast.success('Notification preferences saved');
+    } catch (e) {
+      console.error('Failed to save notification preferences:', e);
+      toast.error('Failed to save preferences');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -237,9 +273,9 @@ export default function TeacherSettingsPage() {
                     </div>
 
                     <div className="flex justify-end pt-6">
-                      <Button variant="primary" onClick={handleSave}>
-                        <Save className="w-5 h-5 mr-2" />
-                        Save Preferences
+                      <Button variant="primary" onClick={handleSaveNotifications} disabled={saving || prefsLoading}>
+                        {saving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Save className="w-5 h-5 mr-2" />}
+                        {saving ? 'Saving...' : 'Save Preferences'}
                       </Button>
                     </div>
                   </div>

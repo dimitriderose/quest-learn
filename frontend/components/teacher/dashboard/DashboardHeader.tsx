@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useAuth } from "@/lib/contexts/AuthContext";
+import { NotificationBell } from "@/components/teacher/notifications/NotificationBell";
 import { LogOut } from "lucide-react";
 
 export function DashboardHeader() {
@@ -53,7 +54,8 @@ export function DashboardHeader() {
 
           <div className="flex items-center gap-4">
             <ThemeToggle variant="professional" />
-            
+            <NotificationBell />
+
             {user && (
               <div className="flex items-center gap-3">
                 <div className="text-right hidden sm:block">

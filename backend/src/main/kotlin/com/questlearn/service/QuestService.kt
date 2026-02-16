@@ -65,6 +65,14 @@ class QuestService(
     }
     
     /**
+     * Get quests by a list of IDs
+     */
+    fun getQuestsByIds(ids: List<String>): List<Quest> {
+        if (ids.isEmpty()) return emptyList()
+        return questRepository.findByIdIn(ids)
+    }
+
+    /**
      * Delete quest
      */
     fun deleteQuest(questId: String) {

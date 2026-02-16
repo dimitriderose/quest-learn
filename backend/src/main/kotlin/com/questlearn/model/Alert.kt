@@ -60,6 +60,12 @@ data class Alert(
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),
     
+    @Column(name = "is_read", nullable = false)
+    val isRead: Boolean = false,
+
+    @Column(name = "read_at")
+    val readAt: Instant? = null,
+
     @Column(name = "updated_at", nullable = false)
     val updatedAt: Instant = Instant.now()
 )

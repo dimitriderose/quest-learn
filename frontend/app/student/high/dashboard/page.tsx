@@ -6,7 +6,12 @@ import { HighSchoolHeader } from "@/components/student/high/HighSchoolHeader";
 import { PortfolioCard } from "@/components/student/high/PortfolioCard";
 import { ProjectGrid } from "@/components/student/high/ProjectGrid";
 import { ImpactMetrics } from "@/components/student/high/ImpactMetrics";
-import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
+import { CurriculumSection } from "@/components/student/dashboard/CurriculumSection";
+import {
+  getMyCurricula,
+  StudentQuestDto,
+  StudentCurriculumDto,
+} from "@/lib/api/studentQuests";
 import { progressApi, StudentProgress, DashboardStats } from "@/lib/api/progress";
 
 function scoreToGrade(score: number): string {
@@ -62,11 +67,12 @@ function convertToProjectFormat(
 
 export default function HighSchoolDashboard() {
   const { user } = useAuth();
-  const [projects, setProjects] = useState<any[]>([]);
+  const [curricula, setCurricula] = useState<StudentCurriculumDto[]>([]);
+  const [standaloneProjects, setStandaloneProjects] = useState<any[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const completedCount = projects.filter((p) => p.status === "completed").length;
+  const completedCount = standaloneProjects.filter((p) => p.status === "completed").length;
 
   const student = {
     name: user?.displayName || user?.email?.split("@")[0] || "Student",
@@ -83,7 +89,7 @@ export default function HighSchoolDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const questsPromise = getMyQuests();
+        const curriculaPromise = getMyCurricula();
         const progressPromise = user?.uid
           ? progressApi.getAllProgress(user.uid, user.classId)
           : Promise.resolve([]);
@@ -91,17 +97,21 @@ export default function HighSchoolDashboard() {
           ? progressApi.getDashboardStats(user.uid, user.classId)
           : Promise.resolve(null);
 
-        const [assignedQuests, progressData, stats] = await Promise.all([
-          questsPromise,
+        const [curriculaData, progressData, stats] = await Promise.all([
+          curriculaPromise,
           progressPromise,
           statsPromise,
         ]);
 
-        setProjects(convertToProjectFormat(assignedQuests, progressData));
+        setCurricula(curriculaData.curricula);
+        setStandaloneProjects(
+          convertToProjectFormat(curriculaData.standaloneQuests, progressData)
+        );
         setDashboardStats(stats);
       } catch (error) {
         console.error("Error loading data:", error);
-        setProjects([]);
+        setCurricula([]);
+        setStandaloneProjects([]);
       } finally {
         setLoading(false);
       }
@@ -109,6 +119,8 @@ export default function HighSchoolDashboard() {
 
     loadData();
   }, [user?.uid]);
+
+  const totalProjects = standaloneProjects.length;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
@@ -122,7 +134,7 @@ export default function HighSchoolDashboard() {
               averageGrade={averageGrade}
               totalXP={dashboardStats?.classTotalXP ?? 0}
               completedQuests={completedCount}
-              totalQuests={projects.length}
+              totalQuests={totalProjects}
             />
           </div>
           <div>
@@ -130,37 +142,65 @@ export default function HighSchoolDashboard() {
               totalXP={dashboardStats?.classTotalXP ?? 0}
               averageScore={dashboardStats?.classAverageScore ?? 0}
               completedQuests={completedCount}
-              totalQuests={projects.length}
+              totalQuests={totalProjects}
             />
           </div>
         </div>
 
-        <div>
-          <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Your Projects
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Complete projects to build your academic portfolio
-          </p>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading your projects...</p>
+          </div>
+        ) : (
+          <>
+            {/* Curricula Sections */}
+            {curricula.length > 0 && (
+              <div className="mb-8">
+                <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Course Modules
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Complete each module sequentially to progress through the course
+                </p>
+                {curricula.map((curriculum) => (
+                  <CurriculumSection
+                    key={curriculum.curriculumId}
+                    curriculum={curriculum}
+                    variant="high"
+                  />
+                ))}
+              </div>
+            )}
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading your projects...</p>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700">
-              <p className="text-xl text-gray-900 dark:text-white mb-2">
-                No projects assigned yet!
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                Ask your teacher to assign you some projects.
-              </p>
-            </div>
-          ) : (
-            <ProjectGrid projects={projects} />
-          )}
-        </div>
+            {/* Standalone Projects */}
+            {standaloneProjects.length > 0 && (
+              <div>
+                <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  {curricula.length > 0 ? "Additional Projects" : "Your Projects"}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {curricula.length > 0
+                    ? "Supplementary projects to expand your portfolio"
+                    : "Complete projects to build your academic portfolio"}
+                </p>
+                <ProjectGrid projects={standaloneProjects} />
+              </div>
+            )}
+
+            {/* Empty state */}
+            {curricula.length === 0 && standaloneProjects.length === 0 && (
+              <div className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700">
+                <p className="text-xl text-gray-900 dark:text-white mb-2">
+                  No projects assigned yet!
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Ask your teacher to assign you some projects.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

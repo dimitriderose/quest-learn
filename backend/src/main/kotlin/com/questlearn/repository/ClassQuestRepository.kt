@@ -10,4 +10,7 @@ interface ClassQuestRepository : JpaRepository<ClassQuest, String> {
     fun findByQuestId(questId: String): List<ClassQuest>
     fun findByClassIdIn(classIds: List<String>): List<ClassQuest>
     fun findByAssignedBy(teacherId: String): List<ClassQuest>
+    fun findByClassIdAndQuestId(classId: String, questId: String): ClassQuest?
+    fun deleteByClassIdAndQuestId(classId: String, questId: String)
+    fun deleteByQuestId(questId: String)
 }

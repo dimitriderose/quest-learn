@@ -7,21 +7,39 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Plus, Copy, Users, Calendar } from "lucide-react";
 import { classApi, ClassDto } from "@/lib/api/classes";
+import { reportsApi, ClassComparisonEntry } from "@/lib/api/reports";
+import { useAuth } from "@/lib/contexts/AuthContext";
 import Link from "next/link";
 
 export default function TeacherClassesPage() {
+  const { user } = useAuth();
   const [classes, setClasses] = useState<ClassDto[]>([]);
+  const [classStats, setClassStats] = useState<Record<string, ClassComparisonEntry>>({});
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   useEffect(() => {
     loadClasses();
-  }, []);
+  }, [user]);
 
   const loadClasses = async () => {
     try {
       const data = await classApi.getAll();
       setClasses(data);
+
+      // Load class comparison stats for health overlay
+      if (user?.uid) {
+        try {
+          const comparison = await reportsApi.getClassComparison(user.uid);
+          if (comparison?.classes) {
+            const statsMap: Record<string, ClassComparisonEntry> = {};
+            comparison.classes.forEach(c => { statsMap[c.classId] = c; });
+            setClassStats(statsMap);
+          }
+        } catch (e) {
+          console.error('Failed to load class stats:', e);
+        }
+      }
     } catch (error) {
       console.error('Failed to load classes:', error);
     } finally {
@@ -80,7 +98,7 @@ export default function TeacherClassesPage() {
             <EmptyState onCreateClick={() => setShowCreateForm(true)} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {classes.map((cls) => (<ClassCard key={cls.id} classData={cls} onCopyCode={copyClassCode} />))}
+              {classes.map((cls) => (<ClassCard key={cls.id} classData={cls} stats={classStats[cls.id]} onCopyCode={copyClassCode} />))}
             </div>
           )}
         </main>
@@ -166,7 +184,7 @@ function CreateClassForm({ onSubmit, onCancel }: {
   );
 }
 
-function ClassCard({ classData, onCopyCode }: { classData: ClassDto; onCopyCode: (code: string) => void; }) {
+function ClassCard({ classData, stats, onCopyCode }: { classData: ClassDto; stats?: ClassComparisonEntry; onCopyCode: (code: string) => void; }) {
   return (
     <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-4">
@@ -185,6 +203,26 @@ function ClassCard({ classData, onCopyCode }: { classData: ClassDto; onCopyCode:
           <button onClick={() => onCopyCode(classData.classCode)} className="p-2 text-blue-600 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors" title="Copy class code"><Copy className="w-5 h-5" /></button>
         </div>
       </div>
+
+      {/* Class Health Stats */}
+      {stats && (
+        <div className="mb-4 flex items-center gap-3 text-xs">
+          <span className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 rounded-full font-semibold">
+            {stats.averageScore}% avg
+          </span>
+          {stats.activeCurriculumCount > 0 && (
+            <span className="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full font-semibold">
+              {stats.activeCurriculumCount} {stats.activeCurriculumCount === 1 ? 'curriculum' : 'curricula'}
+            </span>
+          )}
+          {stats.attentionNeededCount > 0 && (
+            <span className="px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900/20 dark:text-amber-400 rounded-full font-semibold">
+              {stats.attentionNeededCount} need help
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between text-sm">
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Users className="w-4 h-4" /><span>{classData.studentCount} students</span></div>
         <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400"><Calendar className="w-4 h-4" /><span>{new Date(classData.createdAt).toLocaleDateString()}</span></div>

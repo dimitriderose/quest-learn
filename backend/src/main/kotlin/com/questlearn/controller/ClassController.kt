@@ -7,6 +7,7 @@ import com.questlearn.model.User
 import com.questlearn.repository.ClassQuestRepository
 import com.questlearn.service.ClassService
 import com.questlearn.service.QuestService
+import com.questlearn.service.ReportsService
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
@@ -17,7 +18,8 @@ import java.util.UUID
 class ClassController(
     private val classService: ClassService,
     private val classQuestRepository: ClassQuestRepository,
-    private val questService: QuestService
+    private val questService: QuestService,
+    private val reportsService: ReportsService
 ) {
     
     @PostMapping
@@ -70,10 +72,18 @@ class ClassController(
     }
     
     @GetMapping("/{id}")
-    fun getClass(@PathVariable id: String): ApiResponse<ClassDetailsDto> {
+    fun getClass(
+        @PathVariable id: String,
+        @RequestParam(defaultValue = "false") enriched: Boolean
+    ): ApiResponse<Any> {
         return try {
-            val classDetails = classService.getClassDetails(id)
-            success(classDetails)
+            if (enriched) {
+                val enrichedDetails = reportsService.getEnrichedClassDetails(id)
+                success(enrichedDetails as Any)
+            } else {
+                val classDetails = classService.getClassDetails(id)
+                success(classDetails as Any)
+            }
         } catch (e: IllegalArgumentException) {
             error("NOT_FOUND", e.message ?: "Class not found")
         } catch (e: Exception) {
@@ -159,6 +169,67 @@ class ClassController(
             println("ERROR: Failed to assign quest - ${e.message}")
             e.printStackTrace()
             error("ASSIGN_FAILED", e.message ?: "Failed to assign quest")
+        }
+    }
+    @DeleteMapping("/{classId}/quests/{questId}")
+    fun unassignQuest(
+        @PathVariable classId: String,
+        @PathVariable questId: String,
+        authentication: Authentication
+    ): ApiResponse<Unit> {
+        return try {
+            val user = authentication.principal as User
+            val clazz = classService.getClass(classId)
+                ?: return error("CLASS_NOT_FOUND", "Class not found")
+            if (clazz.teacherId != user.uid) {
+                return error("UNAUTHORIZED", "You can only manage your own classes")
+            }
+            classQuestRepository.deleteByClassIdAndQuestId(classId, questId)
+            success(Unit)
+        } catch (e: Exception) {
+            error("UNASSIGN_FAILED", e.message ?: "Failed to unassign quest")
+        }
+    }
+
+    @PostMapping("/{classId}/curricula")
+    fun assignCurriculum(
+        @PathVariable classId: String,
+        @RequestBody request: AssignCurriculumRequest,
+        authentication: Authentication
+    ): ApiResponse<Class> {
+        return try {
+            val user = authentication.principal as User
+            val clazz = classService.getClass(classId)
+                ?: return error("CLASS_NOT_FOUND", "Class not found")
+            if (clazz.teacherId != user.uid) {
+                return error("UNAUTHORIZED", "You can only manage your own classes")
+            }
+            val updated = classService.assignCurriculum(classId, request.curriculumId)
+            if (updated != null) success(updated)
+            else error("ASSIGN_FAILED", "Failed to assign curriculum")
+        } catch (e: Exception) {
+            error("ASSIGN_FAILED", e.message ?: "Failed to assign curriculum")
+        }
+    }
+
+    @DeleteMapping("/{classId}/curricula/{curriculumId}")
+    fun unassignCurriculum(
+        @PathVariable classId: String,
+        @PathVariable curriculumId: String,
+        authentication: Authentication
+    ): ApiResponse<Class> {
+        return try {
+            val user = authentication.principal as User
+            val clazz = classService.getClass(classId)
+                ?: return error("CLASS_NOT_FOUND", "Class not found")
+            if (clazz.teacherId != user.uid) {
+                return error("UNAUTHORIZED", "You can only manage your own classes")
+            }
+            val updated = classService.unassignCurriculum(classId, curriculumId)
+            if (updated != null) success(updated)
+            else error("UNASSIGN_FAILED", "Failed to unassign curriculum")
+        } catch (e: Exception) {
+            error("UNASSIGN_FAILED", e.message ?: "Failed to unassign curriculum")
         }
     }
 }

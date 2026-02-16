@@ -69,6 +69,19 @@ data class Quest(
     
     @Column(name = "created_by", length = 50)
     val createdBy: String? = null,
+
+    // Adaptive learning path fields
+    @Column(name = "is_diagnostic", nullable = false)
+    val isDiagnostic: Boolean = false,
+
+    @Column(name = "target_track", length = 20)
+    val targetTrack: String? = null,
+
+    @Column(name = "is_tutorial", nullable = false)
+    val isTutorial: Boolean = false,
+
+    @Column(name = "tutorial_for_quest_id", length = 50)
+    val tutorialForQuestId: String? = null,
     
     @Column(name = "created_at", nullable = false)
     val createdAt: Instant = Instant.now(),

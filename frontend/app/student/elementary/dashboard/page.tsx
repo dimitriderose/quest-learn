@@ -7,7 +7,12 @@ import { XPTracker } from "@/components/student/dashboard/XPTracker";
 import { QuestGrid } from "@/components/student/dashboard/QuestGrid";
 import { QuestHistory } from "@/components/student/dashboard/QuestHistory";
 import { AchievementBanner } from "@/components/student/dashboard/AchievementBanner";
-import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
+import { CurriculumSection } from "@/components/student/dashboard/CurriculumSection";
+import {
+  getMyCurricula,
+  StudentQuestDto,
+  StudentCurriculumDto,
+} from "@/lib/api/studentQuests";
 import { progressApi, StudentProgress, DashboardStats } from "@/lib/api/progress";
 
 function convertToQuestFormat(quests: StudentQuestDto[]) {
@@ -45,7 +50,8 @@ function getIconForSubject(subject: string): string {
 
 export default function ElementaryDashboard() {
   const { user } = useAuth();
-  const [quests, setQuests] = useState<any[]>([]);
+  const [curricula, setCurricula] = useState<StudentCurriculumDto[]>([]);
+  const [standaloneQuests, setStandaloneQuests] = useState<any[]>([]);
   const [allProgress, setAllProgress] = useState<StudentProgress[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -59,7 +65,7 @@ export default function ElementaryDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const questsPromise = getMyQuests();
+        const curriculaPromise = getMyCurricula();
         const progressPromise = user?.uid
           ? progressApi.getAllProgress(user.uid, user.classId)
           : Promise.resolve([]);
@@ -67,18 +73,20 @@ export default function ElementaryDashboard() {
           ? progressApi.getDashboardStats(user.uid, user.classId)
           : Promise.resolve(null);
 
-        const [assignedQuests, progressData, stats] = await Promise.all([
-          questsPromise,
+        const [curriculaData, progressData, stats] = await Promise.all([
+          curriculaPromise,
           progressPromise,
           statsPromise,
         ]);
 
-        setQuests(convertToQuestFormat(assignedQuests));
+        setCurricula(curriculaData.curricula);
+        setStandaloneQuests(convertToQuestFormat(curriculaData.standaloneQuests));
         setAllProgress(progressData);
         setDashboardStats(stats);
       } catch (error) {
         console.error("Error loading data:", error);
-        setQuests([]);
+        setCurricula([]);
+        setStandaloneQuests([]);
       } finally {
         setLoading(false);
       }
@@ -126,32 +134,63 @@ export default function ElementaryDashboard() {
           />
         </div>
 
-        <div className="mt-8">
-          <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
-            🎯 My Assigned Quests
-          </h2>
-          <p className="font-nunito text-xl text-white/90 text-center mb-8">
-            Complete your assigned quests to earn XP and level up!
-          </p>
+        {loading ? (
+          <div className="text-center text-white py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+            <p className="font-nunito">Loading your quests...</p>
+          </div>
+        ) : (
+          <>
+            {/* Curricula Sections */}
+            {curricula.length > 0 && (
+              <div className="mt-8">
+                <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
+                  🗺️ Your Learning Adventures
+                </h2>
+                <p className="font-nunito text-xl text-white/90 text-center mb-8">
+                  Follow the path day by day to complete your adventures!
+                </p>
+                {curricula.map((curriculum) => (
+                  <CurriculumSection
+                    key={curriculum.curriculumId}
+                    curriculum={curriculum}
+                    variant="elementary"
+                  />
+                ))}
+              </div>
+            )}
 
-          {loading ? (
-            <div className="text-center text-white py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p className="font-nunito">Loading your quests...</p>
-            </div>
-          ) : quests.length === 0 ? (
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
-              <p className="font-nunito text-xl text-white mb-2">
-                No quests assigned yet! 📚
-              </p>
-              <p className="font-nunito text-white/80">
-                Ask your teacher to assign you some learning adventures!
-              </p>
-            </div>
-          ) : (
-            <QuestGrid quests={quests} />
-          )}
-        </div>
+            {/* Standalone Quests */}
+            {standaloneQuests.length > 0 && (
+              <div className="mt-8">
+                <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
+                  🎯 Extra Quests
+                </h2>
+                <p className="font-nunito text-xl text-white/90 text-center mb-8">
+                  Bonus quests to earn extra XP!
+                </p>
+                <QuestGrid quests={standaloneQuests} />
+              </div>
+            )}
+
+            {/* Empty state */}
+            {curricula.length === 0 && standaloneQuests.length === 0 && (
+              <div className="mt-8">
+                <h2 className="font-fredoka text-4xl font-bold text-white mb-2 text-center">
+                  🎯 My Assigned Quests
+                </h2>
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 text-center">
+                  <p className="font-nunito text-xl text-white mb-2">
+                    No quests assigned yet! 📚
+                  </p>
+                  <p className="font-nunito text-white/80">
+                    Ask your teacher to assign you some learning adventures!
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* Quest History Section */}
         {allProgress.length > 0 && (

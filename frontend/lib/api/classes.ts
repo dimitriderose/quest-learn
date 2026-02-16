@@ -85,6 +85,25 @@ export const classApi = {
     const response = await apiClient.delete<ApiResponse<ClassDto>>(`/api/v1/classes/${classId}/students/${studentId}`);
     return response.data.data;
   },
+
+  unassignQuest: async (classId: string, questId: string): Promise<void> => {
+    await apiClient.delete(`/api/v1/classes/${classId}/quests/${questId}`);
+  },
+
+  assignCurriculum: async (classId: string, curriculumId: string): Promise<ClassDto> => {
+    const response = await apiClient.post<ApiResponse<ClassDto>>(
+      `/api/v1/classes/${classId}/curricula`,
+      { curriculumId }
+    );
+    return response.data.data;
+  },
+
+  unassignCurriculum: async (classId: string, curriculumId: string): Promise<ClassDto> => {
+    const response = await apiClient.delete<ApiResponse<ClassDto>>(
+      `/api/v1/classes/${classId}/curricula/${curriculumId}`
+    );
+    return response.data.data;
+  },
 };
 
 // Convenience exports

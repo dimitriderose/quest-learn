@@ -40,9 +40,11 @@ export function QuestPlayer({
       const messageData = event.data.data || event.data;
       const messageType = messageData.type;
 
-      if (messageType !== 'QUEST_COMPLETE') return;
+      // Handle all completion event types (regular quests, diagnostics, tutorials)
+      const completionTypes = ['QUEST_COMPLETE', 'DIAGNOSTIC_COMPLETE', 'TUTORIAL_COMPLETE'];
+      if (!completionTypes.includes(messageType)) return;
 
-      console.log('Quest completion data received:', messageData);
+      console.log(`${messageType} data received:`, messageData);
       console.log('About to call progressApi.recordQuestCompletion with:', {
         studentId,
         curriculumId,

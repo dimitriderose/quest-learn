@@ -6,7 +6,12 @@ import { MiddleSchoolHeader } from "@/components/student/middle/MiddleSchoolHead
 import { SkillProgressCard } from "@/components/student/middle/SkillProgressCard";
 import { ChallengeGrid } from "@/components/student/middle/ChallengeGrid";
 import { LeaderboardCard } from "@/components/student/middle/LeaderboardCard";
-import { getMyQuests, StudentQuestDto } from "@/lib/api/studentQuests";
+import { CurriculumSection } from "@/components/student/dashboard/CurriculumSection";
+import {
+  getMyCurricula,
+  StudentQuestDto,
+  StudentCurriculumDto,
+} from "@/lib/api/studentQuests";
 import { progressApi, StudentProgress, DashboardStats } from "@/lib/api/progress";
 
 function getIconForSubject(subject: string): string {
@@ -62,7 +67,8 @@ function convertToChallengeFormat(
 
 export default function MiddleSchoolDashboard() {
   const { user } = useAuth();
-  const [challenges, setChallenges] = useState<any[]>([]);
+  const [curricula, setCurricula] = useState<StudentCurriculumDto[]>([]);
+  const [standaloneChallenges, setStandaloneChallenges] = useState<any[]>([]);
   const [allProgress, setAllProgress] = useState<StudentProgress[]>([]);
   const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,7 +105,7 @@ export default function MiddleSchoolDashboard() {
   useEffect(() => {
     async function loadData() {
       try {
-        const questsPromise = getMyQuests();
+        const curriculaPromise = getMyCurricula();
         const progressPromise = user?.uid
           ? progressApi.getAllProgress(user.uid, user.classId)
           : Promise.resolve([]);
@@ -107,18 +113,22 @@ export default function MiddleSchoolDashboard() {
           ? progressApi.getDashboardStats(user.uid, user.classId)
           : Promise.resolve(null);
 
-        const [assignedQuests, progressData, stats] = await Promise.all([
-          questsPromise,
+        const [curriculaData, progressData, stats] = await Promise.all([
+          curriculaPromise,
           progressPromise,
           statsPromise,
         ]);
 
-        setChallenges(convertToChallengeFormat(assignedQuests, progressData));
+        setCurricula(curriculaData.curricula);
+        setStandaloneChallenges(
+          convertToChallengeFormat(curriculaData.standaloneQuests, progressData)
+        );
         setAllProgress(progressData);
         setDashboardStats(stats);
       } catch (error) {
         console.error("Error loading data:", error);
-        setChallenges([]);
+        setCurricula([]);
+        setStandaloneChallenges([]);
       } finally {
         setLoading(false);
       }
@@ -147,32 +157,60 @@ export default function MiddleSchoolDashboard() {
           </div>
         </div>
 
-        <div>
-          <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            Blacksmith Academy Challenges
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            Complete challenges to level up your skills
-          </p>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-gray-600 dark:text-gray-400">Loading your challenges...</p>
+          </div>
+        ) : (
+          <>
+            {/* Curricula Sections */}
+            {curricula.length > 0 && (
+              <div className="mb-8">
+                <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  Your Learning Paths
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  Complete each day to unlock the next set of challenges
+                </p>
+                {curricula.map((curriculum) => (
+                  <CurriculumSection
+                    key={curriculum.curriculumId}
+                    curriculum={curriculum}
+                    variant="middle"
+                  />
+                ))}
+              </div>
+            )}
 
-          {loading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-              <p className="text-gray-600 dark:text-gray-400">Loading your challenges...</p>
-            </div>
-          ) : challenges.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700">
-              <p className="text-xl text-gray-900 dark:text-white mb-2">
-                No challenges assigned yet!
-              </p>
-              <p className="text-gray-600 dark:text-gray-400">
-                Ask your teacher to assign you some challenges.
-              </p>
-            </div>
-          ) : (
-            <ChallengeGrid challenges={challenges} />
-          )}
-        </div>
+            {/* Standalone Challenges */}
+            {standaloneChallenges.length > 0 && (
+              <div>
+                <h2 className="font-merriweather text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                  {curricula.length > 0 ? "Extra Challenges" : "Blacksmith Academy Challenges"}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {curricula.length > 0
+                    ? "Additional challenges to boost your skills"
+                    : "Complete challenges to level up your skills"}
+                </p>
+                <ChallengeGrid challenges={standaloneChallenges} />
+              </div>
+            )}
+
+            {/* Empty state */}
+            {curricula.length === 0 && standaloneChallenges.length === 0 && (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-200 dark:border-gray-700">
+                <p className="text-xl text-gray-900 dark:text-white mb-2">
+                  No challenges assigned yet!
+                </p>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Ask your teacher to assign you some challenges.
+                </p>
+              </div>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

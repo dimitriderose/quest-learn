@@ -26,4 +26,7 @@ interface StudentProgressRepository : JpaRepository<StudentProgress, String> {
     // Teacher dashboard queries
     @Query("SELECT sp FROM StudentProgress sp WHERE sp.teacherId = :teacherId AND sp.hasActiveAlert = true")
     fun findActiveAlertsByTeacher(teacherId: String): List<StudentProgress>
+
+    // All progress for a teacher (batch load for dashboard)
+    fun findByTeacherIdOrderByLastActivityAtDesc(teacherId: String): List<StudentProgress>
 }
