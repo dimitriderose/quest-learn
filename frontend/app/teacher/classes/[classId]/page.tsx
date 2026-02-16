@@ -182,12 +182,12 @@ export default function ClassDetailsPage() {
                           return (
                             <div className="mt-3 space-y-1.5">
                               {sp.curricula.map(c => (
-                                <div key={c.curriculumId} className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-20" title={c.curriculumTitle}>{c.curriculumTitle}</span>
-                                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                                    <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${c.progressPercentage}%` }} />
+                                <div key={c.curriculumId} className="flex items-center gap-2 min-w-0">
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 truncate w-28 shrink-0" title={c.curriculumTitle}>{c.curriculumTitle}</span>
+                                  <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden">
+                                    <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: `${Math.min(Math.max(c.progressPercentage || 0, 0), 100)}%` }} />
                                   </div>
-                                  <span className="text-xs text-gray-500 dark:text-gray-400 w-12 text-right">{Math.round(c.averageScore)}%</span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 w-12 shrink-0 text-right">{Math.round(c.averageScore || 0)}%</span>
                                 </div>
                               ))}
                             </div>
