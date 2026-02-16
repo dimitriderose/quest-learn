@@ -7,6 +7,7 @@ import com.questlearn.model.User
 import com.questlearn.repository.ClassQuestRepository
 import com.questlearn.service.ClassService
 import com.questlearn.service.QuestService
+import com.questlearn.service.ReportsService
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.*
 import java.time.Instant
@@ -17,7 +18,8 @@ import java.util.UUID
 class ClassController(
     private val classService: ClassService,
     private val classQuestRepository: ClassQuestRepository,
-    private val questService: QuestService
+    private val questService: QuestService,
+    private val reportsService: ReportsService
 ) {
     
     @PostMapping
@@ -70,10 +72,18 @@ class ClassController(
     }
     
     @GetMapping("/{id}")
-    fun getClass(@PathVariable id: String): ApiResponse<ClassDetailsDto> {
+    fun getClass(
+        @PathVariable id: String,
+        @RequestParam(defaultValue = "false") enriched: Boolean
+    ): ApiResponse<Any> {
         return try {
-            val classDetails = classService.getClassDetails(id)
-            success(classDetails)
+            if (enriched) {
+                val enrichedDetails = reportsService.getEnrichedClassDetails(id)
+                success(enrichedDetails as Any)
+            } else {
+                val classDetails = classService.getClassDetails(id)
+                success(classDetails as Any)
+            }
         } catch (e: IllegalArgumentException) {
             error("NOT_FOUND", e.message ?: "Class not found")
         } catch (e: Exception) {

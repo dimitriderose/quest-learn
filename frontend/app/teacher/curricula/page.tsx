@@ -31,6 +31,7 @@ import {
   addQuestToCurriculum,
   Curriculum,
 } from "@/lib/api/curricula";
+import { reportsApi, CurriculumStats } from "@/lib/api/reports";
 
 type TabKey = "my-curricula" | "quest-library";
 
@@ -44,6 +45,7 @@ export default function TeacherCurriculaPage() {
 
   // My Curricula state
   const [curricula, setCurricula] = useState<Curriculum[]>([]);
+  const [curriculaStats, setCurriculaStats] = useState<Record<string, CurriculumStats>>({});
   const [curriculaLoading, setCurriculaLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -82,10 +84,29 @@ export default function TeacherCurriculaPage() {
     if (!currentUser) return;
     setCurriculaLoading(true);
     try {
-      const data = await listCurricula({ teacherId: currentUser.uid });
-      setCurricula(data);
+      // Try enriched endpoint first for stats overlay
+      const enriched = await reportsApi.getEnrichedCurricula(currentUser.uid);
+      if (enriched.length > 0 && enriched[0].curriculum) {
+        setCurricula(enriched.map(e => e.curriculum));
+        const statsMap: Record<string, CurriculumStats> = {};
+        enriched.forEach(e => {
+          if (e.stats) statsMap[e.curriculum.id] = e.stats;
+        });
+        setCurriculaStats(statsMap);
+      } else {
+        // Fallback to non-enriched
+        const data = await listCurricula({ teacherId: currentUser.uid });
+        setCurricula(data);
+      }
     } catch (error) {
       console.error("Failed to load curricula:", error);
+      // Fallback
+      try {
+        const data = await listCurricula({ teacherId: currentUser.uid });
+        setCurricula(data);
+      } catch (e) {
+        console.error("Failed to load curricula fallback:", e);
+      }
     } finally {
       setCurriculaLoading(false);
     }
@@ -237,6 +258,7 @@ export default function TeacherCurriculaPage() {
           {activeTab === "my-curricula" ? (
             <MyCurriculaTab
               curricula={curricula}
+              curriculaStats={curriculaStats}
               onDelete={handleDeleteCurriculum}
               onCreateClick={() => setShowCreateModal(true)}
               router={router}
@@ -300,11 +322,13 @@ export default function TeacherCurriculaPage() {
 
 function MyCurriculaTab({
   curricula,
+  curriculaStats,
   onDelete,
   onCreateClick,
   router,
 }: {
   curricula: Curriculum[];
+  curriculaStats: Record<string, CurriculumStats>;
   onDelete: (id: string) => void;
   onCreateClick: () => void;
   router: ReturnType<typeof import("next/navigation").useRouter>;
@@ -351,6 +375,7 @@ function MyCurriculaTab({
             <CurriculumCard
               key={curriculum.id}
               curriculum={curriculum}
+              stats={curriculaStats[curriculum.id]}
               onClick={() => router.push(`/teacher/curricula/${curriculum.id}`)}
               onDelete={() => onDelete(curriculum.id)}
             />
@@ -367,10 +392,12 @@ function MyCurriculaTab({
 
 function CurriculumCard({
   curriculum,
+  stats,
   onClick,
   onDelete,
 }: {
   curriculum: Curriculum;
+  stats?: CurriculumStats;
   onClick: () => void;
   onDelete: () => void;
 }) {
@@ -429,6 +456,30 @@ function CurriculumCard({
             {curriculum.totalQuests} {curriculum.totalQuests === 1 ? "quest" : "quests"}
           </span>
         </div>
+
+        {/* Performance Stats Overlay */}
+        {stats && stats.activeStudentCount > 0 ? (
+          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+              <span className="flex items-center gap-1">
+                <Users className="w-3 h-3" />
+                {stats.activeStudentCount} {stats.activeStudentCount === 1 ? "student" : "students"}
+              </span>
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                {stats.averageScore}% avg
+              </span>
+              {stats.tutorialCount > 0 && (
+                <span className="text-amber-600 dark:text-amber-400">
+                  {stats.tutorialCount} {stats.tutorialCount === 1 ? "tutorial" : "tutorials"}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : stats ? (
+          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-xs text-gray-400 dark:text-gray-500">No students enrolled yet</p>
+          </div>
+        ) : null}
       </div>
 
       {/* Delete button */}

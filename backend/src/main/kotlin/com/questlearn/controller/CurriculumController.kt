@@ -7,6 +7,7 @@ import com.questlearn.model.CurriculumType
 import com.questlearn.service.CurriculumDayService
 import com.questlearn.service.CurriculumService
 import com.questlearn.service.QuestService
+import com.questlearn.service.ReportsService
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
 
@@ -15,7 +16,8 @@ import java.time.LocalDate
 class CurriculumController(
     private val curriculumService: CurriculumService,
     private val curriculumDayService: CurriculumDayService,
-    private val questService: QuestService
+    private val questService: QuestService,
+    private val reportsService: ReportsService
 ) {
 
     @PostMapping
@@ -51,11 +53,24 @@ class CurriculumController(
 
     @GetMapping("/teacher/{teacherId}")
     fun getTeacherCurricula(
-        @PathVariable teacherId: String
-    ): ApiResponse<List<Curriculum>> {
+        @PathVariable teacherId: String,
+        @RequestParam(defaultValue = "false") enriched: Boolean
+    ): ApiResponse<Any> {
         return try {
             val curricula = curriculumService.getTeacherCurricula(teacherId)
-            success(curricula)
+            if (enriched) {
+                val enrichedList = curricula.map { curriculum ->
+                    val stats = try {
+                        reportsService.getCurriculumStats(curriculum.id)
+                    } catch (e: Exception) {
+                        null
+                    }
+                    EnrichedCurriculumResponse(curriculum = curriculum, stats = stats)
+                }
+                success(enrichedList as Any)
+            } else {
+                success(curricula as Any)
+            }
         } catch (e: Exception) {
             error("FETCH_FAILED", e.message ?: "Failed to fetch curricula")
         }
