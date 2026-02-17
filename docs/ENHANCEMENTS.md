@@ -59,51 +59,54 @@ Items marked with **(Teacher Feedback)** originated from direct teacher feedback
 - Image-based challenges (label the diagram, drag-and-drop)
 - Code-runner challenges for CS / STEM quests
 
-### 10. District Admin Dashboard
-- Cross-school analytics: compare progress, standards coverage, and alert rates
-- District-wide curriculum mandates that push to all schools
-- Aggregated achievement and engagement reports for board presentations
-
-### 11. Accessibility & Internationalization
-- WCAG 2.1 AA compliance audit and remediation
-- Screen reader support for quest player
-- Text-to-speech toggle for younger students
-- i18n framework with initial support for Spanish
-
-### 12. Assignment Scheduling & Due Dates
-- Calendar view for teachers to schedule quest/curriculum assignments
-- Automatic reminders to students for upcoming and overdue quests
-- Late submission policies (accept late, deduct XP, lock out)
-
----
-
-## Lower Priority / Future Ideas
-
-### 13. AI Tutoring Chatbot
-- In-quest conversational assistant that gives hints without giving away answers
-- Uses student's past performance to calibrate hint depth
-- Teacher-configurable guardrails (max hints, allowed topics)
-
-### 14. Leaderboards & Social Gamification
-- Class leaderboard (opt-in, anonymizable)
-- School-wide seasonal competitions
-- Badge showcase on student profile
-
-### 15. LMS Integrations
-- Google Classroom roster sync and grade passback
-- Canvas / Schoology LTI 1.3 integration
-- Clever SSO for district-wide deployments
-
-### 16. Advanced Reporting & Data Export
+### 10. Advanced Reporting & Data Export
 - Longitudinal growth reports (semester-over-semester)
 - Standards mastery heat maps per class
 - Exportable PDF report cards with charts
 - API endpoint for BI tool integration (Tableau, Power BI)
 
-### 17. Mobile App (React Native)
+### 11. Mobile App (React Native)
 - Native quest player optimized for tablets
 - Push notifications for alerts and reminders
 - Offline-first architecture reusing service worker cache strategy
+
+---
+
+## Lower Priority / Future Ideas
+
+### 12. AI Tutoring Chatbot
+- In-quest conversational assistant that gives hints without giving away answers
+- Uses student's past performance to calibrate hint depth
+- Teacher-configurable guardrails (max hints, allowed topics)
+- **Note:** Requires careful risk assessment and mitigation strategy before implementation — AI interactions with students carry real safety concerns
+
+### 13. Leaderboards & Social Gamification
+- Class leaderboard (opt-in, anonymizable) — visible on the student dashboard
+- Teachers can enable/disable leaderboards per class
+- School-wide seasonal competitions
+- Badge showcase on student profile
+
+### 14. LMS Integrations
+- LMS = Learning Management System (Google Classroom, Canvas, Schoology) — the platforms schools already use to manage classes
+- Google Classroom roster sync and grade passback
+- Canvas / Schoology LTI 1.3 integration
+- Clever SSO for district-wide deployments
+
+### 15. District Admin Dashboard
+- Cross-school analytics: compare progress, standards coverage, and alert rates
+- District-wide curriculum mandates that push to all schools
+- Aggregated achievement and engagement reports for board presentations
+
+### 16. Assignment Scheduling & Due Dates
+- Calendar view for teachers to schedule quest/curriculum assignments
+- Automatic reminders to students for upcoming and overdue quests
+- Late submission policies (accept late, deduct XP, lock out)
+- **Note:** Only pursue if teachers and students actively request it
+
+### 17. Multi-Language Support
+- i18n framework for full platform localization
+- Focus on English first; add additional languages based on user demand
+- Screen reader support and WCAG 2.1 AA compliance as part of accessibility pass
 
 ---
 
