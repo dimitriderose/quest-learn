@@ -92,7 +92,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       es.onerror = () => {
         es.close();
         eventSourceRef.current = null;
-        reconnectTimeoutRef.current = setTimeout(connect, 5000);
+        // Only reconnect if the token still exists (not cleared by a 401 handler)
+        const currentToken = localStorage.getItem('auth_token');
+        if (currentToken && currentToken !== 'undefined' && currentToken !== 'null') {
+          reconnectTimeoutRef.current = setTimeout(connect, 5000);
+        }
       };
     };
 

@@ -1,12 +1,17 @@
 package com.questlearn.security
 
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.http.MediaType
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
+import org.springframework.security.core.AuthenticationException
+import org.springframework.security.web.AuthenticationEntryPoint
 import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
@@ -48,6 +53,9 @@ class SecurityConfig(
                     .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                     .anyRequest().authenticated()
             }
+            .exceptionHandling { exceptions ->
+                exceptions.authenticationEntryPoint(apiAwareAuthenticationEntryPoint())
+            }
             .oauth2Login { oauth2 ->
                 oauth2
                     .successHandler(oauth2AuthenticationSuccessHandler)
@@ -56,6 +64,21 @@ class SecurityConfig(
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 
         return http.build()
+    }
+
+    @Bean
+    fun apiAwareAuthenticationEntryPoint(): AuthenticationEntryPoint {
+        return AuthenticationEntryPoint { request: HttpServletRequest, response: HttpServletResponse, _: AuthenticationException ->
+            // For API requests, return 401 instead of redirecting to OAuth2 login
+            if (request.requestURI.startsWith("/api/")) {
+                response.status = HttpServletResponse.SC_UNAUTHORIZED
+                response.contentType = MediaType.APPLICATION_JSON_VALUE
+                response.writer.write("""{"error": "Unauthorized", "message": "Authentication required or token expired"}""")
+            } else {
+                // For non-API requests (browser navigation), redirect to OAuth2 login
+                response.sendRedirect("/oauth2/authorization/google")
+            }
+        }
     }
 
     @Bean
